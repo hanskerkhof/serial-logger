@@ -88,19 +88,23 @@
     </header>
 
     <div class="history-list">
-      @if (commandHistory?.length) {
+      @if (commandHistory.length > 0) {
         <ul>
           @for (cmd of commandHistory; track cmd; let i = $index) {
             <li>
               <code>{{ cmd }}</code>
               <span class="spacer"></span>
-              <button type="button" (click)="reuseHistoryItem(cmd)">Use</button>
+              <button type="button" (click)="reuseHistoryItem(cmd)">📋 Use</button>
               <button type="button"
                       (click)="reuseAndSend(cmd)"
-                      [disabled]="!serial.connected$.value">
-                Use + Send
+                      [disabled]="!serial.connected$.value"
+                      title="Use and send immediately">
+                🚀 Use + Send
               </button>
-              <button type="button" (click)="deleteHistoryAt(i)" title="Delete this entry">🗑</button>
+              <button type="button"
+                      (click)="deleteHistoryAt(i)"
+                      title="Delete this entry">🗑
+              </button>
             </li>
           }
         </ul>

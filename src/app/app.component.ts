@@ -245,33 +245,23 @@ export class AppComponent implements OnInit, OnDestroy {
     setTimeout(() => this.focusCmd(), 0);
   }
 
-  // async reuseAndSend(cmd: string) {
+  // reuseAndSend(cmd: string) {
   //   this.inputText = cmd;
+  //   this.sendLine()                   // ✅ handle the promise
+  //     .finally(() => setTimeout(() => this['focusCmd']?.(), 0));
   //   this.closeHistoryDialog?.();
-  //   try {
-  //     await this.sendLine();          // ✅ handle the promise
-  //   } finally {
-  //     setTimeout(() => this['focusCmd']?.(), 0);
-  //   }
   // }
 
   reuseAndSend(cmd: string) {
     this.inputText = cmd;
+    // Optionally close the dialog before sending to avoid double submit clicks
     this.closeHistoryDialog?.();
-    this.sendLine()                   // ✅ handle the promise
-      .finally(() => setTimeout(() => this['focusCmd']?.(), 0));
+    // Send immediately; sendLine already appends newline, updates history, and resets the field
+    void this.sendLine();             // ✅ explicit ignore
+    // this.sendLine();
+    // Re-focus input for rapid follow-ups
+    setTimeout(() => this.focusCmd(), 0);
   }
-
-  // reuseAndSend(cmd: string) {
-  //   this.inputText = cmd;
-  //   // Optionally close the dialog before sending to avoid double submit clicks
-  //   this.closeHistoryDialog?.();
-  //   // Send immediately; sendLine already appends newline, updates history, and resets the field
-  //   void this.sendLine();             // ✅ explicit ignore
-  //   // this.sendLine();
-  //   // Re-focus input for rapid follow-ups
-  //   setTimeout(() => this['focusCmd']?.(), 0);
-  // }
 
   deleteHistoryAt(i: number) {
     this.commandHistory = this.history.deleteAt(i);

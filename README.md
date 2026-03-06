@@ -1,59 +1,64 @@
-# SerialLogger
+# BAUKLANK Serial Logger App
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.5.
+Angular app for two control modes:
 
-## Development server
+- `Direct`: Web Serial terminal for direct COMMANDER interaction.
+- `Commander`: HTTP API client for CMDR endpoints (`/health`, fixture version, plan versions).
 
-To start a local development server, run:
+## Version
 
-```bash
-ng serve
-```
+Current app version: `0.0.2`.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Development
 
 ```bash
-ng generate component component-name
+cd /Users/hanskerkhof/serial-logger-app
+npm install
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+App default dev URL:
+
+- [http://localhost:4210](http://localhost:4210)
+
+## Routes
+
+- `/direct`
+- `/commander`
+
+Root (`/`) redirects to `/direct`.
+
+## Commander mode features
+
+- API target switching (MacBook / Raspberry Pi / custom URL), persisted in localStorage.
+- Health check against selected API target.
+- Query fixture version endpoint (`/fixtures/{fixture_name}/version`).
+- Query plan versions endpoint (`/plans/{plan_name}/versions`).
+- Runtime fixture store (signal-based, keyed by `fixture_name`).
+- Left sidebar grouped by `plan_name`, sorted by plan then fixture name.
+- Fixture selection modal with read-only JSON payload.
+
+## Backend contract used by Commander mode
+
+For both endpoint responses:
+
+- `GET /fixtures/{fixture_name}/version`
+- `GET /plans/{plan_name}/versions`
+
+`summary.fixtures[]` items are expected to include:
+
+- `fixture_name`
+- `plan_name`
+- `fw_version`
+- `build_date`
+- `build_time`
+
+## Build
 
 ```bash
-ng generate --help
+npm run build
 ```
 
-## Building
+Output:
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- `dist/serial-logger`

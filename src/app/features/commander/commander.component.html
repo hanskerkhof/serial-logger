@@ -1,0 +1,127 @@
+<section class="commander" aria-label="Commander mode">
+  <aside class="commander__sidebar" aria-label="Fixtures by plan">
+    <header class="commander__sidebar-header">
+      <h3>Fixtures</h3>
+      <span>{{ fixtureCount() }}</span>
+    </header>
+
+    @if (groupedFixtures().length === 0) {
+      <p class="commander__sidebar-empty">No fixtures yet. Run fixture/plan queries to populate.</p>
+    } @else {
+      <div class="commander__groups">
+        @for (group of groupedFixtures(); track group.plan_name) {
+          <section class="commander__group">
+            <h4 class="commander__group-title">{{ group.plan_name }}</h4>
+            <ul class="commander__fixture-list">
+              @for (fixture of group.fixtures; track fixture.fixture_name) {
+                <li>
+                  <button
+                    type="button"
+                    class="commander__fixture-btn"
+                    [class.commander__fixture-btn--active]="selectedFixtureName() === fixture.fixture_name"
+                    (click)="selectFixture(fixture)"
+                  >
+                    {{ fixture.fixture_name }}
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    }
+  </aside>
+
+  <div class="commander__main">
+    <header class="commander__header">      <button type="button" (click)="reloadHealth()" [disabled]="loading()">Refresh health</button>
+    </header>
+
+    <section class="commander__target-panel" aria-label="Commander API target">
+      <p><strong>Active API:</strong> {{ activeApiUrl() }}</p>
+
+      <div class="commander__presets">
+        @for (target of targets; track target.id) {
+          <button
+            type="button"
+            (click)="useTarget(target.url)"
+            [disabled]="loading()"
+            [class.commander__preset--active]="activeApiUrl() === target.url"
+          >
+            {{ target.label }} ({{ target.url }})
+          </button>
+        }
+      </div>
+
+      <div class="commander__custom">
+        <label for="customApiUrl">Custom API URL</label>
+        <input
+          id="customApiUrl"
+          type="text"
+          [ngModel]="customUrl()"
+          (ngModelChange)="customUrl.set($event)"
+          placeholder="http://100.x.x.x:8080"
+        />
+        <button type="button" (click)="applyCustomUrl()" [disabled]="loading()">Use custom URL</button>
+      </div>
+    </section>
+
+    @if (loading()) {
+      <p class="commander__status" role="status" aria-live="polite">Checking commander API health...</p>
+    } @else if (error(); as err) {
+      <p class="commander__error" role="alert">{{ err }}</p>
+    } @else if (health(); as currentHealth) {
+      <div class="commander__card">
+        <p><strong>ok:</strong> {{ currentHealth.ok }}</p>
+        <p><strong>service:</strong> {{ currentHealth.service }}</p>
+        <p><strong>utc:</strong> {{ currentHealth.utc }}</p>
+      </div>
+    }
+
+    <section class="commander__query-panel" aria-label="Commander queries">
+      <h3>Queries</h3>
+
+      <div class="commander__query-row">
+        <label for="fixtureName">Fixture</label>
+        <input
+          id="fixtureName"
+          type="text"
+          [ngModel]="fixtureName()"
+          (ngModelChange)="fixtureName.set($event)"
+          placeholder="CLIGNOTEUR1"
+        />
+        <button type="button" (click)="runFixtureQuery()" [disabled]="queryLoading()">Run fixture version endpoint</button>
+      </div>
+
+      <div class="commander__query-row">
+        <label for="planName">Plan</label>
+        <input
+          id="planName"
+          type="text"
+          [ngModel]="planName()"
+          (ngModelChange)="planName.set($event)"
+          placeholder="TRIPTYCH"
+        />
+        <button type="button" (click)="runPlanQuery()" [disabled]="queryLoading()">Run plan versions endpoint</button>
+      </div>
+
+      @if (queryLoading()) {
+        <p class="commander__status" role="status" aria-live="polite">Running query...</p>
+      }
+
+      @if (queryResultJson(); as payload) {
+        <pre class="commander__json">{{ payload }}</pre>
+      }
+    </section>
+  </div>
+
+  <dialog #fixtureDetailDialog class="commander__dialog">
+    <header class="commander__dialog-header">
+      <h3>Fixture: {{ selectedFixture()?.fixture_name }}</h3>
+      <button type="button" (click)="closeFixtureModal()" aria-label="Close">✕</button>
+    </header>
+    <pre class="commander__dialog-json">{{ selectedFixtureJson() }}</pre>
+    <footer class="commander__dialog-footer">
+      <button type="button" (click)="closeFixtureModal()">Close</button>
+    </footer>
+  </dialog>
+</section>

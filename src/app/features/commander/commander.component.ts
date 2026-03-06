@@ -21,10 +21,11 @@ import {
   FixturePlanActionResponse,
 } from '../../commander-api.service';
 import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
+import { CommanderConsoleComponent } from './commander-console/commander-console.component';
 
 @Component({
   selector: 'app-commander',
-  imports: [FormsModule, JsonPipe],
+  imports: [FormsModule, JsonPipe, CommanderConsoleComponent],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,6 +47,8 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionLoading = signal(false);
   protected readonly fixtureActionMessage = signal<string | null>(null);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
+  protected readonly fixtureActionDurationMs = signal<number | null>(null);
+  protected readonly manualCommand = signal('');
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
@@ -239,18 +242,24 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionResult.set(null);
 
     const command = `cmd;plan;action=${action};`;
-    this.commanderApi.runFixtureCommand(fixture, command).subscribe({
-      next: (result) => {
-        this.fixtureActionResult.set(result);
-        this.fixtureActionMessage.set(`Command accepted for ${fixture}: ${command}`);
-        this.fixtureActionLoading.set(false);
-      },
-      error: (err: unknown) => {
-        this.fixtureActionMessage.set(this.formatError(`Command failed for ${fixture}: ${command}`, err));
-        this.fixtureActionResult.set(null);
-        this.fixtureActionLoading.set(false);
-      },
-    });
+    this.sendCommand(fixture, command);
+  }
+
+  protected runManualCommand(): void {
+    const selected = this.selectedFixture();
+    const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
+    const command = this.manualCommand().trim();
+
+    if (!fixture) {
+      this.fixtureActionMessage.set('No fixture selected.');
+      return;
+    }
+    if (!command) {
+      this.fixtureActionMessage.set('Command is required.');
+      return;
+    }
+
+    this.sendCommand(fixture, command);
   }
 
   private openFixtureModal(): void {
@@ -413,6 +422,50 @@ export class CommanderComponent implements OnInit {
     if (!current || !groups.some((item) => item.plan_group === current)) {
       this.planGroupName.set(groups[0].plan_group);
     }
+  }
+
+  private sendCommand(fixture: string, command: string): void {
+    const trimmedCommand = command.trim();
+    const wireCommand =
+      trimmedCommand.startsWith('tcmd;') || trimmedCommand.startsWith('ack;tcmd;')
+        ? trimmedCommand
+        : `tcmd;${fixture};${trimmedCommand}`;
+
+    this.fixtureActionLoading.set(true);
+    this.fixtureActionMessage.set(null);
+    this.fixtureActionResult.set(null);
+    this.fixtureActionDurationMs.set(null);
+    const startedAt = performance.now();
+
+    this.commanderApi.runFixtureCommand(fixture, wireCommand).subscribe({
+      next: (result) => {
+        const durationMs = performance.now() - startedAt;
+        this.fixtureActionDurationMs.set(durationMs);
+        this.fixtureActionResult.set(result);
+
+        const response = result as Record<string, unknown>;
+        const routingMode =
+          typeof response['routing_mode'] === 'string' ? (response['routing_mode'] as string) : 'direct';
+        const commandResult =
+          response['command_result'] && typeof response['command_result'] === 'object'
+            ? (response['command_result'] as Record<string, unknown>)
+            : null;
+        const dispatchedWireCommand =
+          commandResult && typeof commandResult['command'] === 'string'
+            ? (commandResult['command'] as string)
+            : wireCommand;
+
+        this.fixtureActionMessage.set(`Command accepted for ${fixture} (${routingMode}): ${dispatchedWireCommand}`);
+        this.fixtureActionLoading.set(false);
+      },
+      error: (err: unknown) => {
+        const durationMs = performance.now() - startedAt;
+        this.fixtureActionDurationMs.set(durationMs);
+        this.fixtureActionMessage.set(this.formatError(`Command failed for ${fixture}: ${wireCommand}`, err));
+        this.fixtureActionResult.set(null);
+        this.fixtureActionLoading.set(false);
+      },
+    });
   }
 
   private formatError(prefix: string, err: unknown): string {

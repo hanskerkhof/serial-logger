@@ -1,0 +1,52 @@
+<section class="commander-console" aria-label="Live Commander Console">
+  <header class="commander-console__header">
+    <h3>Live Commander Console</h3>
+    <div class="commander-console__controls">
+      <span
+        class="commander-console__status"
+        [class.commander-console__status--connected]="connected()"
+        [class.commander-console__status--disconnected]="!connected()"
+      >
+        <span
+          class="commander-console__heart"
+          [class.commander-console__heart--pulse]="heartbeatPulse()"
+          [class.commander-console__heart--offline]="!connected()"
+          aria-hidden="true"
+          [attr.title]="heartbeatTooltip()"
+        >
+          ♥
+        </span>
+        {{ connected() ? 'Connected' : 'Disconnected' }}
+      </span>
+      <button type="button" (click)="togglePaused()">{{ paused() ? 'Resume' : 'Pause' }}</button>
+      <button type="button" (click)="clear()">Clear</button>
+      <button type="button" (click)="toggleAutoScroll()">
+        Auto-scroll: {{ autoScroll() ? 'On' : 'Off' }}
+      </button>
+      <button type="button" (click)="toggleHeartbeatLines()">
+        Heartbeat: {{ showHeartbeatLines() ? 'Shown' : 'Hidden' }}
+      </button>
+    </div>
+  </header>
+
+  @if (streamError(); as err) {
+    <p class="commander-console__error">{{ err }}</p>
+  }
+
+  <div #consoleBody class="commander-console__body">
+    @if (lines().length === 0) {
+      <p class="commander-console__empty">No stream events yet.</p>
+    } @else {
+      @for (line of lines(); track line.seq ?? $index) {
+        <div class="commander-console__line">
+          <span class="commander-console__time">[{{ formatTimestamp(line.ts) }}]</span>
+          <span class="commander-console__type">[{{ line.type }}]</span>
+          @if (line.request_id) {
+            <span class="commander-console__rid">[{{ line.request_id }}]</span>
+          }
+          <span class="commander-console__text">{{ line.text }}</span>
+        </div>
+      }
+    }
+  </div>
+</section>

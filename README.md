@@ -37,6 +37,7 @@ Root (`/`) redirects to `/direct`.
 - Runtime fixture store (signal-based, keyed by `fixture_name`).
 - Left sidebar grouped by `plan_name`, sorted by plan then fixture name.
 - Fixture selection modal with read-only JSON payload.
+- Live Commander console (SSE) with TX/RX lines, command lifecycle events, and heartbeat.
 
 ## Backend contract used by Commander mode
 
@@ -44,6 +45,7 @@ For both endpoint responses:
 
 - `GET /fixtures/{fixture_name}/version`
 - `GET /plans/{plan_name}/versions`
+- `GET /commander/stream` (SSE)
 
 `summary.fixtures[]` items are expected to include:
 

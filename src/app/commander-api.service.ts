@@ -55,6 +55,23 @@ export interface FixturePlanActionResponse {
   [key: string]: unknown;
 }
 
+export interface CommanderStreamEvent {
+  ts: number;
+  type: string;
+  seq?: number;
+  line?: string;
+  request_id?: string;
+  port?: string;
+  baud?: number;
+  [key: string]: unknown;
+}
+
+export interface CommanderStreamHandlers {
+  onOpen?: () => void;
+  onEvent: (event: CommanderStreamEvent) => void;
+  onError?: (message: string) => void;
+}
+
 const commanderApiUrlStorageKey = 'cmdr.api.baseUrl';
 const defaultCommanderApiUrl = 'http://100.88.15.68:8080';
 
@@ -107,6 +124,48 @@ export class CommanderApiService {
       `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/cmd`,
       { command },
     );
+  }
+
+  openCommanderStream(
+    apiBaseUrl: string,
+    handlers: CommanderStreamHandlers,
+  ): () => void {
+    const source = new EventSource(`${apiBaseUrl}/commander/stream`);
+
+    const handleMessage = (event: MessageEvent, forcedType?: string) => {
+      try {
+        const parsed = JSON.parse(String(event.data ?? '{}')) as CommanderStreamEvent;
+        if (forcedType && !parsed.type) parsed.type = forcedType;
+        handlers.onEvent(parsed);
+      } catch {
+        handlers.onError?.('Invalid SSE payload from commander stream');
+      }
+    };
+
+    source.onopen = () => handlers.onOpen?.();
+    source.onerror = () => handlers.onError?.('Commander stream disconnected');
+
+    const eventTypes = [
+      'connected',
+      'heartbeat',
+      'serial_open',
+      'serial_close',
+      'command_start',
+      'command_done',
+      'command_error',
+      'tx_line',
+      'rx_line',
+    ] as const;
+
+    for (const eventType of eventTypes) {
+      source.addEventListener(eventType, (event) =>
+        handleMessage(event as MessageEvent, eventType),
+      );
+    }
+
+    source.onmessage = (event) => handleMessage(event);
+
+    return () => source.close();
   }
 
   setApiBaseUrl(value: string): boolean {

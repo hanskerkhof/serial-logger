@@ -186,6 +186,8 @@
         <pre class="commander__json">{{ payload }}</pre>
       }
     </section>
+
+    <app-commander-console [apiBaseUrl]="activeApiUrl()"></app-commander-console>
   </div>
 
   <dialog #fixtureDetailDialog class="commander__dialog">
@@ -197,10 +199,24 @@
     @if (fixtureActionMessage(); as actionMessage) {
       <p class="commander__dialog-message">{{ actionMessage }}</p>
     }
+    @if (fixtureActionDurationMs(); as durationMs) {
+      <p class="commander__dialog-message">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
+    }
     @if (fixtureActionResult(); as actionResult) {
       <pre class="commander__dialog-json commander__dialog-json--compact">{{ actionResult | json }}</pre>
     }
     <footer class="commander__dialog-footer">
+      <input
+        type="text"
+        class="commander__dialog-command-input"
+        [ngModel]="manualCommand()"
+        (ngModelChange)="manualCommand.set($event)"
+        (keyup.enter)="runManualCommand()"
+        placeholder="cmd;relay;number=1;state=1;durationMs=1000;scheduledTimeMs=1000;"
+      />
+      <button type="button" (click)="runManualCommand()" [disabled]="fixtureActionLoading() || !manualCommand().trim()">
+        Send
+      </button>
       <button type="button" (click)="runModalPlanAction('trigger')" [disabled]="fixtureActionLoading()">
         Plan trigger
       </button>

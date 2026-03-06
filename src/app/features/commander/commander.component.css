@@ -203,6 +203,11 @@
   border-top: 1px solid var(--border, #d9d9d9);
 }
 
+.commander__dialog-command-input {
+  flex: 1 1 auto;
+  min-width: 320px;
+}
+
 .commander__dialog-header h3 {
   margin: 0;
 }

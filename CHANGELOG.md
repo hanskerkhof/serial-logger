@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 0.0.3 - 2026-03-06
+### Added
+- Commander: Added exposed plans dropdown sourced from CMDR API `GET /plans` with `plan_group` optgroup rendering.
+- Commander: Added plan-group query UI with a new dropdown and `Run plan group versions endpoint` action.
+- Commander: Added LAN-group API wiring for `GET /lan-groups` and plan-group versions query support.
+
+### Changed
+- Commander: Fixture detail modal now shows richer fixture payload data (including `plan_group`, `universe`, `channel`, `wifi_mac_address`, and runtime status fields when present).
+- Commander: Fixture detail modal size increased for better readability on large JSON payloads.
+- Commander: Plan query selector migrated from free-text input to API-backed dropdown.
+- Direct: Layout now accounts for app header/tabs so the bottom command input stays visible in viewport.
+- App patch version bumped to `0.0.3`.
+
+### Verified
+- `npm run build` succeeds after commander endpoint wiring and direct-layout viewport fixes.
+
 ## 0.0.2 - 2026-03-06
 ### Added
 - Commander mode fixture store (`FixtureStoreService`) using Angular signals, keyed by unique `fixture_name`.

@@ -19,6 +19,42 @@ export interface CommanderQueryResponse {
   [key: string]: unknown;
 }
 
+export interface CommanderExposedPlan {
+  plan_name: string;
+  plan_group: string;
+  fixture_count: number;
+}
+
+export interface CommanderPlanListResponse {
+  ok: boolean;
+  service: string;
+  count: number;
+  plans: CommanderExposedPlan[];
+}
+
+export interface CommanderLanGroup {
+  plan_group: string;
+  universe: number | null;
+  universe_count: number;
+  fixture_count: number;
+  plan_count: number;
+  plans: string[];
+  fixtures: string[];
+}
+
+export interface CommanderLanGroupListResponse {
+  ok: boolean;
+  service: string;
+  count: number;
+  lan_groups: CommanderLanGroup[];
+}
+
+export interface FixturePlanActionResponse {
+  ok: boolean;
+  fixture_name: string;
+  [key: string]: unknown;
+}
+
 const commanderApiUrlStorageKey = 'cmdr.api.baseUrl';
 const defaultCommanderApiUrl = 'http://100.88.15.68:8080';
 
@@ -46,6 +82,30 @@ export class CommanderApiService {
   getPlanVersions(planName: string): Observable<CommanderQueryResponse> {
     return this.http.get<CommanderQueryResponse>(
       `${this.apiBaseUrl()}/plans/${encodeURIComponent(planName)}/versions`,
+    );
+  }
+
+  getExposedPlans(): Observable<CommanderPlanListResponse> {
+    return this.http.get<CommanderPlanListResponse>(`${this.apiBaseUrl()}/plans`);
+  }
+
+  getLanGroups(): Observable<CommanderLanGroupListResponse> {
+    return this.http.get<CommanderLanGroupListResponse>(`${this.apiBaseUrl()}/lan-groups`);
+  }
+
+  getPlanGroupVersions(planGroup: string): Observable<CommanderQueryResponse> {
+    return this.http.get<CommanderQueryResponse>(
+      `${this.apiBaseUrl()}/plan-groups/${encodeURIComponent(planGroup)}/versions`,
+    );
+  }
+
+  runFixtureCommand(
+    fixtureName: string,
+    command: string,
+  ): Observable<FixturePlanActionResponse> {
+    return this.http.post<FixturePlanActionResponse>(
+      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/cmd`,
+      { command },
     );
   }
 

@@ -33,6 +33,15 @@
   margin: 0;
 }
 
+.commander__sidebar-warning {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d9b86a;
+  background: #fff4db;
+  color: #6e4a00;
+}
+
 .commander__sidebar-empty {
   color: var(--muted-fg, #666);
 }
@@ -47,6 +56,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.commander__group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .commander__group-title {
@@ -64,14 +80,40 @@
   gap: 0.35rem;
 }
 
+.commander__fixture-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .commander__fixture-btn {
   width: 100%;
   text-align: left;
+  flex: 1 1 auto;
 }
 
 .commander__fixture-btn--active {
   font-weight: 700;
   border-color: var(--fg, #111);
+}
+
+.commander__trash-btn {
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  opacity: 0.92;
+}
+
+.commander__trash-btn:hover {
+  opacity: 1;
 }
 
 .commander__main {
@@ -83,7 +125,7 @@
 .commander__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
 }
 
@@ -107,7 +149,8 @@
 }
 
 .commander__custom input,
-.commander__query-row input {
+.commander__query-row input,
+.commander__query-row select {
   min-width: 260px;
   flex: 1 1 auto;
 }
@@ -133,8 +176,8 @@
 }
 
 .commander__dialog {
-  width: min(900px, 92vw);
-  max-height: 86vh;
+  width: min(1200px, 96vw);
+  max-height: 92vh;
   border: 1px solid var(--border, #d9d9d9);
   border-radius: 0.75rem;
   padding: 0;
@@ -155,6 +198,7 @@
 
 .commander__dialog-footer {
   justify-content: flex-end;
+  gap: 0.5rem;
   border-bottom: 0;
   border-top: 1px solid var(--border, #d9d9d9);
 }
@@ -166,13 +210,26 @@
 .commander__dialog-json {
   margin: 0;
   padding: 1rem;
-  max-height: calc(86vh - 120px);
+  max-height: calc(92vh - 140px);
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: #000;
   color: #0f0;
+}
+
+.commander__dialog-json--compact {
+  max-height: 180px;
+  margin: 0 1rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.commander__dialog-message {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  color: var(--fg, #111);
+  border-top: 1px solid var(--border, #d9d9d9);
 }
 
 @media (max-width: 1000px) {

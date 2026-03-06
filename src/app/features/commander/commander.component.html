@@ -5,16 +5,32 @@
       <span>{{ fixtureCount() }}</span>
     </header>
 
+    @if (storageWarning(); as warning) {
+      <p class="commander__sidebar-warning" role="status">{{ warning }}</p>
+    }
+
     @if (groupedFixtures().length === 0) {
       <p class="commander__sidebar-empty">No fixtures yet. Run fixture/plan queries to populate.</p>
     } @else {
       <div class="commander__groups">
         @for (group of groupedFixtures(); track group.plan_name) {
           <section class="commander__group">
-            <h4 class="commander__group-title">{{ group.plan_name }}</h4>
+            <header class="commander__group-header">
+              <h4 class="commander__group-title">{{ group.plan_name }}</h4>
+              <button
+                type="button"
+                class="commander__trash-btn"
+                title="Remove this plan from local store"
+                aria-label="Remove plan {{ group.plan_name }}"
+                (click)="removePlan(group.plan_name, $event)"
+              >
+                🗑
+              </button>
+            </header>
+
             <ul class="commander__fixture-list">
               @for (fixture of group.fixtures; track fixture.fixture_name) {
-                <li>
+                <li class="commander__fixture-row">
                   <button
                     type="button"
                     class="commander__fixture-btn"
@@ -22,6 +38,15 @@
                     (click)="selectFixture(fixture)"
                   >
                     {{ fixture.fixture_name }}
+                  </button>
+                  <button
+                    type="button"
+                    class="commander__trash-btn"
+                    title="Remove fixture from local store"
+                    aria-label="Remove fixture {{ fixture.fixture_name }}"
+                    (click)="removeFixture(fixture, $event)"
+                  >
+                    🗑
                   </button>
                 </li>
               }
@@ -33,7 +58,8 @@
   </aside>
 
   <div class="commander__main">
-    <header class="commander__header">      <button type="button" (click)="reloadHealth()" [disabled]="loading()">Refresh health</button>
+    <header class="commander__header">
+      <button type="button" (click)="reloadHealth()" [disabled]="loading()">Refresh health</button>
     </header>
 
     <section class="commander__target-panel" aria-label="Commander API target">
@@ -94,14 +120,62 @@
 
       <div class="commander__query-row">
         <label for="planName">Plan</label>
-        <input
+        <select
           id="planName"
-          type="text"
           [ngModel]="planName()"
-          (ngModelChange)="planName.set($event)"
-          placeholder="TRIPTYCH"
-        />
-        <button type="button" (click)="runPlanQuery()" [disabled]="queryLoading()">Run plan versions endpoint</button>
+          (ngModelChange)="onPlanSelected($event)"
+        >
+          @if (planListLoading()) {
+            <option value="" disabled>Loading plans...</option>
+          } @else if (exposedPlans().length === 0) {
+            <option value="" disabled>No exposed plans available</option>
+          } @else {
+            @for (group of exposedPlansByGroup(); track group.plan_group) {
+              <optgroup [label]="group.plan_group">
+                @for (plan of group.plans; track plan.plan_name) {
+                  <option [value]="plan.plan_name">
+                    {{ plan.plan_name }} ({{ plan.fixture_count }})
+                  </option>
+                }
+              </optgroup>
+            }
+          }
+        </select>
+        <button
+          type="button"
+          (click)="runPlanQuery()"
+          [disabled]="queryLoading() || planListLoading() || !planName()"
+        >
+          Run plan versions endpoint
+        </button>
+      </div>
+
+      <div class="commander__query-row">
+        <label for="planGroupName">Plan group</label>
+        <select
+          id="planGroupName"
+          [ngModel]="planGroupName()"
+          (ngModelChange)="onPlanGroupSelected($event)"
+        >
+          @if (lanGroupListLoading()) {
+            <option value="" disabled>Loading plan groups...</option>
+          } @else if (lanGroups().length === 0) {
+            <option value="" disabled>No plan groups available</option>
+          } @else {
+            @for (group of lanGroups(); track group.plan_group) {
+              <option [value]="group.plan_group">
+                {{ group.plan_group }} (u{{ group.universe }}, {{ group.fixture_count }})
+              </option>
+            }
+          }
+        </select>
+        <button
+          type="button"
+          (click)="runPlanGroupQuery()"
+          [disabled]="queryLoading() || lanGroupListLoading() || !planGroupName()"
+        >
+          Run plan group versions endpoint
+        </button>
       </div>
 
       @if (queryLoading()) {
@@ -120,7 +194,19 @@
       <button type="button" (click)="closeFixtureModal()" aria-label="Close">✕</button>
     </header>
     <pre class="commander__dialog-json">{{ selectedFixtureJson() }}</pre>
+    @if (fixtureActionMessage(); as actionMessage) {
+      <p class="commander__dialog-message">{{ actionMessage }}</p>
+    }
+    @if (fixtureActionResult(); as actionResult) {
+      <pre class="commander__dialog-json commander__dialog-json--compact">{{ actionResult | json }}</pre>
+    }
     <footer class="commander__dialog-footer">
+      <button type="button" (click)="runModalPlanAction('trigger')" [disabled]="fixtureActionLoading()">
+        Plan trigger
+      </button>
+      <button type="button" (click)="runModalPlanAction('stop')" [disabled]="fixtureActionLoading()">
+        Plan stop
+      </button>
       <button type="button" (click)="closeFixtureModal()">Close</button>
     </footer>
   </dialog>

@@ -8,19 +8,23 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   CommanderApiService,
+  CommanderExposedPlan,
+  CommanderLanGroup,
   CommanderHealthResponse,
   CommanderApiTarget,
   CommanderQueryResponse,
+  FixturePlanActionResponse,
 } from '../../commander-api.service';
 import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 
 @Component({
   selector: 'app-commander',
-  imports: [FormsModule],
+  imports: [FormsModule, JsonPipe],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,7 +37,15 @@ export class CommanderComponent implements OnInit {
   protected readonly customUrl = signal('');
   protected readonly fixtureName = signal('CLIGNOTEUR1');
   protected readonly planName = signal('TRIPTYCH');
+  protected readonly planGroupName = signal('');
+  protected readonly exposedPlans = signal<CommanderExposedPlan[]>([]);
+  protected readonly lanGroups = signal<CommanderLanGroup[]>([]);
+  protected readonly planListLoading = signal(false);
+  protected readonly lanGroupListLoading = signal(false);
   protected readonly queryResult = signal<CommanderQueryResponse | null>(null);
+  protected readonly fixtureActionLoading = signal(false);
+  protected readonly fixtureActionMessage = signal<string | null>(null);
+  protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
@@ -46,6 +58,23 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixtureName = this.fixtureStore.selectedFixtureName;
   protected readonly selectedFixture = this.fixtureStore.selectedFixture;
   protected readonly fixtureCount = this.fixtureStore.fixtureCount;
+  protected readonly storageWarning = this.fixtureStore.storageWarning;
+  protected readonly exposedPlansByGroup = computed(() => {
+    const grouped = new Map<string, CommanderExposedPlan[]>();
+    for (const plan of this.exposedPlans()) {
+      const groupName = (plan.plan_group || plan.plan_name).trim() || plan.plan_name;
+      const list = grouped.get(groupName) ?? [];
+      list.push(plan);
+      grouped.set(groupName, list);
+    }
+
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([plan_group, plans]) => ({
+        plan_group,
+        plans: [...plans].sort((a, b) => a.plan_name.localeCompare(b.plan_name)),
+      }));
+  });
   protected readonly selectedFixtureJson = computed(() => {
     const selected = this.selectedFixture();
     return selected ? JSON.stringify(selected.raw, null, 2) : '';
@@ -54,6 +83,8 @@ export class CommanderComponent implements OnInit {
   ngOnInit(): void {
     this.customUrl.set(this.activeApiUrl());
     this.loadHealth();
+    this.loadExposedPlans();
+    this.loadLanGroups();
   }
 
   protected reloadHealth(): void {
@@ -64,6 +95,8 @@ export class CommanderComponent implements OnInit {
     this.commanderApi.setApiBaseUrl(url);
     this.customUrl.set(this.activeApiUrl());
     this.loadHealth();
+    this.loadExposedPlans();
+    this.loadLanGroups();
   }
 
   protected applyCustomUrl(): void {
@@ -75,6 +108,8 @@ export class CommanderComponent implements OnInit {
 
     this.customUrl.set(this.activeApiUrl());
     this.loadHealth();
+    this.loadExposedPlans();
+    this.loadLanGroups();
   }
 
   protected runFixtureQuery(): void {
@@ -123,6 +158,37 @@ export class CommanderComponent implements OnInit {
     });
   }
 
+  protected onPlanSelected(value: string): void {
+    this.planName.set(value);
+  }
+
+  protected onPlanGroupSelected(value: string): void {
+    this.planGroupName.set(value);
+  }
+
+  protected runPlanGroupQuery(): void {
+    const planGroup = this.planGroupName().trim();
+    if (!planGroup) {
+      this.error.set('Plan group is required.');
+      return;
+    }
+
+    this.queryLoading.set(true);
+    this.error.set(null);
+    this.commanderApi.getPlanGroupVersions(planGroup).subscribe({
+      next: (result) => {
+        this.queryResult.set(result);
+        this.ingestQueryResult(result, 'plan_group_query');
+        this.queryLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.error.set(this.formatError(`Plan group query failed for ${planGroup}`, err));
+        this.queryResult.set(null);
+        this.queryLoading.set(false);
+      },
+    });
+  }
+
   protected queryResultJson(): string {
     const result = this.queryResult();
     return result ? JSON.stringify(result, null, 2) : '';
@@ -134,8 +200,57 @@ export class CommanderComponent implements OnInit {
     this.openFixtureModal();
   }
 
+  protected removeFixture(record: FixtureRecord, event: Event): void {
+    event.stopPropagation();
+    const wasSelected = this.selectedFixtureName() === record.fixture_name;
+    this.fixtureStore.removeFixture(record.fixture_name);
+
+    if (wasSelected) {
+      this.fixtureName.set('');
+      this.closeFixtureModal();
+    }
+  }
+
+  protected removePlan(planName: string, event: Event): void {
+    event.stopPropagation();
+    const selected = this.selectedFixture();
+    this.fixtureStore.removePlan(planName);
+
+    if (selected?.plan_name === planName) {
+      this.fixtureName.set('');
+      this.closeFixtureModal();
+    }
+  }
+
   protected closeFixtureModal(): void {
     this.fixtureDetailDialog?.nativeElement?.close();
+  }
+
+  protected runModalPlanAction(action: 'trigger' | 'stop'): void {
+    const selected = this.selectedFixture();
+    const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) {
+      this.fixtureActionMessage.set('No fixture selected.');
+      return;
+    }
+
+    this.fixtureActionLoading.set(true);
+    this.fixtureActionMessage.set(null);
+    this.fixtureActionResult.set(null);
+
+    const command = `cmd;plan;action=${action};`;
+    this.commanderApi.runFixtureCommand(fixture, command).subscribe({
+      next: (result) => {
+        this.fixtureActionResult.set(result);
+        this.fixtureActionMessage.set(`Command accepted for ${fixture}: ${command}`);
+        this.fixtureActionLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.fixtureActionMessage.set(this.formatError(`Command failed for ${fixture}: ${command}`, err));
+        this.fixtureActionResult.set(null);
+        this.fixtureActionLoading.set(false);
+      },
+    });
   }
 
   private openFixtureModal(): void {
@@ -242,6 +357,62 @@ export class CommanderComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  private loadExposedPlans(): void {
+    this.planListLoading.set(true);
+    this.commanderApi.getExposedPlans().subscribe({
+      next: (result) => {
+        const plans = Array.isArray(result.plans) ? result.plans : [];
+        this.exposedPlans.set(plans);
+        this.syncSelectedPlan(plans);
+        this.planListLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.exposedPlans.set([]);
+        this.planListLoading.set(false);
+        this.error.set(this.formatError(`Plan list load failed for ${this.activeApiUrl()}`, err));
+      },
+    });
+  }
+
+  private loadLanGroups(): void {
+    this.lanGroupListLoading.set(true);
+    this.commanderApi.getLanGroups().subscribe({
+      next: (result) => {
+        const groups = Array.isArray(result.lan_groups) ? result.lan_groups : [];
+        this.lanGroups.set(groups);
+        this.syncSelectedPlanGroup(groups);
+        this.lanGroupListLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.lanGroups.set([]);
+        this.lanGroupListLoading.set(false);
+        this.error.set(this.formatError(`LAN group list load failed for ${this.activeApiUrl()}`, err));
+      },
+    });
+  }
+
+  private syncSelectedPlan(plans: CommanderExposedPlan[]): void {
+    if (!plans.length) {
+      this.planName.set('');
+      return;
+    }
+    const current = this.planName().trim();
+    if (!current || !plans.some((item) => item.plan_name === current)) {
+      this.planName.set(plans[0].plan_name);
+    }
+  }
+
+  private syncSelectedPlanGroup(groups: CommanderLanGroup[]): void {
+    if (!groups.length) {
+      this.planGroupName.set('');
+      return;
+    }
+    const current = this.planGroupName().trim();
+    if (!current || !groups.some((item) => item.plan_group === current)) {
+      this.planGroupName.set(groups[0].plan_group);
+    }
   }
 
   private formatError(prefix: string, err: unknown): string {

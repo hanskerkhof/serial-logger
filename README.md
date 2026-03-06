@@ -77,7 +77,7 @@ npm run deploy:bauklank-micros-api
 
 Default deploy target:
 
-- `/Users/hanskerkhof/bauklank-micros/.runtime/serial-logger-app`
+- `/Users/hanskerkhof/bauklank-micros/web/serial-logger-app`
 
 Optional override:
 

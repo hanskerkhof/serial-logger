@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.0.4 - 2026-03-06
+### Changed
+- Deployment default target switched from `.runtime/serial-logger-app` to committed `web/serial-logger-app` in `bauklank-micros`.
+- Added explicit deploy script naming/docs for API-hosted frontend flow (`deploy:bauklank-micros-api`).
+- App patch version bumped to `0.0.4`.
+
+### Verified
+- `npm run deploy:bauklank-micros-api` builds and copies artifacts into `bauklank-micros/web/serial-logger-app`.
+
 ## 0.0.3 - 2026-03-06
 ### Added
 - Commander: Added exposed plans dropdown sourced from CMDR API `GET /plans` with `plan_group` optgroup rendering.

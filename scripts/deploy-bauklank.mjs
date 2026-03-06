@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const appRoot = process.cwd();
-const defaultTargetRoot = path.resolve(appRoot, '..', 'bauklank-micros', '.runtime', 'serial-logger-app');
+const defaultTargetRoot = path.resolve(appRoot, '..', 'bauklank-micros', 'web', 'serial-logger-app');
 const targetRoot = process.env.BAUKLANK_DEPLOY_TARGET
   ? path.resolve(process.env.BAUKLANK_DEPLOY_TARGET)
   : defaultTargetRoot;

@@ -64,3 +64,27 @@ npm run build
 Output:
 
 - `dist/serial-logger`
+
+
+## Deploy to bauklank-micros
+
+Build and copy frontend artifacts so `CMDR_hello_api.py` can host the app:
+
+```bash
+cd /Users/hanskerkhof/serial-logger-app
+npm run deploy:bauklank-micros-api
+```
+
+Default deploy target:
+
+- `/Users/hanskerkhof/bauklank-micros/.runtime/serial-logger-app`
+
+Optional override:
+
+```bash
+BAUKLANK_DEPLOY_TARGET=/custom/path npm run deploy:bauklank-micros-api
+```
+
+After deploy, start API and open:
+
+- `http://<host>:8080/`

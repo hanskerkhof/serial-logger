@@ -73,7 +73,8 @@ export interface CommanderStreamHandlers {
 }
 
 const commanderApiUrlStorageKey = 'cmdr.api.baseUrl';
-const defaultCommanderApiUrl = 'http://100.88.15.68:8080';
+const legacyCommanderApiDefault = 'http://100.88.15.68:8080';
+const localhostHosts = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
 @Injectable({ providedIn: 'root' })
 export class CommanderApiService {
@@ -173,22 +174,54 @@ export class CommanderApiService {
     if (!normalized) return false;
 
     this.apiBaseUrl.set(normalized);
-
-    try {
-      localStorage.setItem(commanderApiUrlStorageKey, normalized);
-    } catch {
-      // Keep runtime value even if persistence is unavailable.
-    }
+    this.persistApiBaseUrl(normalized);
 
     return true;
   }
 
   private getInitialApiBaseUrl(): string {
+    const sameHostDefault = this.getSameHostApiBaseUrl();
+    const presetDefault = this.targets[0]?.url ?? legacyCommanderApiDefault;
+    const fallbackDefault = sameHostDefault ?? presetDefault;
+
     try {
       const stored = localStorage.getItem(commanderApiUrlStorageKey);
-      return this.normalizeApiBaseUrl(stored) ?? defaultCommanderApiUrl;
+      const normalizedStored = this.normalizeApiBaseUrl(stored);
+      if (normalizedStored) {
+        // Migrate old persisted default from earlier builds to same-host API
+        // when app is served by CMDR API (Pi/Mac over :8080).
+        if (
+          normalizedStored === legacyCommanderApiDefault &&
+          sameHostDefault &&
+          sameHostDefault !== legacyCommanderApiDefault
+        ) {
+          this.persistApiBaseUrl(sameHostDefault);
+          return sameHostDefault;
+        }
+        return normalizedStored;
+      }
     } catch {
-      return defaultCommanderApiUrl;
+      // localStorage unavailable; use runtime default below.
+    }
+
+    this.persistApiBaseUrl(fallbackDefault);
+    return fallbackDefault;
+  }
+
+  private getSameHostApiBaseUrl(): string | null {
+    if (typeof window === 'undefined') return null;
+
+    const host = (window.location.hostname || '').toLowerCase();
+    if (localhostHosts.has(host)) return null;
+
+    return this.normalizeApiBaseUrl(window.location.origin);
+  }
+
+  private persistApiBaseUrl(value: string): void {
+    try {
+      localStorage.setItem(commanderApiUrlStorageKey, value);
+    } catch {
+      // Persistence is optional.
     }
   }
 

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.0.5 - 2026-03-07
+### Changed
+- Commander API base URL now defaults to same-origin when the app is hosted by `CMDR_hello_api` (`http://<host>:8080`), preventing stale cross-host target errors.
+- Added migration for persisted legacy default (`http://100.88.15.68:8080`) to same-origin when hosted on a different node (for example Pi).
+- README updated to document same-origin default behavior and current default route/version.
+- App patch version bumped to `0.0.5`.
+
+### Verified
+- `npm run build`
+- `npm run deploy:bauklank-micros-api`
+
+
 ## 0.0.4 - 2026-03-06
 ### Changed
 - Deployment default target switched from `.runtime/serial-logger-app` to committed `web/serial-logger-app` in `bauklank-micros`.

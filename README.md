@@ -7,7 +7,7 @@ Angular app for two control modes:
 
 ## Version
 
-Current app version: `0.0.2`.
+Current app version: `0.0.4`.
 
 ## Development
 
@@ -26,11 +26,13 @@ App default dev URL:
 - `/direct`
 - `/commander`
 
-Root (`/`) redirects to `/direct`.
+Root (`/`) redirects to `/commander`.
 
 ## Commander mode features
 
 - API target switching (MacBook / Raspberry Pi / custom URL), persisted in localStorage.
+- Default API selection: when app is served from CMDR API (for example `http://100.x.x.x:8080`), same-origin is used automatically to avoid stale cross-host targets.
+- Dev mode on localhost keeps preset target selection behavior.
 - Health check against selected API target.
 - Query fixture version endpoint (`/fixtures/{fixture_name}/version`).
 - Query plan versions endpoint (`/plans/{plan_name}/versions`).

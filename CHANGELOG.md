@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.0.6 - 2026-03-07
+### Changed
+- Commander health panel now renders a compact no-spacing list with the key fields only: `ok`, `utc`, `service`, `commander detected`, `commander fixture`, `serial port`, `resolver source`, `proxy active`.
+- Added FE type support for enriched `/health` payload diagnostics while keeping display intentionally minimal.
+- App patch version bumped to `0.0.6`.
+
+### Verified
+- `npm run deploy:bauklank-micros-api`
+
 ## 0.0.5 - 2026-03-07
 ### Changed
 - Commander API base URL now defaults to same-origin when the app is hosted by `CMDR_hello_api` (`http://<host>:8080`), preventing stale cross-host target errors.

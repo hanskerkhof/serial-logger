@@ -97,9 +97,18 @@
       <p class="commander__error" role="alert">{{ err }}</p>
     } @else if (health(); as currentHealth) {
       <div class="commander__card">
-        <p><strong>ok:</strong> {{ currentHealth.ok }}</p>
-        <p><strong>service:</strong> {{ currentHealth.service }}</p>
-        <p><strong>utc:</strong> {{ currentHealth.utc }}</p>
+        <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
+        <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
+        <div><strong>service:</strong> {{ currentHealth.service }}</div>
+        @if (currentHealth.commander; as commanderHealth) {
+          <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
+          <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
+          <div><strong>serial port:</strong> {{ commanderHealth.port || '-' }}</div>
+          <div><strong>resolver source:</strong> {{ commanderHealth.resolver_source || '-' }}</div>
+          @if (commanderHealth.proxy; as proxyHealth) {
+            <div><strong>proxy active:</strong> {{ proxyHealth.active }}</div>
+          }
+        }
       </div>
     }
 

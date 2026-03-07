@@ -6,6 +6,24 @@ export interface CommanderHealthResponse {
   ok: boolean;
   service: string;
   utc: string;
+  commander?: {
+    expected_fixture_name?: string;
+    detected?: boolean;
+    detected_fixture_name?: string | null;
+    resolver_source?: string;
+    probe_elapsed_ms?: number;
+    port?: string | null;
+    baud?: number | null;
+    candidate_ports?: string[];
+    proxy?: {
+      active?: boolean;
+      port?: string | null;
+      baud?: number | null;
+      event_buffer_size?: number;
+      last_event_type?: string | null;
+      last_event_at_utc?: string | null;
+    };
+  };
 }
 
 export interface CommanderApiTarget {

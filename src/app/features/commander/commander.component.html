@@ -202,6 +202,16 @@
   <dialog #fixtureDetailDialog class="commander__dialog">
     <header class="commander__dialog-header">
       <h3>Fixture: {{ selectedFixture()?.fixture_name }}</h3>
+      <div class="commander__dialog-header-actions">
+        <button type="button" (click)="runModalFixtureQuery()" [disabled]="modalQueryLoading()">
+          Query fixture
+        </button>
+        @if (modalQueryLoading()) {
+          <span class="commander__dialog-header-status">Running query...</span>
+        } @else if (modalQueryError(); as modalError) {
+          <span class="commander__dialog-header-error">{{ modalError }}</span>
+        }
+      </div>
       <button type="button" (click)="closeFixtureModal()" aria-label="Close">✕</button>
     </header>
     <pre class="commander__dialog-json">{{ selectedFixtureJson() }}</pre>

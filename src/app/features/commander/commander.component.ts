@@ -49,6 +49,8 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   protected readonly manualCommand = signal('');
+  protected readonly modalQueryLoading = signal(false);
+  protected readonly modalQueryError = signal<string | null>(null);
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
@@ -227,6 +229,34 @@ export class CommanderComponent implements OnInit {
 
   protected closeFixtureModal(): void {
     this.fixtureDetailDialog?.nativeElement?.close();
+    this.modalQueryLoading.set(false);
+    this.modalQueryError.set(null);
+  }
+
+  protected runModalFixtureQuery(): void {
+    const selected = this.selectedFixture();
+    const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) {
+      this.modalQueryError.set('No fixture selected.');
+      return;
+    }
+
+    this.modalQueryLoading.set(true);
+    this.modalQueryError.set(null);
+
+    this.commanderApi.getFixtureVersion(fixture).subscribe({
+      next: (result) => {
+        this.queryResult.set(result);
+        this.ingestQueryResult(result, 'fixture_query');
+        this.modalQueryLoading.set(false);
+      },
+      error: (err: unknown) => {
+        const text = this.formatError('Fixture query failed', err);
+        const compact = text.length > 180 ? `${text.slice(0, 177)}...` : text;
+        this.modalQueryError.set(compact);
+        this.modalQueryLoading.set(false);
+      },
+    });
   }
 
   protected runModalPlanAction(action: 'trigger' | 'stop'): void {

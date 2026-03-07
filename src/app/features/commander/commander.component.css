@@ -212,6 +212,30 @@
   margin: 0;
 }
 
+.commander__dialog-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  margin-left: 0.75rem;
+  margin-right: 0;
+  flex: 1 1 auto;
+}
+
+.commander__dialog-header-status {
+  color: var(--muted-fg, #666);
+  font-size: 0.9rem;
+}
+
+.commander__dialog-header-error {
+  color: #b42318;
+  font-size: 0.9rem;
+  max-width: 560px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .commander__dialog-json {
   margin: 0;
   padding: 1rem;

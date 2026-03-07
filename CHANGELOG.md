@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.0.7 - 2026-03-07
+### Changed
+- Fixture modal now includes `Query fixture` action in the header.
+- Modal header shows inline query state (`Running query...`) and short error text when query fails.
+- Querying from modal refreshes the fixture payload in-store and updates modal JSON with latest data.
+- Modal header action/status alignment refined to sit left, next to `Fixture: ...`.
+- App patch version bumped to `0.0.7`.
+
+### Verified
+- `npm run deploy:bauklank-micros-api`
+
 ## 0.0.6 - 2026-03-07
 ### Changed
 - Commander health panel now renders a compact no-spacing list with the key fields only: `ok`, `utc`, `service`, `commander detected`, `commander fixture`, `serial port`, `resolver source`, `proxy active`.

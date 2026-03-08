@@ -28,7 +28,7 @@ import { CommanderConsoleComponent } from './commander-console/commander-console
   standalone: true,
   imports: [FormsModule, JsonPipe, CommanderConsoleComponent],
   templateUrl: './commander.component.html',
-  styleUrls: ['./commander.component.css'],
+  styleUrls: ['./commander.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommanderComponent implements OnInit {

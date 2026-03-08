@@ -23,7 +23,7 @@ interface ConsoleLine {
   selector: 'app-commander-console',
   standalone: true,
   templateUrl: './commander-console.component.html',
-  styleUrl: './commander-console.component.css',
+  styleUrl: './commander-console.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommanderConsoleComponent {

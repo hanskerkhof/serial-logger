@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased
+### Changed
+- Switched the app style pipeline from CSS to SCSS in Angular workspace configuration and active components.
+- Removed all app-specific global and component styling to return the UI to a clean baseline before a new component-library pass.
+- Replaced active `.css` stylesheets with empty `.scss` files for the root app, Direct page, Commander page, and Commander console.
+
+### Verified
+- `npm run build`
+
 ## 0.0.7 - 2026-03-07
 ### Changed
 - Fixture modal now includes `Query fixture` action in the header.

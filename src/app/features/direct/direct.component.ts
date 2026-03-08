@@ -17,7 +17,7 @@ import { HistoryService } from '../../history.service';
   standalone: true,
   imports: [FormsModule],
   templateUrl: './direct.component.html',
-  styleUrls: ['./direct.component.css'],
+  styleUrls: ['./direct.component.scss'],
 })
 export class DirectComponent implements OnInit, OnDestroy, AfterViewInit {
   title = 'Serial Logger';

@@ -142,20 +142,25 @@
     } @else if (error(); as err) {
       <p class="commander__error" role="alert">{{ err }}</p>
     } @else if (health(); as currentHealth) {
-      <div class="commander__card">
-        <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
-        <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
-        <div><strong>service:</strong> {{ currentHealth.service }}</div>
-        @if (currentHealth.commander; as commanderHealth) {
-          <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
-          <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
-          <div><strong>serial port:</strong> {{ commanderHealth.port || '-' }}</div>
-          <div><strong>resolver source:</strong> {{ commanderHealth.resolver_source || '-' }}</div>
-          @if (commanderHealth.proxy; as proxyHealth) {
-            <div><strong>proxy active:</strong> {{ proxyHealth.active }}</div>
+      <p-panel [toggleable]="true" [collapsed]="true" toggler="header">
+        <ng-template #header>
+          <span class="commander__health-header">Heartbeat: {{ currentHealth.utc }}</span>
+        </ng-template>
+        <div class="commander__card">
+          <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
+          <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
+          <div><strong>service:</strong> {{ currentHealth.service }}</div>
+          @if (currentHealth.commander; as commanderHealth) {
+            <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
+            <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
+            <div><strong>serial port:</strong> {{ commanderHealth.port || '-' }}</div>
+            <div><strong>resolver source:</strong> {{ commanderHealth.resolver_source || '-' }}</div>
+            @if (commanderHealth.proxy; as proxyHealth) {
+              <div><strong>proxy active:</strong> {{ proxyHealth.active }}</div>
+            }
           }
-        }
-      </div>
+        </div>
+      </p-panel>
     }
 
     <section class="commander__query-panel" aria-label="Commander queries">

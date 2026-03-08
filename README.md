@@ -1,5 +1,17 @@
 # BAUKLANK Serial Logger App
 
+## Contributor Skill Reference
+
+Reusable BAUKLANK frontend guidance for this studio/operator interface lives in:
+
+- `/Users/hanskerkhof/bauklank-agent-skills`
+
+Relevant reusable skill:
+
+- `bauklank-frontend-studio`
+
+Repo-local guidance in `AGENTS.md` remains the authoritative source for repo-specific behavior.
+
 Angular app for two control modes:
 
 - `Direct`: Web Serial terminal for direct COMMANDER interaction.

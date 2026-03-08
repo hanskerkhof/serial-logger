@@ -9,6 +9,14 @@
 - Reintroduced a minimal app-shell layout and Commander two-column layout after the styling reset so the workspace remains usable during the component migration.
 - Migrated the Commander page buttons, main text inputs, query selects, and top-level app tabs to PrimeNG components.
 - Increased the Angular initial bundle warning/error budgets to reflect the heavier PrimeNG-based UI baseline.
+- Replaced app shell `<header>` with PrimeNG `p-toolbar` (title in `#start`, mode tabs in `#end`).
+- Fixture modal: removed raw JSON `<pre>` block from the detail dialog body.
+- Commander console: applied terminal-style dark theme (dark background, monospace font, color-coded timestamps/types/request IDs, custom scrollbar).
+- Added shared `.console-log` global utility class for terminal-style log windows; applied to both the Commander console body and the Direct page `#logArea` textarea.
+- Direct page `#logArea` textarea given explicit 400 px height via component SCSS.
+- Commander console Auto-scroll and Heartbeat controls replaced with PrimeNG `p-toggleswitch` components.
+- Commander query rows (Fixture, Plan, Plan group) migrated to PrimeNG `p-inputgroup` / `p-inputgroup-addon` layout, placing label, input/select, and action button on a single fused line.
+- Added `gap: 0.5rem` flex column layout to `.commander__query-panel` for consistent spacing between input groups.
 
 ### Verified
 - `npm run build`

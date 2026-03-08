@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
+import { ToolbarModule } from 'primeng/toolbar';
 import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TabsModule],
+  imports: [RouterOutlet, TabsModule, ToolbarModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })

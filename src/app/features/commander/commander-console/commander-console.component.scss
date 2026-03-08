@@ -1,1 +1,130 @@
-/* Intentionally empty: app-specific component styling removed. */
+.commander-console {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #2a2a2a;
+  background: #0d0d0d;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    gap: 8px;
+
+    h3 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #6b7280;
+      font-family: inherit;
+    }
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__switch-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #9ca3af;
+    user-select: none;
+  }
+
+  &__status {
+    font-size: 11px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &--connected { color: #22c55e; }
+    &--disconnected { color: #ef4444; }
+  }
+
+  &__heart {
+    font-size: 10px;
+    transition: color 0.2s;
+
+    &--pulse { animation: heart-beat 0.3s ease-out; }
+    &--offline { color: #4b5563; }
+  }
+
+  &__body {
+    flex: 1;
+    padding: 8px 0;
+    min-height: 200px;
+    max-height: 400px;
+    // Base terminal styles come from global .console-log
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid #2a2a2a;
+    resize: none;
+  }
+
+  &__line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 6px;
+    padding: 1px 12px;
+    line-height: 1.6;
+
+    &:hover { background: rgba(255, 255, 255, 0.03); }
+  }
+
+  &__time {
+    color: #4b5563;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  &__type {
+    color: #6366f1;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  &__rid {
+    color: #d97706;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    color: #d1d5db;
+    word-break: break-all;
+  }
+
+  &__empty {
+    padding: 16px 12px;
+    color: #4b5563;
+    font-style: italic;
+    margin: 0;
+  }
+
+  &__error {
+    padding: 6px 12px;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    margin: 0;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  }
+}
+
+@keyframes heart-beat {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}

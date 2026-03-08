@@ -10,7 +10,9 @@ import {
   signal,
 } from '@angular/core';
 import { CommanderApiService, CommanderStreamEvent } from '../../../commander-api.service';
+import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 
 interface ConsoleLine {
   ts: number;
@@ -23,7 +25,7 @@ interface ConsoleLine {
 @Component({
   selector: 'app-commander-console',
   standalone: true,
-  imports: [ButtonModule],
+  imports: [ButtonModule, ToggleSwitchModule, FormsModule],
   templateUrl: './commander-console.component.html',
   styleUrl: './commander-console.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

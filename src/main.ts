@@ -15,6 +15,9 @@ bootstrapApplication(AppComponent, {
     providePrimeNG({
       theme: {
         preset: Aura,
+        options: {
+          darkModeSelector: '.p-dark',
+        },
       },
     }),
   ],

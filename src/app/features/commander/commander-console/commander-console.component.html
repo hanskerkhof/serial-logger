@@ -27,22 +27,14 @@
         (click)="togglePaused()"
       ></button>
       <button pButton type="button" label="Clear" severity="secondary" size="small" (click)="clear()"></button>
-      <button
-        pButton
-        type="button"
-        [label]="'Auto-scroll: ' + (autoScroll() ? 'On' : 'Off')"
-        severity="secondary"
-        size="small"
-        (click)="toggleAutoScroll()"
-      ></button>
-      <button
-        pButton
-        type="button"
-        [label]="'Heartbeat: ' + (showHeartbeatLines() ? 'Shown' : 'Hidden')"
-        severity="secondary"
-        size="small"
-        (click)="toggleHeartbeatLines()"
-      ></button>
+      <label class="commander-console__switch-label">
+        <p-toggleswitch [ngModel]="autoScroll()" (ngModelChange)="toggleAutoScroll()" />
+        <span>Auto-scroll</span>
+      </label>
+      <label class="commander-console__switch-label">
+        <p-toggleswitch [ngModel]="showHeartbeatLines()" (ngModelChange)="toggleHeartbeatLines()" />
+        <span>Heartbeat</span>
+      </label>
     </div>
   </header>
 
@@ -50,7 +42,7 @@
     <p class="commander-console__error">{{ err }}</p>
   }
 
-  <div #consoleBody class="commander-console__body">
+  <div #consoleBody class="commander-console__body console-log">
     @if (lines().length === 0) {
       <p class="commander-console__empty">No stream events yet.</p>
     } @else {

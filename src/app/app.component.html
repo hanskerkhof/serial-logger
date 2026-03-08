@@ -1,14 +1,17 @@
 <div class="app-shell">
-  <header class="app-shell__header">
-    <h1 class="app-shell__title">BAUKLANK CONTROL</h1>
-
-    <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">
-      <p-tablist>
-        <p-tab value="direct">Direct</p-tab>
-        <p-tab value="commander">Commander</p-tab>
-      </p-tablist>
-    </p-tabs>
-  </header>
+  <p-toolbar class="app-shell__header">
+    <ng-template #start>
+      <h1 class="app-shell__title">BAUKLANK CONTROL</h1>
+    </ng-template>
+    <ng-template #end>
+      <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">
+        <p-tablist>
+          <p-tab value="direct">Direct</p-tab>
+          <p-tab value="commander">Commander</p-tab>
+        </p-tablist>
+      </p-tabs>
+    </ng-template>
+  </p-toolbar>
 
   <main class="app-shell__content">
     <router-outlet></router-outlet>

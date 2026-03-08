@@ -12,6 +12,8 @@ import { JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import {
@@ -34,7 +36,7 @@ interface SelectOption {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, JsonPipe, ButtonModule, InputTextModule, SelectModule, CommanderConsoleComponent],
+  imports: [FormsModule, JsonPipe, ButtonModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, CommanderConsoleComponent],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

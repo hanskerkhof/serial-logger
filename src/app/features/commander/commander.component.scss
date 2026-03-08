@@ -63,6 +63,12 @@
   gap: 0.5rem;
 }
 
+.commander__query-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .commander__fixture-btn,
 .commander__dialog-command-input {
   min-width: 0;

@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-export type FixtureSource = 'fixture_query' | 'plan_query' | 'plan_group_query';
+export type FixtureSource = 'fixture_query' | 'plan_query' | 'plan_group_query' | 'discovery_query';
 
 export interface FixtureRecord {
   fixture_name: string;
@@ -177,7 +177,8 @@ export class FixtureStoreService {
       if (
         record.source !== 'fixture_query' &&
         record.source !== 'plan_query' &&
-        record.source !== 'plan_group_query'
+        record.source !== 'plan_group_query' &&
+        record.source !== 'discovery_query'
       ) {
         return null;
       }

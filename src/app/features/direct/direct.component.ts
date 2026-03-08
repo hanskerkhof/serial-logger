@@ -14,6 +14,7 @@ import { HistoryService } from '../../history.service';
 
 @Component({
   selector: 'app-direct',
+  standalone: true,
   imports: [FormsModule],
   templateUrl: './direct.component.html',
   styleUrls: ['./direct.component.css'],

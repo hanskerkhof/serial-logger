@@ -25,6 +25,7 @@ import { CommanderConsoleComponent } from './commander-console/commander-console
 
 @Component({
   selector: 'app-commander',
+  standalone: true,
   imports: [FormsModule, JsonPipe, CommanderConsoleComponent],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.css'],
@@ -33,6 +34,7 @@ import { CommanderConsoleComponent } from './commander-console/commander-console
 export class CommanderComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly queryLoading = signal(false);
+  protected readonly discoveryLoading = signal(false);
   protected readonly health = signal<CommanderHealthResponse | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
@@ -136,6 +138,23 @@ export class CommanderComponent implements OnInit {
         this.error.set(this.formatError(`Fixture query failed for ${fixture}`, err));
         this.queryResult.set(null);
         this.queryLoading.set(false);
+      },
+    });
+  }
+
+  protected runFullDiscovery(): void {
+    this.discoveryLoading.set(true);
+    this.error.set(null);
+
+    this.commanderApi.getFixtureDiscovery().subscribe({
+      next: (result) => {
+        this.queryResult.set(result);
+        this.ingestQueryResult(result, 'discovery_query');
+        this.discoveryLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.error.set(this.formatError('Full discovery failed', err));
+        this.discoveryLoading.set(false);
       },
     });
   }

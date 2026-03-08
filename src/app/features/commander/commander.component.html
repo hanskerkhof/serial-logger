@@ -5,6 +5,16 @@
       <span>{{ fixtureCount() }}</span>
     </header>
 
+    <div class="commander__sidebar-actions">
+      <button type="button" (click)="runFullDiscovery()" [disabled]="discoveryLoading() || queryLoading()">
+        Full Discovery
+      </button>
+    </div>
+
+    @if (discoveryLoading()) {
+      <p class="commander__status" role="status" aria-live="polite">Running full discovery...</p>
+    }
+
     @if (storageWarning(); as warning) {
       <p class="commander__sidebar-warning" role="status">{{ warning }}</p>
     }

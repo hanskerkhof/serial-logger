@@ -115,6 +115,12 @@ export class CommanderApiService {
     );
   }
 
+  getFixtureDiscovery(listenSeconds = 45): Observable<CommanderQueryResponse> {
+    return this.http.get<CommanderQueryResponse>(
+      `${this.apiBaseUrl()}/fixtures/discovery?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
+    );
+  }
+
   getPlanVersions(planName: string): Observable<CommanderQueryResponse> {
     return this.http.get<CommanderQueryResponse>(
       `${this.apiBaseUrl()}/plans/${encodeURIComponent(planName)}/versions`,

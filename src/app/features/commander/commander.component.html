@@ -6,9 +6,15 @@
     </header>
 
     <div class="commander__sidebar-actions">
-      <button type="button" (click)="runFullDiscovery()" [disabled]="discoveryLoading() || queryLoading()">
-        Full Discovery
-      </button>
+      <button
+        pButton
+        type="button"
+        label="Full Discovery"
+        severity="primary"
+        size="small"
+        (click)="runFullDiscovery()"
+        [disabled]="discoveryLoading() || queryLoading()"
+      ></button>
     </div>
 
     @if (discoveryLoading()) {
@@ -28,36 +34,47 @@
             <header class="commander__group-header">
               <h4 class="commander__group-title">{{ group.plan_name }}</h4>
               <button
+                pButton
                 type="button"
                 class="commander__trash-btn"
+                icon="pi pi-trash"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
                 title="Remove this plan from local store"
                 aria-label="Remove plan {{ group.plan_name }}"
                 (click)="removePlan(group.plan_name, $event)"
-              >
-                🗑
-              </button>
+              ></button>
             </header>
 
             <ul class="commander__fixture-list">
               @for (fixture of group.fixtures; track fixture.fixture_name) {
                 <li class="commander__fixture-row">
                   <button
+                    pButton
                     type="button"
                     class="commander__fixture-btn"
+                    severity="secondary"
+                    size="small"
                     [class.commander__fixture-btn--active]="selectedFixtureName() === fixture.fixture_name"
                     (click)="selectFixture(fixture)"
                   >
                     {{ fixture.fixture_name }}
                   </button>
                   <button
+                    pButton
                     type="button"
                     class="commander__trash-btn"
+                    icon="pi pi-trash"
+                    [text]="true"
+                    [rounded]="true"
+                    severity="secondary"
+                    size="small"
                     title="Remove fixture from local store"
                     aria-label="Remove fixture {{ fixture.fixture_name }}"
                     (click)="removeFixture(fixture, $event)"
-                  >
-                    🗑
-                  </button>
+                  ></button>
                 </li>
               }
             </ul>
@@ -69,7 +86,15 @@
 
   <div class="commander__main">
     <header class="commander__header">
-      <button type="button" (click)="reloadHealth()" [disabled]="loading()">Refresh health</button>
+      <button
+        pButton
+        type="button"
+        label="Refresh health"
+        severity="secondary"
+        size="small"
+        (click)="reloadHealth()"
+        [disabled]="loading()"
+      ></button>
     </header>
 
     <section class="commander__target-panel" aria-label="Commander API target">
@@ -78,7 +103,10 @@
       <div class="commander__presets">
         @for (target of targets; track target.id) {
           <button
+            pButton
             type="button"
+            severity="secondary"
+            size="small"
             (click)="useTarget(target.url)"
             [disabled]="loading()"
             [class.commander__preset--active]="activeApiUrl() === target.url"
@@ -91,13 +119,21 @@
       <div class="commander__custom">
         <label for="customApiUrl">Custom API URL</label>
         <input
+          pInputText
           id="customApiUrl"
           type="text"
           [ngModel]="customUrl()"
           (ngModelChange)="customUrl.set($event)"
           placeholder="http://100.x.x.x:8080"
         />
-        <button type="button" (click)="applyCustomUrl()" [disabled]="loading()">Use custom URL</button>
+        <button
+          pButton
+          type="button"
+          label="Use custom URL"
+          size="small"
+          (click)="applyCustomUrl()"
+          [disabled]="loading()"
+        ></button>
       </div>
     </section>
 
@@ -128,73 +164,75 @@
       <div class="commander__query-row">
         <label for="fixtureName">Fixture</label>
         <input
+          pInputText
           id="fixtureName"
           type="text"
           [ngModel]="fixtureName()"
           (ngModelChange)="fixtureName.set($event)"
           placeholder="CLIGNOTEUR1"
         />
-        <button type="button" (click)="runFixtureQuery()" [disabled]="queryLoading()">Run fixture version endpoint</button>
+        <button
+          pButton
+          type="button"
+          label="Run fixture version endpoint"
+          size="small"
+          (click)="runFixtureQuery()"
+          [disabled]="queryLoading()"
+        ></button>
       </div>
 
       <div class="commander__query-row">
         <label for="planName">Plan</label>
-        <select
+        <p-select
           id="planName"
+          inputId="planName"
           [ngModel]="planName()"
           (ngModelChange)="onPlanSelected($event)"
-        >
-          @if (planListLoading()) {
-            <option value="" disabled>Loading plans...</option>
-          } @else if (exposedPlans().length === 0) {
-            <option value="" disabled>No exposed plans available</option>
-          } @else {
-            @for (group of exposedPlansByGroup(); track group.plan_group) {
-              <optgroup [label]="group.plan_group">
-                @for (plan of group.plans; track plan.plan_name) {
-                  <option [value]="plan.plan_name">
-                    {{ plan.plan_name }} ({{ plan.fixture_count }})
-                  </option>
-                }
-              </optgroup>
-            }
-          }
-        </select>
+          [options]="planOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          [loading]="planListLoading()"
+          [disabled]="planListLoading() || planOptions().length === 0"
+          placeholder="Select plan"
+          appendTo="body"
+        ></p-select>
         <button
+          pButton
           type="button"
+          label="Run plan versions endpoint"
+          size="small"
           (click)="runPlanQuery()"
           [disabled]="queryLoading() || planListLoading() || !planName()"
-        >
-          Run plan versions endpoint
-        </button>
+        ></button>
       </div>
 
       <div class="commander__query-row">
         <label for="planGroupName">Plan group</label>
-        <select
+        <p-select
           id="planGroupName"
+          inputId="planGroupName"
           [ngModel]="planGroupName()"
           (ngModelChange)="onPlanGroupSelected($event)"
-        >
-          @if (lanGroupListLoading()) {
-            <option value="" disabled>Loading plan groups...</option>
-          } @else if (lanGroups().length === 0) {
-            <option value="" disabled>No plan groups available</option>
-          } @else {
-            @for (group of lanGroups(); track group.plan_group) {
-              <option [value]="group.plan_group">
-                {{ group.plan_group }} (u{{ group.universe }}, {{ group.fixture_count }})
-              </option>
-            }
-          }
-        </select>
+          [options]="planGroupOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          [loading]="lanGroupListLoading()"
+          [disabled]="lanGroupListLoading() || planGroupOptions().length === 0"
+          placeholder="Select plan group"
+          appendTo="body"
+        ></p-select>
         <button
+          pButton
           type="button"
+          label="Run plan group versions endpoint"
+          size="small"
           (click)="runPlanGroupQuery()"
           [disabled]="queryLoading() || lanGroupListLoading() || !planGroupName()"
-        >
-          Run plan group versions endpoint
-        </button>
+        ></button>
       </div>
 
       @if (queryLoading()) {
@@ -213,16 +251,33 @@
     <header class="commander__dialog-header">
       <h3>Fixture: {{ selectedFixture()?.fixture_name }}</h3>
       <div class="commander__dialog-header-actions">
-        <button type="button" (click)="runModalFixtureQuery()" [disabled]="modalQueryLoading()">
-          Query fixture
-        </button>
+        <button
+          pButton
+          type="button"
+          label="Query fixture"
+          severity="secondary"
+          size="small"
+          (click)="runModalFixtureQuery()"
+          [disabled]="modalQueryLoading()"
+        ></button>
         @if (modalQueryLoading()) {
           <span class="commander__dialog-header-status">Running query...</span>
         } @else if (modalQueryError(); as modalError) {
           <span class="commander__dialog-header-error">{{ modalError }}</span>
         }
       </div>
-      <button type="button" (click)="closeFixtureModal()" aria-label="Close">✕</button>
+      <button
+        pButton
+        type="button"
+        class="commander__dialog-close-btn"
+        icon="pi pi-times"
+        [text]="true"
+        [rounded]="true"
+        severity="secondary"
+        size="small"
+        (click)="closeFixtureModal()"
+        aria-label="Close"
+      ></button>
     </header>
     <pre class="commander__dialog-json">{{ selectedFixtureJson() }}</pre>
     @if (fixtureActionMessage(); as actionMessage) {
@@ -236,6 +291,7 @@
     }
     <footer class="commander__dialog-footer">
       <input
+        pInputText
         type="text"
         class="commander__dialog-command-input"
         [ngModel]="manualCommand()"
@@ -243,16 +299,40 @@
         (keyup.enter)="runManualCommand()"
         placeholder="cmd;relay;number=1;state=1;durationMs=1000;scheduledTimeMs=1000;"
       />
-      <button type="button" (click)="runManualCommand()" [disabled]="fixtureActionLoading() || !manualCommand().trim()">
-        Send
-      </button>
-      <button type="button" (click)="runModalPlanAction('trigger')" [disabled]="fixtureActionLoading()">
-        Plan trigger
-      </button>
-      <button type="button" (click)="runModalPlanAction('stop')" [disabled]="fixtureActionLoading()">
-        Plan stop
-      </button>
-      <button type="button" (click)="closeFixtureModal()">Close</button>
+      <button
+        pButton
+        type="button"
+        label="Send"
+        size="small"
+        (click)="runManualCommand()"
+        [disabled]="fixtureActionLoading() || !manualCommand().trim()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        label="Plan trigger"
+        severity="secondary"
+        size="small"
+        (click)="runModalPlanAction('trigger')"
+        [disabled]="fixtureActionLoading()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        label="Plan stop"
+        severity="secondary"
+        size="small"
+        (click)="runModalPlanAction('stop')"
+        [disabled]="fixtureActionLoading()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        label="Close"
+        severity="secondary"
+        size="small"
+        (click)="closeFixtureModal()"
+      ></button>
     </footer>
   </dialog>
 </section>

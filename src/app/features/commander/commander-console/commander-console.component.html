@@ -18,14 +18,31 @@
         </span>
         {{ connected() ? 'Connected' : 'Disconnected' }}
       </span>
-      <button type="button" (click)="togglePaused()">{{ paused() ? 'Resume' : 'Pause' }}</button>
-      <button type="button" (click)="clear()">Clear</button>
-      <button type="button" (click)="toggleAutoScroll()">
-        Auto-scroll: {{ autoScroll() ? 'On' : 'Off' }}
-      </button>
-      <button type="button" (click)="toggleHeartbeatLines()">
-        Heartbeat: {{ showHeartbeatLines() ? 'Shown' : 'Hidden' }}
-      </button>
+      <button
+        pButton
+        type="button"
+        [label]="paused() ? 'Resume' : 'Pause'"
+        severity="secondary"
+        size="small"
+        (click)="togglePaused()"
+      ></button>
+      <button pButton type="button" label="Clear" severity="secondary" size="small" (click)="clear()"></button>
+      <button
+        pButton
+        type="button"
+        [label]="'Auto-scroll: ' + (autoScroll() ? 'On' : 'Off')"
+        severity="secondary"
+        size="small"
+        (click)="toggleAutoScroll()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        [label]="'Heartbeat: ' + (showHeartbeatLines() ? 'Shown' : 'Hidden')"
+        severity="secondary"
+        size="small"
+        (click)="toggleHeartbeatLines()"
+      ></button>
     </div>
   </header>
 

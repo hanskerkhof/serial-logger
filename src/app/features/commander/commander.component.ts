@@ -11,6 +11,9 @@ import {
 import { JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
 import {
   CommanderApiService,
   CommanderExposedPlan,
@@ -23,10 +26,15 @@ import {
 import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
 
+interface SelectOption {
+  label: string;
+  value: string;
+}
+
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, JsonPipe, CommanderConsoleComponent],
+  imports: [FormsModule, JsonPipe, ButtonModule, InputTextModule, SelectModule, CommanderConsoleComponent],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -82,6 +90,27 @@ export class CommanderComponent implements OnInit {
         plans: [...plans].sort((a, b) => a.plan_name.localeCompare(b.plan_name)),
       }));
   });
+  protected readonly planOptions = computed<SelectOption[]>(() =>
+    this.exposedPlans()
+      .slice()
+      .sort((a, b) => {
+        const groupCompare = (a.plan_group || '').localeCompare(b.plan_group || '');
+        return groupCompare !== 0 ? groupCompare : a.plan_name.localeCompare(b.plan_name);
+      })
+      .map((plan) => ({
+        label: `${plan.plan_group} / ${plan.plan_name} (${plan.fixture_count})`,
+        value: plan.plan_name,
+      })),
+  );
+  protected readonly planGroupOptions = computed<SelectOption[]>(() =>
+    this.lanGroups()
+      .slice()
+      .sort((a, b) => a.plan_group.localeCompare(b.plan_group))
+      .map((group) => ({
+        label: `${group.plan_group} (u${group.universe}, ${group.fixture_count})`,
+        value: group.plan_group,
+      })),
+  );
   protected readonly selectedFixtureJson = computed(() => {
     const selected = this.selectedFixture();
     return selected ? JSON.stringify(selected.raw, null, 2) : '';

@@ -1,11 +1,31 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { TabsModule } from 'primeng/tabs';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterOutlet, TabsModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent {}
+export class AppComponent {
+  private readonly router = inject(Router);
+  protected readonly activeMode = signal<'direct' | 'commander'>(this.modeFromUrl(this.router.url));
+
+  constructor() {
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.activeMode.set(this.modeFromUrl(this.router.url));
+    });
+  }
+
+  protected onModeChange(mode: string | number | undefined): void {
+    const nextMode = mode === 'direct' ? 'direct' : 'commander';
+    this.router.navigateByUrl(`/${nextMode}`);
+  }
+
+  private modeFromUrl(url: string): 'direct' | 'commander' {
+    return url.startsWith('/direct') ? 'direct' : 'commander';
+  }
+}

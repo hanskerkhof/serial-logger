@@ -5,6 +5,10 @@
 - Switched the app style pipeline from CSS to SCSS in Angular workspace configuration and active components.
 - Removed all app-specific global and component styling to return the UI to a clean baseline before a new component-library pass.
 - Replaced active `.css` stylesheets with empty `.scss` files for the root app, Direct page, Commander page, and Commander console.
+- Installed PrimeNG, PrimeIcons, and the default Aura preset, and wired PrimeNG providers into app bootstrap.
+- Reintroduced a minimal app-shell layout and Commander two-column layout after the styling reset so the workspace remains usable during the component migration.
+- Migrated the Commander page buttons, main text inputs, query selects, and top-level app tabs to PrimeNG components.
+- Increased the Angular initial bundle warning/error budgets to reflect the heavier PrimeNG-based UI baseline.
 
 ### Verified
 - `npm run build`

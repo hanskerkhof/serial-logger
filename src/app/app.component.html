@@ -2,10 +2,12 @@
   <header class="app-shell__header">
     <h1 class="app-shell__title">BAUKLANK CONTROL</h1>
 
-    <nav class="mode-tabs" aria-label="Control mode">
-      <a class="mode-tabs__tab" routerLink="/direct" routerLinkActive="mode-tabs__tab--active">Direct</a>
-      <a class="mode-tabs__tab" routerLink="/commander" routerLinkActive="mode-tabs__tab--active">Commander</a>
-    </nav>
+    <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">
+      <p-tablist>
+        <p-tab value="direct">Direct</p-tab>
+        <p-tab value="commander">Commander</p-tab>
+      </p-tablist>
+    </p-tabs>
   </header>
 
   <main class="app-shell__content">

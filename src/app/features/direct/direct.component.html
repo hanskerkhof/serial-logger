@@ -1,89 +1,141 @@
-<div class="wrap">
-  <h2>⚡ {{ title }}</h2>
+<div class="direct">
+  <h2 class="direct__title">{{ title }}</h2>
 
-  <div class="row">
-    <label>Baud:</label>
-
-    <select [(ngModel)]="baud">
-      <option [value]="300">300 baud</option>
-      <option [value]="600">600 baud</option>
-      <option [value]="750">750 baud</option>
-      <option [value]="1200">1200 baud</option>
-      <option [value]="2400">2400 baud</option>
-      <option [value]="4800">4800 baud</option>
-      <option [value]="9600">9600 baud</option>
-      <option [value]="19200">19200 baud</option>
-      <option [value]="31250">31250 baud</option>
-      <option [value]="38400">38400 baud</option>
-      <option [value]="57600">57600 baud</option>
-      <option [value]="74880">74880 baud</option>
-      <option [value]="115200" selected>115200 baud</option>
-      <option [value]="230400">230400 baud</option>
-      <option [value]="250000">250000 baud</option>
-      <option [value]="460800">460800 baud</option>
-      <option [value]="921600">921600 baud</option>
-      <option [value]="1000000">1000000 baud</option>
-      <option [value]="2000000">2000000 baud</option>
-    </select>
+  <div class="direct__controls">
+    <p-select
+      [options]="baudOptions"
+      [(ngModel)]="baud"
+      optionLabel="label"
+      optionValue="value"
+      size="small"
+    ></p-select>
 
     <button
+      pButton
+      type="button"
+      label="Quick connect"
+      severity="primary"
+      size="small"
       (click)="quickConnect()"
       [disabled]="serial.connected$.value || !serial.pairedPortsAvailable$.value || !serial.isSupported"
-    >
-      Quick connect
-    </button>
-    <button (click)="connect()" [disabled]="serial.connected$.value || !serial.isSupported">Choose port…</button>
-    <button (click)="disconnect()" [disabled]="!serial.connected$.value">Disconnect</button>
+    ></button>
+    <button
+      pButton
+      type="button"
+      label="Choose port…"
+      severity="secondary"
+      size="small"
+      (click)="connect()"
+      [disabled]="serial.connected$.value || !serial.isSupported"
+    ></button>
+    <button
+      pButton
+      type="button"
+      label="Disconnect"
+      severity="secondary"
+      size="small"
+      (click)="disconnect()"
+      [disabled]="!serial.connected$.value"
+    ></button>
 
-    <div class="history-controls">
-      <button type="button" (click)="openHistoryDialog()">View history</button>
-      <button type="button" (click)="clearHistoryAll()">Clear history</button>
-    </div>
+    <button
+      pButton
+      type="button"
+      label="View history"
+      severity="secondary"
+      size="small"
+      (click)="openHistoryDialog()"
+    ></button>
+    <button
+      pButton
+      type="button"
+      label="Clear history"
+      severity="secondary"
+      size="small"
+      (click)="clearHistoryAll()"
+    ></button>
   </div>
 
   @if (!serial.isSupported) {
-    <p class="warn">Web Serial API is not supported in this browser. Use Chrome/Edge over HTTPS or localhost.</p>
+    <p class="direct__warn" role="alert">
+      Web Serial API is not supported in this browser. Use Chrome/Edge over HTTPS or localhost.
+    </p>
   }
 
-  <textarea id="logArea" class="console-log" readonly [value]="log" spellcheck="false"></textarea>
+  <textarea id="logArea" class="console-log direct__log" readonly [value]="log" spellcheck="false"></textarea>
 
-  <div class="row command-row">
+  <p-inputgroup>
     <input
       #cmdInput
+      pInputText
       type="text"
       [(ngModel)]="inputText"
       placeholder="Send a line…"
       (keyup.enter)="sendLine()"
       (keydown)="handleKeyDown($event)"
-      class="command-input"
       autofocus
     />
-    <button (click)="sendLine()" [disabled]="!serial.connected$.value">Send</button>
-  </div>
+    <button
+      pButton
+      type="button"
+      label="Send"
+      (click)="sendLine()"
+      [disabled]="!serial.connected$.value"
+    ></button>
+  </p-inputgroup>
 
-  <dialog #historyDialog class="history-dialog">
-    <header>
+  <dialog #historyDialog class="direct__history-dialog">
+    <header class="direct__dialog-header">
       <h3>Command History</h3>
-      <button type="button" (click)="closeHistoryDialog()" aria-label="Close">✕</button>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-times"
+        [text]="true"
+        [rounded]="true"
+        severity="secondary"
+        size="small"
+        (click)="closeHistoryDialog()"
+        aria-label="Close"
+      ></button>
     </header>
 
-    <div class="history-list">
+    <div class="direct__history-list">
       @if (commandHistory.length > 0) {
         <ul>
           @for (cmd of commandHistory; track cmd; let i = $index) {
-            <li>
+            <li class="direct__history-item">
               <code>{{ cmd }}</code>
-              <span class="spacer"></span>
-              <button type="button" (click)="reuseHistoryItem(cmd)">📋 Use</button>
+              <span class="direct__history-spacer"></span>
               <button
+                pButton
                 type="button"
+                label="Use"
+                severity="secondary"
+                size="small"
+                (click)="reuseHistoryItem(cmd)"
+              ></button>
+              <button
+                pButton
+                type="button"
+                label="Use + Send"
+                severity="secondary"
+                size="small"
                 (click)="reuseAndSend(cmd)"
                 [disabled]="!serial.connected$.value"
                 title="Use and send immediately"
-              >
-                🚀 Use + Send
-              </button>
-              <button type="button" (click)="deleteHistoryAt(i)" title="Delete this entry">🗑</button>
+              ></button>
+              <button
+                pButton
+                type="button"
+                icon="pi pi-trash"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                (click)="deleteHistoryAt(i)"
+                title="Delete this entry"
+              ></button>
             </li>
           }
         </ul>
@@ -92,9 +144,23 @@
       }
     </div>
 
-    <footer>
-      <button type="button" (click)="clearHistoryAll()">Clear all</button>
-      <button type="button" (click)="closeHistoryDialog()">Close</button>
+    <footer class="direct__dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Clear all"
+        severity="secondary"
+        size="small"
+        (click)="clearHistoryAll()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        label="Close"
+        severity="secondary"
+        size="small"
+        (click)="closeHistoryDialog()"
+      ></button>
     </footer>
   </dialog>
 </div>

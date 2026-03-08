@@ -9,13 +9,22 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { SelectModule } from 'primeng/select';
 import { SerialService } from '../../serial.service';
 import { HistoryService } from '../../history.service';
+
+interface BaudOption {
+  label: string;
+  value: number;
+}
 
 @Component({
   selector: 'app-direct',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, InputGroupModule, SelectModule],
   templateUrl: './direct.component.html',
   styleUrls: ['./direct.component.scss'],
 })
@@ -24,6 +33,28 @@ export class DirectComponent implements OnInit, OnDestroy, AfterViewInit {
   log = '';
   baud = 115200;
   inputText = '';
+
+  readonly baudOptions: BaudOption[] = [
+    { label: '300 baud', value: 300 },
+    { label: '600 baud', value: 600 },
+    { label: '750 baud', value: 750 },
+    { label: '1200 baud', value: 1200 },
+    { label: '2400 baud', value: 2400 },
+    { label: '4800 baud', value: 4800 },
+    { label: '9600 baud', value: 9600 },
+    { label: '19200 baud', value: 19200 },
+    { label: '31250 baud', value: 31250 },
+    { label: '38400 baud', value: 38400 },
+    { label: '57600 baud', value: 57600 },
+    { label: '74880 baud', value: 74880 },
+    { label: '115200 baud', value: 115200 },
+    { label: '230400 baud', value: 230400 },
+    { label: '250000 baud', value: 250000 },
+    { label: '460800 baud', value: 460800 },
+    { label: '921600 baud', value: 921600 },
+    { label: '1000000 baud', value: 1000000 },
+    { label: '2000000 baud', value: 2000000 },
+  ];
 
   @ViewChild('cmdInput') cmdInput!: ElementRef<HTMLInputElement>;
   @ViewChild('historyDialog') historyDialog!: ElementRef<HTMLDialogElement>;

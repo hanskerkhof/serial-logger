@@ -181,8 +181,9 @@ export class CommanderComponent implements OnInit {
     this.commanderApi.getFixtureVersion(fixture).subscribe({
       next: (result) => {
         this.queryResult.set(result);
-        this.ingestQueryResult(result, 'fixture_query');
+        const stats = this.ingestQueryResult(result, 'fixture_query');
         this.queryLoading.set(false);
+        this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.error.set(this.formatError(`Fixture query failed for ${fixture}`, err));
@@ -199,8 +200,9 @@ export class CommanderComponent implements OnInit {
     this.commanderApi.getFixtureDiscovery().subscribe({
       next: (result) => {
         this.queryResult.set(result);
-        this.ingestQueryResult(result, 'discovery_query');
+        const stats = this.ingestQueryResult(result, 'discovery_query');
         this.discoveryLoading.set(false);
+        this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.error.set(this.formatError('Full discovery failed', err));
@@ -221,8 +223,9 @@ export class CommanderComponent implements OnInit {
     this.commanderApi.getPlanVersions(plan).subscribe({
       next: (result) => {
         this.queryResult.set(result);
-        this.ingestQueryResult(result, 'plan_query');
+        const stats = this.ingestQueryResult(result, 'plan_query');
         this.queryLoading.set(false);
+        this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.error.set(this.formatError(`Plan query failed for ${plan}`, err));
@@ -252,8 +255,9 @@ export class CommanderComponent implements OnInit {
     this.commanderApi.getPlanGroupVersions(planGroup).subscribe({
       next: (result) => {
         this.queryResult.set(result);
-        this.ingestQueryResult(result, 'plan_group_query');
+        const stats = this.ingestQueryResult(result, 'plan_group_query');
         this.queryLoading.set(false);
+        this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.error.set(this.formatError(`Plan group query failed for ${planGroup}`, err));
@@ -364,13 +368,29 @@ export class CommanderComponent implements OnInit {
     }
   }
 
-  private ingestQueryResult(result: CommanderQueryResponse, source: FixtureSource): void {
+  private ingestQueryResult(
+    result: CommanderQueryResponse,
+    source: FixtureSource,
+  ): { added: number; updated: number } | null {
     const fixtures = this.extractFixtures(result, source);
     if (!fixtures.length) {
-      return;
+      return null;
     }
 
-    this.fixtureStore.upsertFixtures(fixtures);
+    return this.fixtureStore.upsertFixtures(fixtures);
+  }
+
+  private formatUpsertStats(stats: { added: number; updated: number }): string {
+    const parts: string[] = [];
+    if (stats.added > 0) parts.push(`${stats.added} added`);
+    if (stats.updated > 0) parts.push(`${stats.updated} updated`);
+    if (!parts.length) return 'No fixtures found';
+    return parts.join(', ');
+  }
+
+  private showQueryResultToast(stats: { added: number; updated: number } | null): void {
+    const summary = stats ? this.formatUpsertStats(stats) : 'No fixtures found in response';
+    this.messageService.add({ key: 'query-result', severity: 'success', summary, life: 3000 });
   }
 
   private extractFixtures(result: CommanderQueryResponse, source: FixtureSource): FixtureRecord[] {

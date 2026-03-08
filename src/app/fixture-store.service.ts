@@ -58,15 +58,28 @@ export class FixtureStoreService {
     this.hydrateFromStorage();
   }
 
-  upsertFixtures(fixtures: FixtureRecord[]): void {
-    this.fixturesByName.update((current) => {
-      const next = { ...current };
+  upsertFixtures(fixtures: FixtureRecord[]): { added: number; updated: number } {
+    const current = this.fixturesByName();
+    let added = 0;
+    let updated = 0;
+
+    for (const fixture of fixtures) {
+      if (fixture.fixture_name in current) {
+        updated++;
+      } else {
+        added++;
+      }
+    }
+
+    this.fixturesByName.update((cur) => {
+      const next = { ...cur };
       for (const fixture of fixtures) {
         next[fixture.fixture_name] = fixture;
       }
       return next;
     });
     this.persistToStorage();
+    return { added, updated };
   }
 
   setSelectedFixture(fixture_name: string | null): void {

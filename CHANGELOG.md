@@ -23,7 +23,11 @@
 - Full Discovery button also given `pi pi-play` icon and `[loading]` spinner.
 - Added `backendBusy` computed signal (`discoveryLoading || queryLoading`) to cross-disable all backend action buttons while any request is in flight.
 - Replaced inline "Running..." status paragraphs with a PrimeNG `p-toast` (top-center, sticky, non-closable) driven by an `effect()` that reacts to the loading signals.
+- Added a second PrimeNG toast channel for query results so fixture, plan, plan-group, and discovery queries report concise upsert outcomes after completion.
+- `FixtureStoreService.upsertFixtures()` now returns `{ added, updated }` counts so the Commander page can surface how many fixtures were inserted or refreshed from each query response.
 - Commander health block wrapped in a collapsible `p-panel` (starts collapsed); header shows "Heartbeat: {utc}" and clicking anywhere on the header row expands/collapses the full key-value detail.
+- Direct page controls migrated to PrimeNG components: baud select now uses `p-select`, the command row uses `p-inputgroup` with `pInputText`, and connect/history actions use PrimeNG buttons and icon buttons.
+- Direct page history dialog actions now use PrimeNG buttons and PrimeIcons, and the page regained minimal SCSS layout so the serial log, controls, and dialog content remain usable after the SCSS reset.
 
 ### Verified
 - `npm run build`

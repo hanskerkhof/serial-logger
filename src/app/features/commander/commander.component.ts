@@ -5,10 +5,10 @@ import {
   OnInit,
   ViewChild,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
-import { JsonPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
@@ -16,6 +16,8 @@ import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import {
   CommanderApiService,
   CommanderExposedPlan,
@@ -36,7 +38,8 @@ interface SelectOption {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, JsonPipe, ButtonModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, CommanderConsoleComponent],
+  imports: [FormsModule, ButtonModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, CommanderConsoleComponent],
+  providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,11 +66,26 @@ export class CommanderComponent implements OnInit {
   protected readonly manualCommand = signal('');
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
+  protected readonly backendBusy = computed(() => this.discoveryLoading() || this.queryLoading());
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
   private readonly commanderApi = inject(CommanderApiService);
   private readonly fixtureStore = inject(FixtureStoreService);
+  private readonly messageService = inject(MessageService);
+
+  constructor() {
+    effect(() => {
+      const isDiscovery = this.discoveryLoading();
+      const isQuery = this.queryLoading();
+      this.messageService.clear('status');
+      if (isDiscovery) {
+        this.messageService.add({ key: 'status', severity: 'info', summary: 'Running full discovery...', sticky: true, closable: false });
+      } else if (isQuery) {
+        this.messageService.add({ key: 'status', severity: 'info', summary: 'Running query...', sticky: true, closable: false });
+      }
+    });
+  }
 
   protected readonly targets: readonly CommanderApiTarget[] = this.commanderApi.targets;
   protected readonly activeApiUrl = this.commanderApi.apiBaseUrl;
@@ -242,11 +260,6 @@ export class CommanderComponent implements OnInit {
         this.queryLoading.set(false);
       },
     });
-  }
-
-  protected queryResultJson(): string {
-    const result = this.queryResult();
-    return result ? JSON.stringify(result, null, 2) : '';
   }
 
   protected selectFixture(record: FixtureRecord): void {

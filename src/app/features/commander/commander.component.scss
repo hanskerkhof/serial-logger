@@ -67,6 +67,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+
+  p-inputgroup button[pButton] {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 }
 
 .commander__fixture-btn,
@@ -91,6 +96,16 @@
 
 .commander__dialog {
   width: min(72rem, 96vw);
+
+  &[open] {
+    min-height: 20rem; // header + 8 lines of body text + footer
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.commander__dialog-footer {
+  margin-top: auto;
 }
 
 @media (max-width: 960px) {

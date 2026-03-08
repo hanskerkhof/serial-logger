@@ -17,6 +17,12 @@
 - Commander console Auto-scroll and Heartbeat controls replaced with PrimeNG `p-toggleswitch` components.
 - Commander query rows (Fixture, Plan, Plan group) migrated to PrimeNG `p-inputgroup` / `p-inputgroup-addon` layout, placing label, input/select, and action button on a single fused line.
 - Added `gap: 0.5rem` flex column layout to `.commander__query-panel` for consistent spacing between input groups.
+- Removed inline query result JSON `<pre>` block and action result JSON from the Commander query panel and fixture modal.
+- Fixture detail modal given minimum height (`20rem`) to consistently show header + body + footer; `display: flex` scoped to `dialog[open]` to preserve native close behaviour.
+- Commander query buttons shortened to "Run" with a `pi pi-play` icon on the right; `[loading]` spinner replaces the icon during execution to keep button size stable.
+- Full Discovery button also given `pi pi-play` icon and `[loading]` spinner.
+- Added `backendBusy` computed signal (`discoveryLoading || queryLoading`) to cross-disable all backend action buttons while any request is in flight.
+- Replaced inline "Running..." status paragraphs with a PrimeNG `p-toast` (top-center, sticky, non-closable) driven by an `effect()` that reacts to the loading signals.
 
 ### Verified
 - `npm run build`

@@ -1,3 +1,4 @@
+<p-toast key="status" position="top-center"></p-toast>
 <section class="commander" aria-label="Commander mode">
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">
@@ -10,16 +11,15 @@
         pButton
         type="button"
         label="Full Discovery"
+        icon="pi pi-play"
+        iconPos="right"
         severity="primary"
         size="small"
+        [loading]="discoveryLoading()"
         (click)="runFullDiscovery()"
-        [disabled]="discoveryLoading() || queryLoading()"
+        [disabled]="backendBusy()"
       ></button>
     </div>
-
-    @if (discoveryLoading()) {
-      <p class="commander__status" role="status" aria-live="polite">Running full discovery...</p>
-    }
 
     @if (storageWarning(); as warning) {
       <p class="commander__sidebar-warning" role="status">{{ warning }}</p>
@@ -174,9 +174,12 @@
         <button
           pButton
           type="button"
-          label="Run fixture version endpoint"
+          label="Run"
+          icon="pi pi-play"
+          iconPos="right"
+          [loading]="queryLoading()"
           (click)="runFixtureQuery()"
-          [disabled]="queryLoading()"
+          [disabled]="backendBusy()"
         ></button>
       </p-inputgroup>
 
@@ -200,9 +203,12 @@
         <button
           pButton
           type="button"
-          label="Run plan versions endpoint"
+          label="Run"
+          icon="pi pi-play"
+          iconPos="right"
+          [loading]="queryLoading()"
           (click)="runPlanQuery()"
-          [disabled]="queryLoading() || planListLoading() || !planName()"
+          [disabled]="backendBusy() || planListLoading() || !planName()"
         ></button>
       </p-inputgroup>
 
@@ -226,19 +232,15 @@
         <button
           pButton
           type="button"
-          label="Run plan group versions endpoint"
+          label="Run"
+          icon="pi pi-play"
+          iconPos="right"
+          [loading]="queryLoading()"
           (click)="runPlanGroupQuery()"
-          [disabled]="queryLoading() || lanGroupListLoading() || !planGroupName()"
+          [disabled]="backendBusy() || lanGroupListLoading() || !planGroupName()"
         ></button>
       </p-inputgroup>
 
-      @if (queryLoading()) {
-        <p class="commander__status" role="status" aria-live="polite">Running query...</p>
-      }
-
-      @if (queryResultJson(); as payload) {
-        <pre class="commander__json">{{ payload }}</pre>
-      }
     </section>
 
     <app-commander-console [apiBaseUrl]="activeApiUrl()"></app-commander-console>
@@ -281,9 +283,6 @@
     }
     @if (fixtureActionDurationMs(); as durationMs) {
       <p class="commander__dialog-message">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
-    }
-    @if (fixtureActionResult(); as actionResult) {
-      <pre class="commander__dialog-json commander__dialog-json--compact">{{ actionResult | json }}</pre>
     }
     <footer class="commander__dialog-footer">
       <input

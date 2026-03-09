@@ -1,6 +1,8 @@
 # CHANGELOG
 
 ## Unreleased
+
+## 0.0.10 - 2026-03-10
 ### Changed
 - Switched the app style pipeline from CSS to SCSS in Angular workspace configuration and active components.
 - Removed all app-specific global and component styling to return the UI to a clean baseline before a new component-library pass.

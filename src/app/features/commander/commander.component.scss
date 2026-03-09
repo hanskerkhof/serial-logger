@@ -33,6 +33,11 @@
   gap: 0.75rem;
 }
 
+.commander__dialog-last-seen {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
 .commander__sidebar-actions,
 .commander__groups,
 .commander__presets {
@@ -92,6 +97,18 @@
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.commander__raw-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.commander__raw-error {
+  font-size: 0.8rem;
+  color: var(--p-red-500);
 }
 
 .commander__dialog {

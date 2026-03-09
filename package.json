@@ -1,6 +1,6 @@
 {
   "name": "serial-logger",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -9,7 +9,7 @@
     "test": "ng test",
     "serve:prod": "npx serve -s dist/serial-logger && open http://localhost:5000",
     "build:prod": "ng build",
-    "deploy:bauklank-micros-api": "npm run build:prod && node scripts/deploy-bauklank.mjs",
+    "deploy:bauklank-micros-api": "node scripts/deploy-bauklank.mjs",
     "deploy:bauklank": "npm run deploy:bauklank-micros-api"
   },
   "prettier": {

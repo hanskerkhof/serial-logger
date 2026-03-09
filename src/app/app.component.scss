@@ -19,10 +19,24 @@
   gap: 1rem;
 }
 
+.app-shell__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
 .app-shell__title {
   font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.app-shell__version {
+  font-size: 0.7rem;
+  font-weight: 400;
+  opacity: 0.45;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .app-shell__content {

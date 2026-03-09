@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnInit,
   ViewChild,
@@ -27,6 +28,7 @@ import {
   CommanderApiTarget,
   CommanderQueryResponse,
   FixturePlanActionResponse,
+  RawCommandResponse,
 } from '../../commander-api.service';
 import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
@@ -47,7 +49,9 @@ interface SelectOption {
 })
 export class CommanderComponent implements OnInit {
   protected readonly loading = signal(true);
-  protected readonly queryLoading = signal(false);
+  protected readonly fixtureQueryLoading = signal(false);
+  protected readonly planQueryLoading = signal(false);
+  protected readonly planGroupQueryLoading = signal(false);
   protected readonly discoveryLoading = signal(false);
   protected readonly health = signal<CommanderHealthResponse | null>(null);
   protected readonly error = signal<string | null>(null);
@@ -67,23 +71,63 @@ export class CommanderComponent implements OnInit {
   protected readonly manualCommand = signal('');
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
-  protected readonly backendBusy = computed(() => this.discoveryLoading() || this.queryLoading());
+  protected readonly rawCommand = signal('');
+  protected readonly rawCommandLoading = signal(false);
+  protected readonly rawCommandResult = signal<RawCommandResponse | null>(null);
+  protected readonly rawCommandError = signal<string | null>(null);
+  protected readonly backendBusy = computed(
+    () => this.discoveryLoading() || this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading(),
+  );
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
   private readonly commanderApi = inject(CommanderApiService);
   private readonly fixtureStore = inject(FixtureStoreService);
   private readonly messageService = inject(MessageService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly now = signal(Date.now());
+  protected readonly heartbeatLabel = computed(() => {
+    const h = this.health();
+    return h ? this.relativeTime(h.utc) : null;
+  });
+
+  protected readonly selectedFixtureLastSeen = computed(() => {
+    const f = this.selectedFixture();
+    if (!f) return null;
+    const rawLastSeen = f.raw['last_seen_at'];
+    return rawLastSeen !== undefined ? this.relativeTime(rawLastSeen) : this.relativeTime(f.lastUpdatedAt);
+  });
+
+  private relativeTime(ts: number | string | unknown): string | null {
+    if (ts === null || ts === undefined) return null;
+    let ms: number;
+    if (typeof ts === 'number') {
+      ms = ts * 1000;
+    } else if (typeof ts === 'string') {
+      // Handle "YYYY-MM-DD HH:MM:SS" (no timezone) by treating as UTC
+      const normalized = ts.includes('T') ? ts : ts.replace(' ', 'T') + 'Z';
+      ms = new Date(normalized).getTime();
+    } else {
+      return null;
+    }
+    if (isNaN(ms)) return null;
+    const diffS = Math.max(0, Math.floor((this.now() - ms) / 1000));
+    if (diffS < 60) return `${diffS}s ago`;
+    const diffM = Math.floor(diffS / 60);
+    if (diffM < 60) return `${diffM}m ago`;
+    return `${Math.floor(diffM / 60)}h ago`;
+  }
 
   constructor() {
     effect(() => {
       const isDiscovery = this.discoveryLoading();
-      const isQuery = this.queryLoading();
+      const isQuery = this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading();
       this.messageService.clear('status');
       if (isDiscovery) {
-        this.messageService.add({ key: 'status', severity: 'info', summary: 'Running full discovery...', sticky: true, closable: false });
+        this.messageService.add({ key: 'status', severity: 'warn', summary: 'Running full discovery...', sticky: true, closable: false });
       } else if (isQuery) {
-        this.messageService.add({ key: 'status', severity: 'info', summary: 'Running query...', sticky: true, closable: false });
+        this.messageService.add({ key: 'status', severity: 'warn', summary: 'Running query...', sticky: true, closable: false });
       }
     });
   }
@@ -142,6 +186,8 @@ export class CommanderComponent implements OnInit {
     this.loadHealth();
     this.loadExposedPlans();
     this.loadLanGroups();
+    const timer = setInterval(() => this.now.set(Date.now()), 1000);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
   }
 
   protected reloadHealth(): void {
@@ -176,19 +222,19 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    this.queryLoading.set(true);
+    this.fixtureQueryLoading.set(true);
     this.error.set(null);
     this.commanderApi.getFixtureVersion(fixture).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'fixture_query');
-        this.queryLoading.set(false);
+        this.fixtureQueryLoading.set(false);
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.error.set(this.formatError(`Fixture query failed for ${fixture}`, err));
         this.queryResult.set(null);
-        this.queryLoading.set(false);
+        this.fixtureQueryLoading.set(false);
       },
     });
   }
@@ -218,19 +264,19 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    this.queryLoading.set(true);
+    this.planQueryLoading.set(true);
     this.error.set(null);
     this.commanderApi.getPlanVersions(plan).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'plan_query');
-        this.queryLoading.set(false);
+        this.planQueryLoading.set(false);
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.error.set(this.formatError(`Plan query failed for ${plan}`, err));
         this.queryResult.set(null);
-        this.queryLoading.set(false);
+        this.planQueryLoading.set(false);
       },
     });
   }
@@ -250,19 +296,19 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    this.queryLoading.set(true);
+    this.planGroupQueryLoading.set(true);
     this.error.set(null);
     this.commanderApi.getPlanGroupVersions(planGroup).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'plan_group_query');
-        this.queryLoading.set(false);
+        this.planGroupQueryLoading.set(false);
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.error.set(this.formatError(`Plan group query failed for ${planGroup}`, err));
         this.queryResult.set(null);
-        this.queryLoading.set(false);
+        this.planGroupQueryLoading.set(false);
       },
     });
   }
@@ -341,6 +387,26 @@ export class CommanderComponent implements OnInit {
 
     const command = `cmd;plan;action=${action};`;
     this.sendCommand(fixture, command);
+  }
+
+  protected runRawCommand(): void {
+    const command = this.rawCommand().trim();
+    if (!command) return;
+
+    this.rawCommandLoading.set(true);
+    this.rawCommandError.set(null);
+    this.rawCommandResult.set(null);
+
+    this.commanderApi.postRawCommand(command).subscribe({
+      next: (result) => {
+        this.rawCommandResult.set(result);
+        this.rawCommandLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.rawCommandError.set(this.formatError('Raw command failed', err));
+        this.rawCommandLoading.set(false);
+      },
+    });
   }
 
   protected runManualCommand(): void {

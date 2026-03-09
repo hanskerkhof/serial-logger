@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
 import { filter } from 'rxjs';
+import { APP_VERSION, BUILD_DATE } from './build-info';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,8 @@ import { filter } from 'rxjs';
 export class AppComponent {
   private readonly router = inject(Router);
   protected readonly activeMode = signal<'direct' | 'commander'>(this.modeFromUrl(this.router.url));
+  protected readonly appVersion = APP_VERSION;
+  protected readonly buildDate = BUILD_DATE;
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {

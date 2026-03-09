@@ -73,6 +73,19 @@ export interface FixturePlanActionResponse {
   [key: string]: unknown;
 }
 
+export interface RawCommandResponse {
+  ok: boolean;
+  command_result: {
+    command: string;
+    request_id: string;
+    accepted: boolean;
+    serial_error: string | null;
+    raw_output: string;
+    timing: Record<string, unknown>;
+  };
+  [key: string]: unknown;
+}
+
 export interface CommanderStreamEvent {
   ts: number;
   type: string;
@@ -149,6 +162,13 @@ export class CommanderApiService {
       `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/cmd`,
       { command },
     );
+  }
+
+  postRawCommand(command: string, listenSeconds = 3.0): Observable<RawCommandResponse> {
+    return this.http.post<RawCommandResponse>(`${this.apiBaseUrl()}/commander/raw`, {
+      command,
+      listen_seconds: listenSeconds,
+    });
   }
 
   openCommanderStream(

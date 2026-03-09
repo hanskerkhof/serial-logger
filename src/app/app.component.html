@@ -1,7 +1,12 @@
 <div class="app-shell">
   <p-toolbar class="app-shell__header">
     <ng-template #start>
-      <h1 class="app-shell__title">BAUKLANK CONTROL</h1>
+      <div class="app-shell__title-block">
+        <h1 class="app-shell__title">BAUKLANK CONTROL</h1>
+        @if (buildDate) {
+          <span class="app-shell__version">v{{ appVersion }} · {{ buildDate }}</span>
+        }
+      </div>
     </ng-template>
     <ng-template #end>
       <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">

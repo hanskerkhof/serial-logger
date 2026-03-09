@@ -145,7 +145,7 @@
     } @else if (health(); as currentHealth) {
       <p-panel [toggleable]="true" [collapsed]="true" toggler="header">
         <ng-template #header>
-          <span class="commander__health-header">Heartbeat: {{ currentHealth.utc }}</span>
+          <span class="commander__health-header"><i class="pi pi-heart-fill" style="color: red; margin-right: 0.4em;"></i>Heartbeat {{ heartbeatLabel() }}</span>
         </ng-template>
         <div class="commander__card">
           <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
@@ -183,7 +183,7 @@
           label="Run"
           icon="pi pi-play"
           iconPos="right"
-          [loading]="queryLoading()"
+          [loading]="fixtureQueryLoading()"
           (click)="runFixtureQuery()"
           [disabled]="backendBusy()"
         ></button>
@@ -212,7 +212,7 @@
           label="Run"
           icon="pi pi-play"
           iconPos="right"
-          [loading]="queryLoading()"
+          [loading]="planQueryLoading()"
           (click)="runPlanQuery()"
           [disabled]="backendBusy() || planListLoading() || !planName()"
         ></button>
@@ -241,7 +241,7 @@
           label="Run"
           icon="pi pi-play"
           iconPos="right"
-          [loading]="queryLoading()"
+          [loading]="planGroupQueryLoading()"
           (click)="runPlanGroupQuery()"
           [disabled]="backendBusy() || lanGroupListLoading() || !planGroupName()"
         ></button>
@@ -250,11 +250,38 @@
     </section>
 
     <app-commander-console [apiBaseUrl]="activeApiUrl()"></app-commander-console>
+
+    <section class="commander__raw-section" aria-label="Raw commander command">
+      <p-inputgroup>
+        <input
+          pInputText
+          type="text"
+          [ngModel]="rawCommand()"
+          (ngModelChange)="rawCommand.set($event)"
+          (keyup.enter)="runRawCommand()"
+          placeholder="fs ANTLERTENN1 · R · tcmd;FIXTURE;cmd;plan;action=trigger;"
+        />
+        <button
+          pButton
+          type="button"
+          icon="pi pi-send"
+          [loading]="rawCommandLoading()"
+          [disabled]="!rawCommand().trim()"
+          (click)="runRawCommand()"
+        ></button>
+      </p-inputgroup>
+      @if (rawCommandError(); as err) {
+        <p class="commander__raw-error">{{ err }}</p>
+      }
+    </section>
   </div>
 
   <dialog #fixtureDetailDialog class="commander__dialog">
     <header class="commander__dialog-header">
       <h3>Fixture: {{ selectedFixture()?.fixture_name }}</h3>
+      @if (selectedFixtureLastSeen(); as lastSeen) {
+        <span class="commander__dialog-last-seen">Last seen: {{ lastSeen }}</span>
+      }
       <div class="commander__dialog-header-actions">
         <button
           pButton

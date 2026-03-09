@@ -49,6 +49,8 @@ interface SelectOption {
 })
 export class CommanderComponent implements OnInit {
   protected readonly loading = signal(true);
+  protected readonly healthRefreshing = signal(false);
+  protected readonly healthError = signal<string | null>(null);
   protected readonly fixtureQueryLoading = signal(false);
   protected readonly planQueryLoading = signal(false);
   protected readonly planGroupQueryLoading = signal(false);
@@ -66,6 +68,7 @@ export class CommanderComponent implements OnInit {
   protected readonly queryResult = signal<CommanderQueryResponse | null>(null);
   protected readonly fixtureActionLoading = signal(false);
   protected readonly fixtureActionMessage = signal<string | null>(null);
+  protected readonly fixtureActionError = signal<string | null>(null);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   protected readonly manualCommand = signal('');
@@ -91,6 +94,14 @@ export class CommanderComponent implements OnInit {
     const h = this.health();
     return h ? this.relativeTime(h.utc) : null;
   });
+
+  protected readonly proxyLastTransitionLabel = computed(() =>
+    this.relativeTime(this.health()?.commander?.proxy?.last_transition_at_utc),
+  );
+
+  protected readonly proxyLastEventLabel = computed(() =>
+    this.relativeTime(this.health()?.commander?.proxy?.last_event_at_utc),
+  );
 
   protected readonly selectedFixtureLastSeen = computed(() => {
     const f = this.selectedFixture();
@@ -181,13 +192,32 @@ export class CommanderComponent implements OnInit {
     return selected ? JSON.stringify(selected.raw, null, 2) : '';
   });
 
+  // Callbacks run once when the API recovers from offline → online.
+  // Add entries here to extend the recovery set.
+  private readonly recoveryCallbacks: Array<() => void> = [];
+
   ngOnInit(): void {
     this.customUrl.set(this.activeApiUrl());
+
+    // Register endpoints to re-fetch automatically on API recovery
+    this.recoveryCallbacks.push(
+      () => this.loadExposedPlans(),
+      () => this.loadLanGroups(),
+    );
+
     this.loadHealth();
     this.loadExposedPlans();
     this.loadLanGroups();
     const timer = setInterval(() => this.now.set(Date.now()), 1000);
     this.destroyRef.onDestroy(() => clearInterval(timer));
+
+    // Auto-poll health every 30 s; skip if a fetch is already in flight
+    const healthPollTimer = setInterval(() => {
+      if (!this.loading() && !this.healthRefreshing()) {
+        this.loadHealth();
+      }
+    }, 30_000);
+    this.destroyRef.onDestroy(() => clearInterval(healthPollTimer));
   }
 
   protected reloadHealth(): void {
@@ -197,7 +227,7 @@ export class CommanderComponent implements OnInit {
   protected useTarget(url: string): void {
     this.commanderApi.setApiBaseUrl(url);
     this.customUrl.set(this.activeApiUrl());
-    this.loadHealth();
+    this.loadHealth(true); // URL changed — stale health data, force full loading state
     this.loadExposedPlans();
     this.loadLanGroups();
   }
@@ -205,17 +235,18 @@ export class CommanderComponent implements OnInit {
   protected applyCustomUrl(): void {
     const ok = this.commanderApi.setApiBaseUrl(this.customUrl());
     if (!ok) {
-      this.error.set('Invalid API URL. Use host[:port] or http(s)://host[:port].');
+      this.showErrorToast('Invalid API URL. Use host[:port] or http(s)://host[:port].');
       return;
     }
 
     this.customUrl.set(this.activeApiUrl());
-    this.loadHealth();
+    this.loadHealth(true); // URL changed — stale health data, force full loading state
     this.loadExposedPlans();
     this.loadLanGroups();
   }
 
   protected runFixtureQuery(): void {
+    if (!this.checkApiReachable()) return;
     const fixture = this.fixtureName().trim();
     if (!fixture) {
       this.error.set('Fixture name is required.');
@@ -232,7 +263,7 @@ export class CommanderComponent implements OnInit {
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
-        this.error.set(this.formatError(`Fixture query failed for ${fixture}`, err));
+        this.showErrorToast(this.formatError(`Fixture query failed for ${fixture}`, err));
         this.queryResult.set(null);
         this.fixtureQueryLoading.set(false);
       },
@@ -240,6 +271,7 @@ export class CommanderComponent implements OnInit {
   }
 
   protected runFullDiscovery(): void {
+    if (!this.checkApiReachable()) return;
     this.discoveryLoading.set(true);
     this.error.set(null);
 
@@ -251,13 +283,14 @@ export class CommanderComponent implements OnInit {
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
-        this.error.set(this.formatError('Full discovery failed', err));
+        this.showErrorToast(this.formatError('Full discovery failed', err));
         this.discoveryLoading.set(false);
       },
     });
   }
 
   protected runPlanQuery(): void {
+    if (!this.checkApiReachable()) return;
     const plan = this.planName().trim();
     if (!plan) {
       this.error.set('Plan name is required.');
@@ -274,7 +307,7 @@ export class CommanderComponent implements OnInit {
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
-        this.error.set(this.formatError(`Plan query failed for ${plan}`, err));
+        this.showErrorToast(this.formatError(`Plan query failed for ${plan}`, err));
         this.queryResult.set(null);
         this.planQueryLoading.set(false);
       },
@@ -290,6 +323,7 @@ export class CommanderComponent implements OnInit {
   }
 
   protected runPlanGroupQuery(): void {
+    if (!this.checkApiReachable()) return;
     const planGroup = this.planGroupName().trim();
     if (!planGroup) {
       this.error.set('Plan group is required.');
@@ -306,7 +340,7 @@ export class CommanderComponent implements OnInit {
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
-        this.error.set(this.formatError(`Plan group query failed for ${planGroup}`, err));
+        this.showErrorToast(this.formatError(`Plan group query failed for ${planGroup}`, err));
         this.queryResult.set(null);
         this.planGroupQueryLoading.set(false);
       },
@@ -345,6 +379,8 @@ export class CommanderComponent implements OnInit {
     this.fixtureDetailDialog?.nativeElement?.close();
     this.modalQueryLoading.set(false);
     this.modalQueryError.set(null);
+    this.fixtureActionMessage.set(null);
+    this.fixtureActionError.set(null);
   }
 
   protected runModalFixtureQuery(): void {
@@ -459,6 +495,19 @@ export class CommanderComponent implements OnInit {
     this.messageService.add({ key: 'query-result', severity: 'success', summary, life: 3000 });
   }
 
+  private showErrorToast(message: string): void {
+    this.messageService.add({ key: 'cmdr-error', severity: 'error', summary: message, life: 6000 });
+  }
+
+  /** Returns false and toasts immediately if the API is known to be unreachable. */
+  private checkApiReachable(): boolean {
+    if (this.healthError()) {
+      this.showErrorToast('API unreachable');
+      return false;
+    }
+    return true;
+  }
+
   private extractFixtures(result: CommanderQueryResponse, source: FixtureSource): FixtureRecord[] {
     const summary = this.getSummary(result);
     if (!summary || typeof summary !== 'object') {
@@ -531,21 +580,45 @@ export class CommanderComponent implements OnInit {
     return trimmed.length ? trimmed : null;
   }
 
-  private loadHealth(): void {
-    this.loading.set(true);
+  private loadHealth(force = false): void {
+    // Treat as a refresh (keep panel alive) if health data OR a prior error is already showing
+    const isRefresh = !force && (this.health() !== null || this.healthError() !== null);
     this.error.set(null);
+
+    if (isRefresh) {
+      // Keep the panel alive (don't null health or set loading) — just show button spinner
+      this.healthRefreshing.set(true);
+    } else {
+      this.loading.set(true);
+      this.health.set(null);
+      this.healthError.set(null); // clear stale error on full reload
+    }
 
     this.commanderApi.getHealth().subscribe({
       next: (result) => {
+        const wasOffline = this.healthError() !== null;
         this.health.set(result);
+        this.healthError.set(null); // clear degraded state on success
         this.loading.set(false);
+        this.healthRefreshing.set(false);
+        if (wasOffline) {
+          // API just came back — re-fetch all registered recovery endpoints
+          this.runRecoveryCallbacks();
+        }
       },
-      error: (err: unknown) => {
-        this.error.set(this.formatError(`Health check failed for ${this.activeApiUrl()}`, err));
-        this.health.set(null);
+      error: () => {
+        // Unified: always surface as healthError so the panel stays visible
+        this.healthError.set('API unreachable');
         this.loading.set(false);
+        this.healthRefreshing.set(false);
       },
     });
+  }
+
+  private runRecoveryCallbacks(): void {
+    for (const cb of this.recoveryCallbacks) {
+      cb();
+    }
   }
 
   private loadExposedPlans(): void {
@@ -560,7 +633,7 @@ export class CommanderComponent implements OnInit {
       error: (err: unknown) => {
         this.exposedPlans.set([]);
         this.planListLoading.set(false);
-        this.error.set(this.formatError(`Plan list load failed for ${this.activeApiUrl()}`, err));
+        this.showErrorToast(this.formatError('Plan list load failed', err));
       },
     });
   }
@@ -577,7 +650,7 @@ export class CommanderComponent implements OnInit {
       error: (err: unknown) => {
         this.lanGroups.set([]);
         this.lanGroupListLoading.set(false);
-        this.error.set(this.formatError(`LAN group list load failed for ${this.activeApiUrl()}`, err));
+        this.showErrorToast(this.formatError('Plan group list load failed', err));
       },
     });
   }
@@ -613,6 +686,7 @@ export class CommanderComponent implements OnInit {
 
     this.fixtureActionLoading.set(true);
     this.fixtureActionMessage.set(null);
+    this.fixtureActionError.set(null);
     this.fixtureActionResult.set(null);
     this.fixtureActionDurationMs.set(null);
     const startedAt = performance.now();
@@ -622,6 +696,7 @@ export class CommanderComponent implements OnInit {
         const durationMs = performance.now() - startedAt;
         this.fixtureActionDurationMs.set(durationMs);
         this.fixtureActionResult.set(result);
+        this.fixtureActionError.set(null);
 
         const response = result as Record<string, unknown>;
         const routingMode =
@@ -641,7 +716,8 @@ export class CommanderComponent implements OnInit {
       error: (err: unknown) => {
         const durationMs = performance.now() - startedAt;
         this.fixtureActionDurationMs.set(durationMs);
-        this.fixtureActionMessage.set(this.formatError(`Command failed for ${fixture}: ${wireCommand}`, err));
+        this.fixtureActionMessage.set(null);
+        this.fixtureActionError.set(this.formatError(`Command failed for ${fixture}`, err));
         this.fixtureActionResult.set(null);
         this.fixtureActionLoading.set(false);
       },
@@ -662,7 +738,7 @@ export class CommanderComponent implements OnInit {
             : JSON.stringify(detail, null, 2);
 
       if (err.status === 0) {
-        return `${prefix} (Network/CORS): ${detailText}`;
+        return `${prefix}: unreachable`;
       }
 
       return `${prefix} (HTTP ${err.status}): ${detailText}`;

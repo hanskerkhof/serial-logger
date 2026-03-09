@@ -9,6 +9,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { CommanderApiService, CommanderStreamEvent } from '../../../commander-api.service';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -25,7 +26,7 @@ interface ConsoleLine {
 @Component({
   selector: 'app-commander-console',
   standalone: true,
-  imports: [ButtonModule, ToggleSwitchModule, FormsModule],
+  imports: [NgClass, ButtonModule, ToggleSwitchModule, FormsModule],
   templateUrl: './commander-console.component.html',
   styleUrl: './commander-console.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -168,11 +169,47 @@ export class CommanderConsoleComponent {
     this.scrollToBottom();
   }
 
+  protected lineStateClass(type: string): string {
+    switch (type) {
+      case 'commander_online':
+      case 'commander_port_changed':
+        return 'commander-console__line--state-online';
+      case 'commander_offline':
+      case 'commander_invalid_device':
+        return 'commander-console__line--state-offline';
+      case 'commander_reconnecting':
+        return 'commander-console__line--state-reconnecting';
+      case 'commander_probing':
+        return 'commander-console__line--state-probing';
+      case 'commander_state':
+        return 'commander-console__line--state-generic';
+      default:
+        return '';
+    }
+  }
+
   private toLineText(event: CommanderStreamEvent): string {
     if (typeof event.line === 'string' && event.line.trim()) {
       return event.line;
     }
-    return JSON.stringify(event);
+    switch (event.type) {
+      case 'commander_online':
+        return `Serial online: ${event['port'] ?? '?'} @ ${event['baud'] ?? '?'}`;
+      case 'commander_offline':
+        return `Serial offline — reason: ${event['reason'] ?? 'unknown'}`;
+      case 'commander_probing':
+        return `Probing serial port...`;
+      case 'commander_reconnecting':
+        return `Reconnecting — reason: ${event['reason'] ?? 'unknown'}`;
+      case 'commander_invalid_device':
+        return `Invalid device: ${event['port'] ?? '?'}`;
+      case 'commander_port_changed':
+        return `Port changed → ${event['port'] ?? '?'}`;
+      case 'commander_state':
+        return `State: ${event['state'] ?? '?'}${event['reason'] ? ` (${event['reason']})` : ''}`;
+      default:
+        return JSON.stringify(event);
+    }
   }
 
   private scrollToBottom(): void {

@@ -19,9 +19,13 @@ export interface CommanderHealthResponse {
       active?: boolean;
       port?: string | null;
       baud?: number | null;
+      state?: string;
+      last_transition_reason?: string;
+      last_transition_at_utc?: string | null;
       event_buffer_size?: number;
       last_event_type?: string | null;
       last_event_at_utc?: string | null;
+      continuous_serial_mirror?: boolean;
     };
   };
 }
@@ -82,6 +86,7 @@ export interface RawCommandResponse {
     serial_error: string | null;
     raw_output: string;
     timing: Record<string, unknown>;
+    proxy?: Record<string, unknown>;
   };
   [key: string]: unknown;
 }
@@ -145,7 +150,7 @@ export class CommanderApiService {
   }
 
   getLanGroups(): Observable<CommanderLanGroupListResponse> {
-    return this.http.get<CommanderLanGroupListResponse>(`${this.apiBaseUrl()}/lan-groups`);
+    return this.http.get<CommanderLanGroupListResponse>(`${this.apiBaseUrl()}/plan-groups`);
   }
 
   getPlanGroupVersions(planGroup: string): Observable<CommanderQueryResponse> {
@@ -195,6 +200,13 @@ export class CommanderApiService {
       'heartbeat',
       'serial_open',
       'serial_close',
+      'commander_state',
+      'commander_online',
+      'commander_offline',
+      'commander_probing',
+      'commander_reconnecting',
+      'commander_invalid_device',
+      'commander_port_changed',
       'command_start',
       'command_done',
       'command_error',

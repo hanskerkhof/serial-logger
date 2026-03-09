@@ -1,5 +1,6 @@
 <p-toast key="status" position="top-center"></p-toast>
 <p-toast key="query-result" position="top-center"></p-toast>
+<p-toast key="cmdr-error" position="top-center"></p-toast>
 <section class="commander" aria-label="Commander mode">
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">
@@ -86,18 +87,6 @@
   </aside>
 
   <div class="commander__main">
-    <header class="commander__header">
-      <button
-        pButton
-        type="button"
-        label="Refresh health"
-        severity="secondary"
-        size="small"
-        (click)="reloadHealth()"
-        [disabled]="loading()"
-      ></button>
-    </header>
-
     <section class="commander__target-panel" aria-label="Commander API target">
       <p><strong>Active API:</strong> {{ activeApiUrl() }}</p>
 
@@ -140,28 +129,61 @@
 
     @if (loading()) {
       <p class="commander__status" role="status" aria-live="polite">Checking commander API health...</p>
-    } @else if (error(); as err) {
-      <p class="commander__error" role="alert">{{ err }}</p>
-    } @else if (health(); as currentHealth) {
+    } @else if (health() || healthError()) {
       <p-panel [toggleable]="true" [collapsed]="true" toggler="header">
         <ng-template #header>
-          <span class="commander__health-header"><i class="pi pi-heart-fill" style="color: red; margin-right: 0.4em;"></i>Heartbeat {{ heartbeatLabel() }}</span>
+          <span class="commander__health-header">
+            <i class="pi pi-heart-fill" [style.color]="healthError() ? '#fb923c' : 'red'" style="margin-right: 0.4em;"></i>
+            Heartbeat {{ heartbeatLabel() }}
+            @if (healthError()) {
+              <span class="commander__health-degraded">· ⚠ {{ healthError() }}</span>
+            }
+          </span>
         </ng-template>
         <div class="commander__card">
-          <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
-          <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
-          <div><strong>service:</strong> {{ currentHealth.service }}</div>
-          @if (currentHealth.commander; as commanderHealth) {
-            <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
-            <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
-            <div><strong>serial port:</strong> {{ commanderHealth.port || '-' }}</div>
-            <div><strong>resolver source:</strong> {{ commanderHealth.resolver_source || '-' }}</div>
-            @if (commanderHealth.proxy; as proxyHealth) {
-              <div><strong>proxy active:</strong> {{ proxyHealth.active }}</div>
+          @if (!health()) {
+            <p class="commander__health-stale">API unreachable — no data available.</p>
+          }
+          @if (healthError() && health()) {
+            <p class="commander__health-stale">Showing last known data — {{ healthError() }}</p>
+          }
+          @if (health(); as currentHealth) {
+            <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
+            <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
+            <div><strong>service:</strong> {{ currentHealth.service }}</div>
+            @if (currentHealth.commander; as commanderHealth) {
+              <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
+              <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
+              <div><strong>serial port:</strong> {{ commanderHealth.port || '-' }}</div>
+              <div><strong>resolver source:</strong> {{ commanderHealth.resolver_source || '-' }}</div>
+              @if (commanderHealth.proxy; as proxyHealth) {
+                <div><strong>proxy state:</strong> {{ proxyHealth.state || '-' }}</div>
+                <div><strong>proxy port:</strong> {{ proxyHealth.port || '-' }} @ {{ proxyHealth.baud || '-' }}</div>
+                <div><strong>transition:</strong> {{ proxyHealth.last_transition_reason || '-' }} ({{ proxyLastTransitionLabel() || '-' }})</div>
+                <div><strong>last event:</strong> {{ proxyHealth.last_event_type || '-' }} ({{ proxyLastEventLabel() || '-' }})</div>
+                <div><strong>serial mirror:</strong> {{ proxyHealth.continuous_serial_mirror ?? '-' }}</div>
+              }
             }
           }
+          <button
+            pButton
+            type="button"
+            class="commander__health-refresh-btn"
+            icon="pi pi-refresh"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            title="Refresh health"
+            aria-label="Refresh health"
+            (click)="reloadHealth(); $event.stopPropagation()"
+            [loading]="healthRefreshing()"
+            [disabled]="loading() || healthRefreshing()"
+          ></button>
         </div>
       </p-panel>
+    } @else if (error(); as err) {
+      <p class="commander__error" role="alert">{{ err }}</p>
     }
 
     <section class="commander__query-panel" aria-label="Commander queries">
@@ -214,7 +236,7 @@
           iconPos="right"
           [loading]="planQueryLoading()"
           (click)="runPlanQuery()"
-          [disabled]="backendBusy() || planListLoading() || !planName()"
+          [disabled]="backendBusy() || planListLoading() || planOptions().length === 0 || !planName()"
         ></button>
       </p-inputgroup>
 
@@ -311,6 +333,9 @@
         aria-label="Close"
       ></button>
     </header>
+    @if (fixtureActionError(); as actionError) {
+      <p class="commander__dialog-error" role="alert">⚠ {{ actionError }}</p>
+    }
     @if (fixtureActionMessage(); as actionMessage) {
       <p class="commander__dialog-message">{{ actionMessage }}</p>
     }

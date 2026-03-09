@@ -47,7 +47,7 @@
       <p class="commander-console__empty">No stream events yet.</p>
     } @else {
       @for (line of lines(); track line.seq ?? $index) {
-        <div class="commander-console__line">
+        <div class="commander-console__line" [ngClass]="lineStateClass(line.type)">
           <span class="commander-console__time">[{{ formatTimestamp(line.ts) }}]</span>
           <span class="commander-console__type">[{{ line.type }}]</span>
           @if (line.request_id) {

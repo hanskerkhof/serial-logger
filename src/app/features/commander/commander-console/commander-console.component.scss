@@ -83,6 +83,12 @@
     line-height: 1.6;
 
     &:hover { background: rgba(255, 255, 255, 0.03); }
+
+    &--state-online     .commander-console__type { color: #4ade80; }
+    &--state-offline    .commander-console__type { color: #f87171; }
+    &--state-reconnecting .commander-console__type { color: #fb923c; }
+    &--state-probing    .commander-console__type { color: #facc15; }
+    &--state-generic    .commander-console__type { color: #94a3b8; }
   }
 
   &__time {

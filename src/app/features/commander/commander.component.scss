@@ -24,13 +24,41 @@
 
 .commander__sidebar-header,
 .commander__group-header,
-.commander__header,
 .commander__dialog-header,
 .commander__dialog-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.commander__health-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.commander__health-degraded {
+  font-size: 0.8em;
+  color: #fb923c;
+}
+
+.commander__health-stale {
+  font-size: 0.8rem;
+  color: #fb923c;
+  margin: 0 0 0.5rem;
+}
+
+.commander__card {
+  position: relative;
+  padding-right: 2.25rem;
+}
+
+.commander__health-refresh-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .commander__dialog-last-seen {
@@ -97,6 +125,15 @@
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.commander__dialog-error {
+  font-size: 0.85rem;
+  color: var(--p-red-500);
+  margin: 0 0 0.25rem;
+  padding: 0.5rem 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid var(--p-red-500);
 }
 
 .commander__raw-section {

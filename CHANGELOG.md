@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.0.11 - 2026-03-12
+### Changed
+- Fixture query row: replaced free-text input with a `p-select` dropdown populated from the `plan_groups` endpoint (`fixture_names`); auto-selects first fixture when the list loads or the stored value is no longer present.
+- Plan and Plan group dropdown selections now persist in `localStorage` (`cmdr.selectedPlan`, `cmdr.selectedPlanGroup`, `cmdr.selectedFixture`) and are restored on page load.
+- Fixture modal "Query fixture" button relabelled to "Run query" with `pi pi-play` icon and PrimeNG `[loading]` spinner, matching the style of the main query buttons.
+- All three query dropdowns (Fixture, Plan, Plan group) trigger a translucent backdrop overlay when open, matching the visual effect of the fixture detail dialog.
+- "Last seen" in the fixture detail modal now uses browser-local time (`lastUpdatedAt`) instead of the backend `last_seen_at` Unix timestamp, eliminating clock-skew artefacts where "0s ago" would linger longer than expected.
+
+### Verified
+- `npm run build`
+
 ## 0.0.10 - 2026-03-10
 ### Changed
 - Switched the app style pipeline from CSS to SCSS in Angular workspace configuration and active components.

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.0.12 - 2026-03-12
+### Fixed
+- Closing the fixture detail modal while a "Run query" request is in flight now cancels the HTTP request immediately (unsubscribes the RxJS subscription) instead of letting it complete silently in the background.
+
+### Changed
+- Added `AGENTS.md` to the repo with agent guidelines, release checklist, and a mutual sync note with `CLAUDE.md`.
+- Added release checklist and `AGENTS.md` sync note to `CLAUDE.md`.
+
 ## 0.0.11 - 2026-03-12
 ### Changed
 - Fixture query row: replaced free-text input with a `p-select` dropdown populated from the `plan_groups` endpoint (`fixture_names`); auto-selects first fixture when the list loads or the stored value is no longer present.

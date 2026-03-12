@@ -90,23 +90,7 @@
     <section class="commander__target-panel" aria-label="Commander API target">
       <p><strong>Active API:</strong> {{ activeApiUrl() }}</p>
 
-      <div class="commander__presets">
-        @for (target of targets; track target.id) {
-          <button
-            pButton
-            type="button"
-            severity="secondary"
-            size="small"
-            (click)="useTarget(target.url)"
-            [disabled]="loading()"
-            [class.commander__preset--active]="activeApiUrl() === target.url"
-          >
-            {{ target.label }} ({{ target.url }})
-          </button>
-        }
-      </div>
-
-      <div class="commander__custom">
+<!-- <div class="commander__custom">
         <label for="customApiUrl">Custom API URL</label>
         <input
           pInputText
@@ -124,7 +108,7 @@
           (click)="applyCustomUrl()"
           [disabled]="loading()"
         ></button>
-      </div>
+      </div> -->
     </section>
 
     @if (loading()) {

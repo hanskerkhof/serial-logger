@@ -58,9 +58,9 @@ export class CommanderComponent implements OnInit {
   protected readonly health = signal<CommanderHealthResponse | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
-  protected readonly fixtureName = signal('CLIGNOTEUR1');
-  protected readonly planName = signal('TRIPTYCH');
-  protected readonly planGroupName = signal('');
+  protected readonly fixtureName = signal(localStorage.getItem('cmdr.selectedFixture') ?? 'CLIGNOTEUR1');
+  protected readonly planName = signal(localStorage.getItem('cmdr.selectedPlan') ?? 'TRIPTYCH');
+  protected readonly planGroupName = signal(localStorage.getItem('cmdr.selectedPlanGroup') ?? '');
   protected readonly exposedPlans = signal<CommanderExposedPlan[]>([]);
   protected readonly lanGroups = signal<CommanderLanGroup[]>([]);
   protected readonly planListLoading = signal(false);
@@ -106,8 +106,7 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixtureLastSeen = computed(() => {
     const f = this.selectedFixture();
     if (!f) return null;
-    const rawLastSeen = f.raw['last_seen_at'];
-    return rawLastSeen !== undefined ? this.relativeTime(rawLastSeen) : this.relativeTime(f.lastUpdatedAt);
+    return this.relativeTime(f.lastUpdatedAt);
   });
 
   private relativeTime(ts: number | string | unknown): string | null {
@@ -131,6 +130,10 @@ export class CommanderComponent implements OnInit {
   }
 
   constructor() {
+    effect(() => localStorage.setItem('cmdr.selectedFixture', this.fixtureName()));
+    effect(() => localStorage.setItem('cmdr.selectedPlan', this.planName()));
+    effect(() => localStorage.setItem('cmdr.selectedPlanGroup', this.planGroupName()));
+
     effect(() => {
       const isDiscovery = this.discoveryLoading();
       const isQuery = this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading();
@@ -187,6 +190,17 @@ export class CommanderComponent implements OnInit {
         value: group.plan_group,
       })),
   );
+  protected readonly fixtureOptions = computed<SelectOption[]>(() => {
+    const names = new Set<string>();
+    for (const group of this.lanGroups()) {
+      for (const name of group.fixtures) {
+        names.add(name);
+      }
+    }
+    return Array.from(names)
+      .sort()
+      .map((name) => ({ label: name, value: name }));
+  });
   protected readonly selectedFixtureJson = computed(() => {
     const selected = this.selectedFixture();
     return selected ? JSON.stringify(selected.raw, null, 2) : '';
@@ -312,6 +326,21 @@ export class CommanderComponent implements OnInit {
         this.planQueryLoading.set(false);
       },
     });
+  }
+
+  protected readonly openDropdownCount = signal(0);
+  protected readonly anyDropdownOpen = computed(() => this.openDropdownCount() > 0);
+
+  protected onDropdownShow(): void {
+    this.openDropdownCount.update((n) => n + 1);
+  }
+
+  protected onDropdownHide(): void {
+    this.openDropdownCount.update((n) => Math.max(0, n - 1));
+  }
+
+  protected onFixtureSelected(value: string): void {
+    this.fixtureName.set(value);
   }
 
   protected onPlanSelected(value: string): void {
@@ -645,6 +674,7 @@ export class CommanderComponent implements OnInit {
         const groups = Array.isArray(result.lan_groups) ? result.lan_groups : [];
         this.lanGroups.set(groups);
         this.syncSelectedPlanGroup(groups);
+        this.syncSelectedFixture(groups);
         this.lanGroupListLoading.set(false);
       },
       error: (err: unknown) => {
@@ -674,6 +704,18 @@ export class CommanderComponent implements OnInit {
     const current = this.planGroupName().trim();
     if (!current || !groups.some((item) => item.plan_group === current)) {
       this.planGroupName.set(groups[0].plan_group);
+    }
+  }
+
+  private syncSelectedFixture(groups: CommanderLanGroup[]): void {
+    const allFixtures = groups.flatMap((g) => g.fixtures).sort();
+    if (!allFixtures.length) {
+      this.fixtureName.set('');
+      return;
+    }
+    const current = this.fixtureName().trim();
+    if (!current || !allFixtures.includes(current)) {
+      this.fixtureName.set(allFixtures[0]);
     }
   }
 

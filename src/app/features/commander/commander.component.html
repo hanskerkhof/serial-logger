@@ -184,14 +184,23 @@
 
       <p-inputgroup>
         <p-inputgroup-addon>Fixture</p-inputgroup-addon>
-        <input
-          pInputText
+        <p-select
           id="fixtureName"
-          type="text"
+          inputId="fixtureName"
           [ngModel]="fixtureName()"
-          (ngModelChange)="fixtureName.set($event)"
-          placeholder="CLIGNOTEUR1"
-        />
+          (ngModelChange)="onFixtureSelected($event)"
+          [options]="fixtureOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          [loading]="lanGroupListLoading()"
+          [disabled]="lanGroupListLoading() || fixtureOptions().length === 0"
+          placeholder="Select fixture"
+          appendTo="body"
+          (onShow)="onDropdownShow()"
+          (onHide)="onDropdownHide()"
+        ></p-select>
         <button
           pButton
           type="button"
@@ -200,7 +209,7 @@
           iconPos="right"
           [loading]="fixtureQueryLoading()"
           (click)="runFixtureQuery()"
-          [disabled]="backendBusy()"
+          [disabled]="backendBusy() || lanGroupListLoading() || fixtureOptions().length === 0 || !fixtureName()"
         ></button>
       </p-inputgroup>
 
@@ -220,6 +229,8 @@
           [disabled]="planListLoading() || planOptions().length === 0"
           placeholder="Select plan"
           appendTo="body"
+          (onShow)="onDropdownShow()"
+          (onHide)="onDropdownHide()"
         ></p-select>
         <button
           pButton
@@ -249,6 +260,8 @@
           [disabled]="lanGroupListLoading() || planGroupOptions().length === 0"
           placeholder="Select plan group"
           appendTo="body"
+          (onShow)="onDropdownShow()"
+          (onHide)="onDropdownHide()"
         ></p-select>
         <button
           pButton
@@ -291,6 +304,10 @@
     </section>
   </div>
 
+  @if (anyDropdownOpen()) {
+    <div class="commander__dropdown-backdrop"></div>
+  }
+
   <dialog #fixtureDetailDialog class="commander__dialog">
     <header class="commander__dialog-header">
       <h3>Fixture: {{ selectedFixture()?.fixture_name }}</h3>
@@ -301,15 +318,16 @@
         <button
           pButton
           type="button"
-          label="Query fixture"
+          label="Run query"
+          icon="pi pi-play"
+          iconPos="right"
           severity="secondary"
           size="small"
+          [loading]="modalQueryLoading()"
           (click)="runModalFixtureQuery()"
           [disabled]="modalQueryLoading()"
         ></button>
-        @if (modalQueryLoading()) {
-          <span class="commander__dialog-header-status">Running query...</span>
-        } @else if (modalQueryError(); as modalError) {
+        @if (modalQueryError(); as modalError) {
           <span class="commander__dialog-header-error">{{ modalError }}</span>
         }
       </div>

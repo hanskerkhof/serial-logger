@@ -33,3 +33,7 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 - Prefer `npm test` for logic or UI behavior changes.
 - Prefer `npm run build` for non-trivial changes and before deployment-related updates.
 - For BAUKLANK releases, always run `npm run deploy:bauklank` before the root `bauklank-micros` release commit so the deployed bundle lands in `bauklank-micros/web/serial-logger-app` in that same release.
+- Default deploy target is `../bauklank-micros/web/serial-logger-app` unless `BAUKLANK_DEPLOY_TARGET` overrides it.
+- Before a BAUKLANK release, validate the FE repo with at least:
+  - `npm run build`
+  - `npm run deploy:bauklank`

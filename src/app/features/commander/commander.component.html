@@ -151,6 +151,15 @@
             <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
             <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
             <div><strong>service:</strong> {{ currentHealth.service }}</div>
+            @if (currentHealth.release_version) {
+              <div><strong>release_version:</strong> {{ currentHealth.release_version }}</div>
+            }
+            @if (currentHealth.build_date) {
+              <div><strong>build_date:</strong> {{ currentHealth.build_date }}</div>
+            }
+            @if (currentHealth.build_time) {
+              <div><strong>build_time:</strong> {{ currentHealth.build_time }}</div>
+            }
             @if (currentHealth.commander; as commanderHealth) {
               <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
               <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>

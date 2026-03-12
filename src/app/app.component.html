@@ -3,9 +3,9 @@
     <ng-template #start>
       <div class="app-shell__title-block">
         <h1 class="app-shell__title">BAUKLANK CONTROL</h1>
-        @if (buildDate) {
-          <span class="app-shell__version">v{{ appVersion }} · {{ buildDate }}</span>
-        }
+        <span class="app-shell__version">
+          FE: <strong>v{{ appVersion }}</strong>@if (buildDate) { - {{ buildDate }}}@if (apiVersion()) { | API: <strong>v{{ apiVersion() }}</strong>@if (apiBuildDate()) { - {{ apiBuildDate() }}}}
+        </span>
       </div>
     </ng-template>
     <ng-template #end>

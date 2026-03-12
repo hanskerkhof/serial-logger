@@ -6,6 +6,9 @@ export interface CommanderHealthResponse {
   ok: boolean;
   service: string;
   utc: string;
+  release_version?: string | null;
+  build_date?: string | null;
+  build_time?: string | null;
   commander?: {
     expected_fixture_name?: string;
     detected?: boolean;

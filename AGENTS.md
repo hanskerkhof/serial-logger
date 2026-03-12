@@ -1,5 +1,7 @@
 # Agent Guidelines
 
+> **Keep in sync with `CLAUDE.md`** — both files must always reflect the same release checklist and conventions. When you update one, update the other in the same commit.
+
 You are an expert in TypeScript, Angular, and operational web tooling.
 
 ## Scope
@@ -27,6 +29,15 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 - Optimize for operator clarity and runtime visibility.
 - Keep HTTP, SSE, and Web Serial behavior explicit and inspectable.
 - Preserve service boundaries and persistent operator state handling.
+
+## Release checklist
+
+When bumping the version (patch, minor, or major), always do **all** of the following before committing:
+
+1. `npm version <new-version> --no-git-tag-version` — updates `package.json` and `package-lock.json`.
+2. Update `src/app/build-info.ts` — set `APP_VERSION` and `BUILD_DATE` to match.
+3. Add a new section to `CHANGELOG.md` — `## <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets summarising every change since the previous release. Move items from `## Unreleased` if any exist.
+4. Commit all changed files together.
 
 ## Testing
 

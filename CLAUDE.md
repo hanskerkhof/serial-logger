@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **Keep in sync with `AGENTS.md`** — both files must always reflect the same release checklist and conventions. When you update one, update the other in the same commit.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Commands

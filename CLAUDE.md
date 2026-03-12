@@ -50,6 +50,15 @@ Wire commands sent to fixtures are prefixed automatically: `tcmd;<fixture_name>;
 
 `scripts/deploy-bauklank.mjs` copies the production build into a sibling repo at `../bauklank-micros/web/serial-logger-app/`. The target path can be overridden via `BAUKLANK_DEPLOY_TARGET` env var.
 
+## Release checklist
+
+When bumping the version (patch, minor, or major), always do **all** of the following before committing:
+
+1. `npm version <new-version> --no-git-tag-version` — updates `package.json` and `package-lock.json`.
+2. Update `src/app/build-info.ts` — set `APP_VERSION` and `BUILD_DATE` to match.
+3. Add a new section to `CHANGELOG.md` — `## <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets summarising every change since the previous release. Move items from `## Unreleased` if any exist.
+4. Commit all four files together.
+
 ## Conventions
 
 - All new components should be **standalone** with **SCSS** styles and **OnPush** change detection (configured as Angular CLI defaults in `angular.json`).

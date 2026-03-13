@@ -11,6 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { InputGroupModule } from 'primeng/inputgroup';
@@ -74,6 +75,7 @@ export class CommanderComponent implements OnInit {
   protected readonly manualCommand = signal('');
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
+  private modalQuerySub: Subscription | null = null;
   protected readonly rawCommand = signal('');
   protected readonly rawCommandLoading = signal(false);
   protected readonly rawCommandResult = signal<RawCommandResponse | null>(null);
@@ -405,6 +407,8 @@ export class CommanderComponent implements OnInit {
   }
 
   protected closeFixtureModal(): void {
+    this.modalQuerySub?.unsubscribe();
+    this.modalQuerySub = null;
     this.fixtureDetailDialog?.nativeElement?.close();
     this.modalQueryLoading.set(false);
     this.modalQueryError.set(null);
@@ -420,16 +424,19 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
+    this.modalQuerySub?.unsubscribe();
     this.modalQueryLoading.set(true);
     this.modalQueryError.set(null);
 
-    this.commanderApi.getFixtureVersion(fixture).subscribe({
+    this.modalQuerySub = this.commanderApi.getFixtureVersion(fixture).subscribe({
       next: (result) => {
+        this.modalQuerySub = null;
         this.queryResult.set(result);
         this.ingestQueryResult(result, 'fixture_query');
         this.modalQueryLoading.set(false);
       },
       error: (err: unknown) => {
+        this.modalQuerySub = null;
         const text = this.formatError('Fixture query failed', err);
         const compact = text.length > 180 ? `${text.slice(0, 177)}...` : text;
         this.modalQueryError.set(compact);

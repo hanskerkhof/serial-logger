@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.0.13 - 2026-03-14
+### Fixed
+- Committed the actual subscription-management code for the fixture modal HTTP cancellation fix (the v0.0.12 release commit missed `commander.component.ts`). Tracks `modalQuerySub` and unsubscribes on modal close or re-query to prevent stale responses landing after the dialog is dismissed.
+
 ## 0.0.12 - 2026-03-12
 ### Fixed
 - Closing the fixture detail modal while a "Run query" request is in flight now cancels the HTTP request immediately (unsubscribes the RxJS subscription) instead of letting it complete silently in the background.

@@ -1,97 +1,36 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import type {
+  CmdrHealthResponse,
+  CmdrExposedPlan,
+  CmdrPlansResponse,
+  CmdrLanGroup,
+  CmdrPlanGroupsResponse,
+  CmdrFixtureCommandResponse,
+  CmdrRawResponse,
+  CmdrVersionsResponse,
+  CmdrDiscoveryResponse,
+  CmdrQueryResponse,
+} from './api/cmdr-models';
 
-export interface CommanderHealthResponse {
-  ok: boolean;
-  service: string;
-  utc: string;
-  release_version?: string | null;
-  build_date?: string | null;
-  build_time?: string | null;
-  commander?: {
-    expected_fixture_name?: string;
-    detected?: boolean;
-    detected_fixture_name?: string | null;
-    resolver_source?: string;
-    probe_elapsed_ms?: number;
-    port?: string | null;
-    baud?: number | null;
-    candidate_ports?: string[];
-    proxy?: {
-      active?: boolean;
-      port?: string | null;
-      baud?: number | null;
-      state?: string;
-      last_transition_reason?: string;
-      last_transition_at_utc?: string | null;
-      event_buffer_size?: number;
-      last_event_type?: string | null;
-      last_event_at_utc?: string | null;
-      continuous_serial_mirror?: boolean;
-    };
-  };
-}
+// Re-export generated-type aliases under legacy names so existing component imports are unchanged.
+export type CommanderHealthResponse       = CmdrHealthResponse;
+export type CommanderExposedPlan          = CmdrExposedPlan;
+export type CommanderPlanListResponse     = CmdrPlansResponse;
+export type CommanderLanGroup             = CmdrLanGroup;
+export type CommanderLanGroupListResponse = CmdrPlanGroupsResponse;
+export type FixturePlanActionResponse     = CmdrFixtureCommandResponse;
+export type RawCommandResponse            = CmdrRawResponse;
+/** Union of VersionsResponse | DiscoveryResponse — covers all query endpoints. */
+export type CommanderQueryResponse        = CmdrQueryResponse;
+
+// --- SSE types (not in OpenAPI — kept manual) ---
 
 export interface CommanderApiTarget {
   id: string;
   label: string;
   url: string;
-}
-
-export interface CommanderQueryResponse {
-  ok: boolean;
-  [key: string]: unknown;
-}
-
-export interface CommanderExposedPlan {
-  plan_name: string;
-  plan_group: string;
-  fixture_count: number;
-}
-
-export interface CommanderPlanListResponse {
-  ok: boolean;
-  service: string;
-  count: number;
-  plans: CommanderExposedPlan[];
-}
-
-export interface CommanderLanGroup {
-  plan_group: string;
-  universe: number | null;
-  universe_count: number;
-  fixture_count: number;
-  plan_count: number;
-  plans: string[];
-  fixtures: string[];
-}
-
-export interface CommanderLanGroupListResponse {
-  ok: boolean;
-  service: string;
-  count: number;
-  lan_groups: CommanderLanGroup[];
-}
-
-export interface FixturePlanActionResponse {
-  ok: boolean;
-  fixture_name: string;
-  [key: string]: unknown;
-}
-
-export interface RawCommandResponse {
-  ok: boolean;
-  command_result: {
-    command: string;
-    request_id: string;
-    accepted: boolean;
-    serial_error: string | null;
-    raw_output: string;
-    timing: Record<string, unknown>;
-    proxy?: Record<string, unknown>;
-  };
-  [key: string]: unknown;
 }
 
 export interface CommanderStreamEvent {
@@ -126,38 +65,38 @@ export class CommanderApiService {
 
   readonly apiBaseUrl = signal<string>(this.getInitialApiBaseUrl());
 
-  getHealth(): Observable<CommanderHealthResponse> {
-    return this.http.get<CommanderHealthResponse>(`${this.apiBaseUrl()}/health`);
+  getHealth(): Observable<CmdrHealthResponse> {
+    return this.http.get<CmdrHealthResponse>(`${this.apiBaseUrl()}/health`);
   }
 
-  getFixtureVersion(fixtureName: string): Observable<CommanderQueryResponse> {
-    return this.http.get<CommanderQueryResponse>(
+  getFixtureVersion(fixtureName: string): Observable<CmdrVersionsResponse> {
+    return this.http.get<CmdrVersionsResponse>(
       `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/version`,
     );
   }
 
-  getFixtureDiscovery(listenSeconds = 45): Observable<CommanderQueryResponse> {
-    return this.http.get<CommanderQueryResponse>(
+  getFixtureDiscovery(listenSeconds = 45): Observable<CmdrDiscoveryResponse> {
+    return this.http.get<CmdrDiscoveryResponse>(
       `${this.apiBaseUrl()}/fixtures/discovery?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
     );
   }
 
-  getPlanVersions(planName: string): Observable<CommanderQueryResponse> {
-    return this.http.get<CommanderQueryResponse>(
+  getPlanVersions(planName: string): Observable<CmdrVersionsResponse> {
+    return this.http.get<CmdrVersionsResponse>(
       `${this.apiBaseUrl()}/plans/${encodeURIComponent(planName)}/versions`,
     );
   }
 
-  getExposedPlans(): Observable<CommanderPlanListResponse> {
-    return this.http.get<CommanderPlanListResponse>(`${this.apiBaseUrl()}/plans`);
+  getExposedPlans(): Observable<CmdrPlansResponse> {
+    return this.http.get<CmdrPlansResponse>(`${this.apiBaseUrl()}/plans`);
   }
 
-  getLanGroups(): Observable<CommanderLanGroupListResponse> {
-    return this.http.get<CommanderLanGroupListResponse>(`${this.apiBaseUrl()}/plan-groups`);
+  getLanGroups(): Observable<CmdrPlanGroupsResponse> {
+    return this.http.get<CmdrPlanGroupsResponse>(`${this.apiBaseUrl()}/plan-groups`);
   }
 
-  getPlanGroupVersions(planGroup: string): Observable<CommanderQueryResponse> {
-    return this.http.get<CommanderQueryResponse>(
+  getPlanGroupVersions(planGroup: string): Observable<CmdrVersionsResponse> {
+    return this.http.get<CmdrVersionsResponse>(
       `${this.apiBaseUrl()}/plan-groups/${encodeURIComponent(planGroup)}/versions`,
     );
   }
@@ -165,15 +104,15 @@ export class CommanderApiService {
   runFixtureCommand(
     fixtureName: string,
     command: string,
-  ): Observable<FixturePlanActionResponse> {
-    return this.http.post<FixturePlanActionResponse>(
+  ): Observable<CmdrFixtureCommandResponse> {
+    return this.http.post<CmdrFixtureCommandResponse>(
       `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/cmd`,
       { command },
     );
   }
 
-  postRawCommand(command: string, listenSeconds = 3.0): Observable<RawCommandResponse> {
-    return this.http.post<RawCommandResponse>(`${this.apiBaseUrl()}/commander/raw`, {
+  postRawCommand(command: string, listenSeconds = 3.0): Observable<CmdrRawResponse> {
+    return this.http.post<CmdrRawResponse>(`${this.apiBaseUrl()}/commander/raw`, {
       command,
       listen_seconds: listenSeconds,
     });

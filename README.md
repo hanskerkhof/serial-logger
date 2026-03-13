@@ -80,6 +80,36 @@ Output:
 - `dist/serial-logger`
 
 
+## API types
+
+Types for CMDR HTTP endpoints are auto-generated from the FastAPI OpenAPI schema.
+
+### Regenerate types
+
+Run after any change to the CMDR API contract (`CMDR_hello_api.py`):
+
+```bash
+cd /Users/hanskerkhof/bauklank-micros/frontend/serial-logger
+npm run generate:cmdr-types
+```
+
+This:
+1. Exports the FastAPI OpenAPI JSON via `scripts/export_cmdr_openapi.py`.
+2. Runs `openapi-typescript` to write `src/app/api/generated/cmdr-api.types.ts`.
+
+Commit the updated generated file alongside any frontend changes that consume new or changed fields.
+
+### Alias layer
+
+`src/app/api/cmdr-models.ts` provides readable `Cmdr*` aliases over the raw
+`components["schemas"]["..."]` references from the generated file. Service code imports from
+there; the generated file is never edited manually.
+
+### SSE types
+
+`CommanderStreamEvent` and `CommanderStreamHandlers` (in `commander-api.service.ts`) remain
+handwritten because the `/commander/stream` SSE endpoint is not fully typed in OpenAPI.
+
 ## Deploy to bauklank-micros
 
 Build and copy frontend artifacts so `CMDR_hello_api.py` can host the app:

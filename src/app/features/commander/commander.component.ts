@@ -195,7 +195,7 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureOptions = computed<SelectOption[]>(() => {
     const names = new Set<string>();
     for (const group of this.lanGroups()) {
-      for (const name of group.fixtures) {
+      for (const name of group.fixtures ?? []) {
         names.add(name);
       }
     }
@@ -715,7 +715,7 @@ export class CommanderComponent implements OnInit {
   }
 
   private syncSelectedFixture(groups: CommanderLanGroup[]): void {
-    const allFixtures = groups.flatMap((g) => g.fixtures).sort();
+    const allFixtures = groups.flatMap((g) => g.fixtures ?? []).sort();
     if (!allFixtures.length) {
       this.fixtureName.set('');
       return;

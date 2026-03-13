@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.0.14 - 2026-03-14
+### Added
+- Added generated CMDR API TypeScript models at `src/app/api/generated/cmdr-api.types.ts`, sourced from `CMDR_hello_api.py` OpenAPI output.
+
+### Changed
+- Added `npm run generate:cmdr-types` to regenerate frontend API models from backend OpenAPI in one step.
+- Updated deploy docs/guidance for the in-repo frontend location (`/Users/hanskerkhof/bauklank-micros/frontend/serial-logger`).
+- Updated deploy default behavior docs to reflect in-repo target resolution for `web/serial-logger-app`.
+
 ## 0.0.13 - 2026-03-14
 ### Fixed
 - Committed the actual subscription-management code for the fixture modal HTTP cancellation fix (the v0.0.12 release commit missed `commander.component.ts`). Tracks `modalQuerySub` and unsubscribes on modal close or re-query to prevent stale responses landing after the dialog is dismissed.

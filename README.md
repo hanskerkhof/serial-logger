@@ -24,7 +24,7 @@ Current app version: `0.0.4`.
 ## Development
 
 ```bash
-cd /Users/hanskerkhof/serial-logger-app
+cd /Users/hanskerkhof/bauklank-micros/frontend/serial-logger
 npm install
 npm start
 ```
@@ -85,8 +85,8 @@ Output:
 Build and copy frontend artifacts so `CMDR_hello_api.py` can host the app:
 
 ```bash
-cd /Users/hanskerkhof/serial-logger-app
-npm run deploy:bauklank-micros-api
+cd /Users/hanskerkhof/bauklank-micros/frontend/serial-logger
+npm run deploy:bauklank
 ```
 
 Default deploy target:
@@ -96,7 +96,7 @@ Default deploy target:
 Optional override:
 
 ```bash
-BAUKLANK_DEPLOY_TARGET=/custom/path npm run deploy:bauklank-micros-api
+BAUKLANK_DEPLOY_TARGET=/custom/path npm run deploy:bauklank
 ```
 
 After deploy, start API and open:

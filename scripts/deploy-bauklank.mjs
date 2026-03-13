@@ -26,7 +26,10 @@ console.log('🔨 Building...');
 execSync('npx ng build', { cwd: appRoot, stdio: 'inherit' });
 
 // --- 3. Copy dist to bauklank-micros ---
-const defaultTargetRoot = path.resolve(appRoot, '..', 'bauklank-micros', 'web', 'serial-logger-app');
+const inRepoMarker = path.resolve(appRoot, '..', '..', 'CMDR_hello_api.py');
+const defaultTargetRoot = fs.existsSync(inRepoMarker)
+  ? path.resolve(appRoot, '..', '..', 'web', 'serial-logger-app')
+  : path.resolve(appRoot, '..', 'bauklank-micros', 'web', 'serial-logger-app');
 const targetRoot = process.env.BAUKLANK_DEPLOY_TARGET
   ? path.resolve(process.env.BAUKLANK_DEPLOY_TARGET)
   : defaultTargetRoot;

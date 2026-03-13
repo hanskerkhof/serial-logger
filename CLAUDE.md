@@ -11,7 +11,7 @@ npm start              # Dev server on http://localhost:4210
 npm test               # Run tests with Karma/Jasmine
 npm run build          # Production build (output: dist/serial-logger/)
 npm run build:prod     # Same as build
-npm run deploy:bauklank  # Build + copy dist to ../bauklank-micros/web/serial-logger-app/
+npm run deploy:bauklank  # Build + copy dist to ../../web/serial-logger-app/
 ```
 
 The dev server runs on port **4210** (not the default 4200).
@@ -50,7 +50,7 @@ Wire commands sent to fixtures are prefixed automatically: `tcmd;<fixture_name>;
 
 ### Deploy
 
-`scripts/deploy-bauklank.mjs` copies the production build into a sibling repo at `../bauklank-micros/web/serial-logger-app/`. The target path can be overridden via `BAUKLANK_DEPLOY_TARGET` env var.
+`scripts/deploy-bauklank.mjs` copies the production build into `../../web/serial-logger-app/` when running in-repo (`bauklank-micros/frontend/serial-logger`). The target path can be overridden via `BAUKLANK_DEPLOY_TARGET` env var.
 
 ## Release checklist
 

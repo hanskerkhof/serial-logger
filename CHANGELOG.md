@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-03-14
+
+### Changed
+- Player capabilities label renamed from "analog vol: on|off" → "Analog volume: yes|no".
+
 ## 0.1.0 - 2026-03-14
 
 ### Added

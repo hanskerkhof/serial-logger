@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.3 - 2026-03-14
+
+### Changed
+- Patch release — no functional changes; version bump + Pi deploy.
+
 ## 0.1.2 - 2026-03-14
 
 ### Changed

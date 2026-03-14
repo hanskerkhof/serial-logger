@@ -220,6 +220,17 @@ export class CommanderComponent implements OnInit {
     return caps?.player ?? null;
   });
 
+  protected readonly selectedFixtureFwStatus = computed<{
+    fw: string;
+    release: string | null;
+    upToDate: boolean;
+  } | null>(() => {
+    const v = this.selectedFixture()?.raw['fw_version'];
+    if (typeof v !== 'string') return null;
+    const release = this.health()?.api?.release_version ?? null;
+    return { fw: v, release, upToDate: release !== null && v === release };
+  });
+
   // Callbacks run once when the API recovers from offline → online.
   // Add entries here to extend the recovery set.
   private readonly recoveryCallbacks: Array<() => void> = [];

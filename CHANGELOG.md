@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.1.0 - 2026-03-14
+
+### Added
+- `FixturePlayerControlsComponent` (`src/app/shared/fixture-player-controls/`) — standalone shared component for rendering player capabilities; shows capability detail when `player.attached` is true, "No player attached" when the player object is present but not attached.
+- Fixture modal header now shows `fw_version` next to the fixture name, with an "outdated" / "up to date" label compared against `health.api.release_version`; "outdated" is highlighted in orange and shows the latest available version.
+- `PlayerCapabilities` and `FixtureCapabilities` Pydantic models added to `CMDR_hello_api.py`; `player` field typed on `FixtureCapabilities`. Types regenerated in `cmdr-api.types.ts`, aliases added to `cmdr-models.ts`.
+- Plan trigger / stop buttons in fixture modal are now gated on `capabilities.plan_controls.trigger.available` / `stop.available`; buttons hidden when the capability is absent.
+
+### Changed
+- Player capabilities label renamed from "volume sw" → "volume control".
+
 ## 0.0.14 - 2026-03-14
 ### Added
 - Added generated CMDR API TypeScript models at `src/app/api/generated/cmdr-api.types.ts`, sourced from `CMDR_hello_api.py` OpenAPI output.

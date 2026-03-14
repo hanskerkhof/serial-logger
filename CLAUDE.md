@@ -62,6 +62,25 @@ When bumping the version (patch, minor, or major), always do **all** of the foll
 3. Add a new section to `CHANGELOG.md` — `## <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets summarising every change since the previous release. Move items from `## Unreleased` if any exist.
 4. Commit all four files together.
 
+## Fixture capabilities access pattern
+
+`FixtureRecord` stores all raw fixture data in `raw: Record<string, unknown>`. Capabilities are **not** a top-level field — always access via:
+
+```ts
+const caps = this.selectedFixture()?.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null;
+```
+
+Sub-fields: `caps?.plan_controls` (`CmdrPlanControls`) and `caps?.player` (`CmdrPlayerCapabilities`).
+Current `cmdr-models.ts` aliases: `CmdrFixtureCapabilities`, `CmdrPlanControls`, `CmdrPlayerCapabilities`.
+
+## Firmware version status pattern
+
+Compare `raw['fw_version']` (string) against `health().api.release_version` to derive up-to-date / outdated status via a `computed()` signal. "outdated" is shown in orange; when release version is unknown the status label is omitted.
+
+## Shared components
+
+- `src/app/shared/fixture-player-controls/` — `FixturePlayerControlsComponent`. Input: `player: CmdrPlayerCapabilities | null`. Renders capability detail when `attached`, "No player attached" when player exists but `attached === false`, nothing when `null`.
+
 ## Conventions
 
 - All new components should be **standalone** with **SCSS** styles and **OnPush** change detection (configured as Angular CLI defaults in `angular.json`).

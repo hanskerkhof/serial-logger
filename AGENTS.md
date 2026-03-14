@@ -42,10 +42,45 @@ When bumping the version (patch, minor, or major), always do **all** of the foll
 ## API Types
 
 - HTTP response types for CMDR endpoints come from the auto-generated `src/app/api/generated/cmdr-api.types.ts` (do not edit manually).
-- `src/app/api/cmdr-models.ts` provides readable `Cmdr*` aliases over the raw `components["schemas"]["..."]` references; service code imports from there.
+- `src/app/api/cmdr-models.ts` provides readable `Cmdr*` aliases over the raw `components["schemas"]["..."]` references; service code imports from there. Current aliases include `CmdrFixtureCapabilities`, `CmdrPlanControls`, `CmdrPlayerCapabilities`.
 - `CommanderApiService` re-exports aliases under legacy names (`CommanderHealthResponse`, `CommanderLanGroup`, etc.) so component import paths remain stable.
 - SSE types (`CommanderStreamEvent`, `CommanderStreamHandlers`) remain handwritten — the `/commander/stream` endpoint is not fully typed in OpenAPI.
 - Regenerate types with `npm run generate:cmdr-types` after any CMDR API contract change (`CMDR_hello_api.py`); commit the updated generated file alongside the consuming changes.
+
+## Fixture capabilities access pattern
+
+`FixtureRecord` stores all raw fixture data in `raw: Record<string, unknown>`. Capabilities are **not** a top-level field — always access via:
+
+```ts
+const caps = this.selectedFixture()?.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null;
+```
+
+Sub-fields: `caps?.plan_controls` (`CmdrPlanControls`) and `caps?.player` (`CmdrPlayerCapabilities`).
+
+Use `computed()` signals in `CommanderComponent` to derive these safely:
+```ts
+protected readonly selectedFixturePlanControls = computed<CmdrPlanControls | null>(() => {
+  const caps = this.selectedFixture()?.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null;
+  return caps?.plan_controls ?? null;
+});
+```
+
+## Firmware version status pattern
+
+Compare fixture `fw_version` (from `raw['fw_version']`) against `health().api.release_version` to derive an up-to-date / outdated status:
+
+```ts
+protected readonly selectedFixtureFwStatus = computed<{ fw: string; release: string | null; upToDate: boolean } | null>(() => {
+  const v = this.selectedFixture()?.raw['fw_version'];
+  if (typeof v !== 'string') return null;
+  const release = this.health()?.api?.release_version ?? null;
+  return { fw: v, release, upToDate: release !== null && v === release };
+});
+```
+
+## Shared components
+
+- `src/app/shared/fixture-player-controls/` — `FixturePlayerControlsComponent` renders `CmdrPlayerCapabilities`. Input: `player: CmdrPlayerCapabilities | null`. Shows capability detail when `attached`, "No player attached" when player object is present but `attached === false`, nothing when `null`.
 
 ## Testing
 

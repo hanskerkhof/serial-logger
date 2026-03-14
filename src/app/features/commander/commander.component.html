@@ -310,7 +310,18 @@
 
   <dialog #fixtureDetailDialog class="commander__dialog">
     <header class="commander__dialog-header">
-      <h3>Fixture: {{ selectedFixture()?.fixture_name }}</h3>
+      <h3>
+        Fixture: {{ selectedFixture()?.fixture_name }}
+        @if (selectedFixtureFwStatus(); as fws) {
+          <span class="commander__dialog-fw-version">v{{ fws.fw }}</span>
+        }
+      </h3>
+      @if (selectedFixtureFwStatus(); as fws) {
+        <span class="commander__dialog-fw-status" [class.commander__dialog-fw-status--outdated]="!fws.upToDate && fws.release !== null">
+          {{ fws.release !== null ? (fws.upToDate ? 'up to date' : 'outdated') : '' }}
+          @if (!fws.upToDate && fws.release !== null) { · latest: v{{ fws.release }}}
+        </span>
+      }
       @if (selectedFixtureLastSeen(); as lastSeen) {
         <span class="commander__dialog-last-seen">Last seen: {{ lastSeen }}</span>
       }

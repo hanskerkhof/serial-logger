@@ -31,6 +31,7 @@ import {
   FixturePlanActionResponse,
   RawCommandResponse,
 } from '../../commander-api.service';
+import { CmdrFixtureCapabilities, CmdrPlanControls } from '../../api/cmdr-models';
 import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
 
@@ -206,6 +207,11 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixtureJson = computed(() => {
     const selected = this.selectedFixture();
     return selected ? JSON.stringify(selected.raw, null, 2) : '';
+  });
+
+  protected readonly selectedFixturePlanControls = computed<CmdrPlanControls | null>(() => {
+    const caps = this.selectedFixture()?.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null;
+    return caps?.plan_controls ?? null;
   });
 
   // Callbacks run once when the API recovers from offline → online.

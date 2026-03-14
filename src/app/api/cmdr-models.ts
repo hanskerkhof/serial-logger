@@ -17,3 +17,6 @@ export type CmdrDiscoveryResponse      = components['schemas']['DiscoveryRespons
 
 /** Union of all version/discovery query response shapes — used by the component query-result signal. */
 export type CmdrQueryResponse = CmdrVersionsResponse | CmdrDiscoveryResponse;
+
+export type CmdrFixtureCapabilities = components['schemas']['FixtureCapabilities'];
+export type CmdrPlanControls        = components['schemas']['PlanControls'];

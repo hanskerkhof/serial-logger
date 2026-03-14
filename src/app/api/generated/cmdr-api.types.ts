@@ -400,6 +400,12 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** FixtureCapabilities */
+        FixtureCapabilities: {
+            plan_controls?: components["schemas"]["PlanControls"] | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** FixtureCommandRequest */
         FixtureCommandRequest: {
             /** Command */
@@ -436,10 +442,7 @@ export interface components {
             build_date_time?: string | null;
             /** Build Time */
             build_time?: string | null;
-            /** Capabilities */
-            capabilities?: {
-                [key: string]: unknown;
-            } | null;
+            capabilities?: components["schemas"]["FixtureCapabilities"] | null;
             /** Capabilities Status */
             capabilities_status?: string | null;
             /** Channel */
@@ -529,16 +532,25 @@ export interface components {
         };
         /** LanGroupFixtureDetail */
         LanGroupFixtureDetail: {
-            /** Capabilities */
-            capabilities?: {
-                [key: string]: unknown;
-            } | null;
+            capabilities?: components["schemas"]["FixtureCapabilities"] | null;
             /** Capabilities Status */
             capabilities_status: string;
             /** Fixture Name */
             fixture_name: string;
         } & {
             [key: string]: unknown;
+        };
+        /** PlanControlAction */
+        PlanControlAction: {
+            /** Available */
+            available: boolean;
+            /** Wire */
+            wire: string;
+        };
+        /** PlanControls */
+        PlanControls: {
+            stop?: components["schemas"]["PlanControlAction"] | null;
+            trigger?: components["schemas"]["PlanControlAction"] | null;
         };
         /** PlanGroupsResponse */
         PlanGroupsResponse: {

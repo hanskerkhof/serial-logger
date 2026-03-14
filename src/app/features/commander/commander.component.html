@@ -371,24 +371,28 @@
         (click)="runManualCommand()"
         [disabled]="fixtureActionLoading() || !manualCommand().trim()"
       ></button>
-      <button
-        pButton
-        type="button"
-        label="Plan trigger"
-        severity="secondary"
-        size="small"
-        (click)="runModalPlanAction('trigger')"
-        [disabled]="fixtureActionLoading()"
-      ></button>
-      <button
-        pButton
-        type="button"
-        label="Plan stop"
-        severity="secondary"
-        size="small"
-        (click)="runModalPlanAction('stop')"
-        [disabled]="fixtureActionLoading()"
-      ></button>
+      @if (selectedFixturePlanControls()?.trigger?.available) {
+        <button
+          pButton
+          type="button"
+          label="Plan trigger"
+          severity="secondary"
+          size="small"
+          (click)="runModalPlanAction('trigger')"
+          [disabled]="fixtureActionLoading()"
+        ></button>
+      }
+      @if (selectedFixturePlanControls()?.stop?.available) {
+        <button
+          pButton
+          type="button"
+          label="Plan stop"
+          severity="secondary"
+          size="small"
+          (click)="runModalPlanAction('stop')"
+          [disabled]="fixtureActionLoading()"
+        ></button>
+      }
       <button
         pButton
         type="button"

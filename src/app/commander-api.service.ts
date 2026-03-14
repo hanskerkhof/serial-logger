@@ -75,7 +75,7 @@ export class CommanderApiService {
     );
   }
 
-  getFixtureDiscovery(listenSeconds = 45): Observable<CmdrDiscoveryResponse> {
+  getFixtureDiscovery(listenSeconds = 60): Observable<CmdrDiscoveryResponse> {
     return this.http.get<CmdrDiscoveryResponse>(
       `${this.apiBaseUrl()}/fixtures/discovery?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
     );

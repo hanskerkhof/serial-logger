@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.7 - 2026-03-14
+
+### Added
+- "empty list" text link above Full Discovery button — clears all fixtures from store and resets discovery timings from localStorage. Only visible when the list is non-empty.
+
 ## 0.1.6 - 2026-03-14
 
 ### Fixed

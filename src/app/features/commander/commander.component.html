@@ -9,6 +9,9 @@
     </header>
 
     <div class="commander__sidebar-actions">
+      @if (fixtureCount() > 0) {
+        <button type="button" class="commander__clear-list-link" (click)="clearList()">empty list</button>
+      }
       <button
         pButton
         type="button"

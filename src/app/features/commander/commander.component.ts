@@ -356,6 +356,11 @@ export class CommanderComponent implements OnInit {
     });
   }
 
+  protected clearList(): void {
+    this.fixtureStore.clearAllFixtures();
+    this.discoveryTimings.set([]);
+  }
+
   protected runFullDiscovery(): void {
     if (!this.checkApiReachable()) return;
     this.discoveryLoading.set(true);

@@ -11,7 +11,7 @@
     "build:prod": "ng build",
     "generate:cmdr-types": "../../.venv1/bin/python ../../scripts/export_cmdr_openapi.py --out tmp/cmdr-openapi.json && npx openapi-typescript tmp/cmdr-openapi.json -o src/app/api/generated/cmdr-api.types.ts",
     "deploy:bauklank-micros-api": "node scripts/deploy-bauklank.mjs",
-    "deploy:bauklank": "npm run deploy:bauklank-micros-api"
+    "deploy:bauklank-studio": "npm run deploy:bauklank-micros-api"
   },
   "prettier": {
     "printWidth": 100,

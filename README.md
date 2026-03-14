@@ -116,7 +116,7 @@ Build and copy frontend artifacts so `CMDR_hello_api.py` can host the app:
 
 ```bash
 cd /Users/hanskerkhof/bauklank-micros/frontend/serial-logger
-npm run deploy:bauklank
+npm run deploy:bauklank-studio
 ```
 
 Default deploy target:
@@ -126,7 +126,7 @@ Default deploy target:
 Optional override:
 
 ```bash
-BAUKLANK_DEPLOY_TARGET=/custom/path npm run deploy:bauklank
+BAUKLANK_DEPLOY_TARGET=/custom/path npm run deploy:bauklank-studio
 ```
 
 After deploy, start API and open:

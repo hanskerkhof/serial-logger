@@ -11,7 +11,7 @@ npm start              # Dev server on http://localhost:4210
 npm test               # Run tests with Karma/Jasmine
 npm run build          # Production build (output: dist/serial-logger/)
 npm run build:prod     # Same as build
-npm run deploy:bauklank  # Build + copy dist to ../../web/serial-logger-app/
+npm run deploy:bauklank-studio  # Build + copy dist to ../../web/serial-logger-app/
 npm run generate:cmdr-types  # Regenerate src/app/api/generated/cmdr-api.types.ts from FastAPI OpenAPI spec
 ```
 

@@ -538,6 +538,12 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, command);
   }
 
+  protected onDialogBackdropClick(event: MouseEvent): void {
+    if (event.target === this.fixtureDetailDialog?.nativeElement) {
+      this.closeFixtureModal();
+    }
+  }
+
   private openFixtureModal(): void {
     const dialog = this.fixtureDetailDialog?.nativeElement;
     if (!dialog) return;

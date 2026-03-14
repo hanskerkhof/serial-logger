@@ -308,7 +308,7 @@
     <div class="commander__dropdown-backdrop"></div>
   }
 
-  <dialog #fixtureDetailDialog class="commander__dialog">
+  <dialog #fixtureDetailDialog class="commander__dialog" (click)="onDialogBackdropClick($event)">
     <header class="commander__dialog-header">
       <h3>
         Fixture: {{ selectedFixture()?.fixture_name }}

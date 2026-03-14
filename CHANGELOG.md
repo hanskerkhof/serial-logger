@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.4 - 2026-03-14
+
+### Added
+- Clicking outside the fixture detail modal (on the backdrop) now closes it; works on Safari iOS via `cursor: pointer` on the `<dialog>` element.
+
 ## 0.1.3 - 2026-03-14
 
 ### Changed

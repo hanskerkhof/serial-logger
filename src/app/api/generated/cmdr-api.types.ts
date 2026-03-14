@@ -403,6 +403,7 @@ export interface components {
         /** FixtureCapabilities */
         FixtureCapabilities: {
             plan_controls?: components["schemas"]["PlanControls"] | null;
+            player?: components["schemas"]["PlayerCapabilities"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -577,6 +578,17 @@ export interface components {
             service: string;
         } & {
             [key: string]: unknown;
+        };
+        /** PlayerCapabilities */
+        PlayerCapabilities: {
+            /** Analog Volume Active */
+            analog_volume_active: boolean;
+            /** Attached */
+            attached: boolean;
+            /** Play Track Available */
+            play_track_available: boolean;
+            /** Volume Control Available */
+            volume_control_available: boolean;
         };
         /** ValidationError */
         ValidationError: {

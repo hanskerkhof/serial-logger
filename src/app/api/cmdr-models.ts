@@ -20,3 +20,4 @@ export type CmdrQueryResponse = CmdrVersionsResponse | CmdrDiscoveryResponse;
 
 export type CmdrFixtureCapabilities = components['schemas']['FixtureCapabilities'];
 export type CmdrPlanControls        = components['schemas']['PlanControls'];
+export type CmdrPlayerCapabilities  = components['schemas']['PlayerCapabilities'];

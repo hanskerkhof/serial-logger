@@ -166,6 +166,21 @@
   }
 }
 
+.commander__dialog-player-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.commander__dialog-player-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .commander__dialog-footer {
   margin-top: auto;
 }

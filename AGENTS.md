@@ -39,6 +39,14 @@ When bumping the version (patch, minor, or major), always do **all** of the foll
 3. Add a new section to `CHANGELOG.md` — `## <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets summarising every change since the previous release. Move items from `## Unreleased` if any exist.
 4. Commit all changed files together.
 
+## API Types
+
+- HTTP response types for CMDR endpoints come from the auto-generated `src/app/api/generated/cmdr-api.types.ts` (do not edit manually).
+- `src/app/api/cmdr-models.ts` provides readable `Cmdr*` aliases over the raw `components["schemas"]["..."]` references; service code imports from there.
+- `CommanderApiService` re-exports aliases under legacy names (`CommanderHealthResponse`, `CommanderLanGroup`, etc.) so component import paths remain stable.
+- SSE types (`CommanderStreamEvent`, `CommanderStreamHandlers`) remain handwritten — the `/commander/stream` endpoint is not fully typed in OpenAPI.
+- Regenerate types with `npm run generate:cmdr-types` after any CMDR API contract change (`CMDR_hello_api.py`); commit the updated generated file alongside the consuming changes.
+
 ## Testing
 
 - Prefer `npm test` for logic or UI behavior changes.

@@ -12,6 +12,7 @@ npm test               # Run tests with Karma/Jasmine
 npm run build          # Production build (output: dist/serial-logger/)
 npm run build:prod     # Same as build
 npm run deploy:bauklank  # Build + copy dist to ../../web/serial-logger-app/
+npm run generate:cmdr-types  # Regenerate src/app/api/generated/cmdr-api.types.ts from FastAPI OpenAPI spec
 ```
 
 The dev server runs on port **4210** (not the default 4200).
@@ -33,7 +34,7 @@ The app has two top-level routes, toggled by tabs in `AppComponent`:
 
 - **`SerialService`** (`src/app/serial.service.ts`) — Wraps the Web Serial API. Manages port open/close/read/write lifecycle. Emits incoming text via `log$` (Subject), connection state via `connected$`, baud via `baud$`. Uses `NgZone.run()` to push serial data back into Angular's change detection.
 
-- **`CommanderApiService`** (`src/app/commander-api.service.ts`) — HTTP client for the Commander REST API. Persists the selected `apiBaseUrl` in `localStorage` (`cmdr.api.baseUrl`). Auto-detects same-origin API when served from the Pi/Mac on port 8080. Contains hardcoded target URLs for MacBook (`100.88.15.68:8080`) and Raspberry Pi (`100.78.180.13:8080`). Also opens an SSE stream at `/commander/stream` via native `EventSource`.
+- **`CommanderApiService`** (`src/app/commander-api.service.ts`) — HTTP client for the Commander REST API. Persists the selected `apiBaseUrl` in `localStorage` (`cmdr.api.baseUrl`). Auto-detects same-origin API when served from the Pi/Mac on port 8080. Contains hardcoded target URLs for MacBook (`100.88.15.68:8080`) and Raspberry Pi (`100.78.180.13:8080`). Also opens an SSE stream at `/commander/stream` via native `EventSource`. All HTTP method return types use generated OpenAPI schema aliases from `src/app/api/cmdr-models.ts`; SSE types (`CommanderStreamEvent`, `CommanderStreamHandlers`) remain handwritten. Regenerate types with `npm run generate:cmdr-types` after any CMDR API contract change.
 
 - **`FixtureStoreService`** (`src/app/fixture-store.service.ts`) — Signal-based in-memory + localStorage store for discovered fixture records. Persists under `cmdr.fixtureStore.v1`. Provides `fixturesGroupedByPlanName` (computed) for the UI list.
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.2 - 2026-03-14
+
+### Changed
+- Fixture version badge now distinguishes direction: fixture version > release shows blue "API outdated · release: v<X>" instead of orange "outdated".
+
 ## 0.1.1 - 2026-03-14
 
 ### Changed

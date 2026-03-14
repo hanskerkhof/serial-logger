@@ -41,6 +41,16 @@ interface SelectOption {
   value: string;
 }
 
+function compareVersions(a: string, b: string): number {
+  const seg = (s: string) => s.replace(/^v/, '').split('.').map(Number);
+  const [as_, bs_] = [seg(a), seg(b)];
+  for (let i = 0; i < Math.max(as_.length, bs_.length); i++) {
+    const diff = (as_[i] ?? 0) - (bs_[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
 @Component({
   selector: 'app-commander',
   standalone: true,
@@ -224,11 +234,18 @@ export class CommanderComponent implements OnInit {
     fw: string;
     release: string | null;
     upToDate: boolean;
+    direction: 'up-to-date' | 'fixture-outdated' | 'fixture-ahead';
   } | null>(() => {
     const v = this.selectedFixture()?.raw['fw_version'];
     if (typeof v !== 'string') return null;
     const release = this.health()?.api?.release_version ?? null;
-    return { fw: v, release, upToDate: release !== null && v === release };
+    const cmp = release !== null ? compareVersions(v, release) : 0;
+    const direction =
+      release === null ? 'up-to-date'
+      : cmp === 0      ? 'up-to-date'
+      : cmp < 0        ? 'fixture-outdated'
+      :                  'fixture-ahead';
+    return { fw: v, release, upToDate: direction === 'up-to-date', direction };
   });
 
   // Callbacks run once when the API recovers from offline → online.

@@ -83,6 +83,11 @@
     opacity: 1;
     color: var(--p-orange-500);
   }
+
+  &--ahead {
+    opacity: 1;
+    color: var(--p-blue-500);
+  }
 }
 
 .commander__sidebar-actions,

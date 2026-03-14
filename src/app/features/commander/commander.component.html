@@ -353,14 +353,7 @@
     @if (fixtureActionDurationMs(); as durationMs) {
       <p class="commander__dialog-message">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
     }
-    @if (selectedFixturePlayer()?.attached) {
-      <section class="commander__dialog-player-info">
-        <span class="commander__dialog-player-label">Player</span>
-        <span>play track: {{ selectedFixturePlayer()!.play_track_available ? 'yes' : 'no' }}</span>
-        <span>volume sw: {{ selectedFixturePlayer()!.volume_control_available ? 'yes' : 'no' }}</span>
-        <span>analog vol: {{ selectedFixturePlayer()!.analog_volume_active ? 'yes' : 'no' }}</span>
-      </section>
-    }
+    <app-fixture-player-controls [player]="selectedFixturePlayer()" />
     <footer class="commander__dialog-footer">
       <input
         pInputText

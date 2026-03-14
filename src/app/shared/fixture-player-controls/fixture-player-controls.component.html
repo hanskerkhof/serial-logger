@@ -1,0 +1,8 @@
+@if (player()?.attached) {
+  <section class="fixture-player-controls">
+    <span class="fixture-player-controls__label">Player</span>
+    <span>play track: {{ player()!.play_track_available ? 'yes' : 'no' }}</span>
+    <span>volume sw: {{ player()!.volume_control_available ? 'yes' : 'no' }}</span>
+    <span>analog vol: {{ player()!.analog_volume_active ? 'yes' : 'no' }}</span>
+  </section>
+}

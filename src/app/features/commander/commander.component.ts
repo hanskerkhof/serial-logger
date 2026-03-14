@@ -34,6 +34,7 @@ import {
 import { CmdrFixtureCapabilities, CmdrPlanControls, CmdrPlayerCapabilities } from '../../api/cmdr-models';
 import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
+import { FixturePlayerControlsComponent } from '../../shared/fixture-player-controls/fixture-player-controls.component';
 
 interface SelectOption {
   label: string;
@@ -43,7 +44,7 @@ interface SelectOption {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, CommanderConsoleComponent],
+  imports: [FormsModule, ButtonModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, CommanderConsoleComponent, FixturePlayerControlsComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],

@@ -1,0 +1,14 @@
+.fixture-player-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.fixture-player-controls__label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

@@ -182,10 +182,9 @@
 
 .commander__dialog {
   width: min(72rem, 96vw);
-  cursor: pointer; // makes ::backdrop tappable on Safari iOS
 
-  > * {
-    cursor: default; // restore normal cursor for dialog content
+  &::backdrop {
+    cursor: pointer; // makes backdrop tappable on Safari iOS
   }
 
   &[open] {

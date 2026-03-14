@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-03-14
+
+### Added
+- Full Discovery button now shows last run time and rolling avg (10 datapoints) persisted in `localStorage`; estimate shown while running.
+- Bold firmware version (`vX.X.XX`) in fixture modal header.
+
+### Fixed
+- Modal backdrop click now uses bounding-box hit test instead of `event.target` check — prevents accidental close when clicking on text/padding inside the modal (copy-paste safe).
+
 ## 0.1.4 - 2026-03-14
 
 ### Added

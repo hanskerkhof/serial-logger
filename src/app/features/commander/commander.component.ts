@@ -84,6 +84,28 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionError = signal<string | null>(null);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
+  protected readonly discoveryTimings = signal<number[]>(
+    JSON.parse(localStorage.getItem('cmdr.discovery.timings') ?? '[]'),
+  );
+  protected readonly discoveryLastS = computed(() => {
+    const t = this.discoveryTimings();
+    return t.length > 0 ? t[t.length - 1] : null;
+  });
+  protected readonly discoveryAvgS = computed(() => {
+    const t = this.discoveryTimings();
+    return t.length > 0 ? t.reduce((s, v) => s + v, 0) / t.length : null;
+  });
+  protected readonly discoveryButtonLabel = computed(() => {
+    const last = this.discoveryLastS();
+    const avg = this.discoveryAvgS();
+    const cnt = this.discoveryTimings().length;
+    if (this.discoveryLoading()) {
+      return avg !== null ? `Full Discovery · ~${avg.toFixed(1)}s` : 'Full Discovery';
+    }
+    if (last === null) return 'Full Discovery';
+    if (cnt < 2) return `Full Discovery · ${last.toFixed(1)}s`;
+    return `Full Discovery · ${last.toFixed(1)}s · avg ${avg!.toFixed(1)}s`;
+  });
   protected readonly manualCommand = signal('');
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
@@ -147,13 +169,21 @@ export class CommanderComponent implements OnInit {
     effect(() => localStorage.setItem('cmdr.selectedFixture', this.fixtureName()));
     effect(() => localStorage.setItem('cmdr.selectedPlan', this.planName()));
     effect(() => localStorage.setItem('cmdr.selectedPlanGroup', this.planGroupName()));
+    effect(() =>
+      localStorage.setItem('cmdr.discovery.timings', JSON.stringify(this.discoveryTimings())),
+    );
 
     effect(() => {
       const isDiscovery = this.discoveryLoading();
       const isQuery = this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading();
       this.messageService.clear('status');
       if (isDiscovery) {
-        this.messageService.add({ key: 'status', severity: 'warn', summary: 'Running full discovery...', sticky: true, closable: false });
+        const avg = this.discoveryAvgS();
+        const summary =
+          avg !== null
+            ? `Running full discovery… · ~${avg.toFixed(1)}s`
+            : 'Running full discovery…';
+        this.messageService.add({ key: 'status', severity: 'warn', summary, sticky: true, closable: false });
       } else if (isQuery) {
         this.messageService.add({ key: 'status', severity: 'warn', summary: 'Running query...', sticky: true, closable: false });
       }
@@ -330,13 +360,16 @@ export class CommanderComponent implements OnInit {
     if (!this.checkApiReachable()) return;
     this.discoveryLoading.set(true);
     this.error.set(null);
+    const startedAt = performance.now();
 
     this.commanderApi.getFixtureDiscovery().subscribe({
       next: (result) => {
+        const durationS = (performance.now() - startedAt) / 1000;
+        this.addDiscoveryTiming(durationS);
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'discovery_query');
         this.discoveryLoading.set(false);
-        this.showQueryResultToast(stats);
+        this.showQueryResultToast(stats, durationS);
       },
       error: (err: unknown) => {
         this.showErrorToast(this.formatError('Full discovery failed', err));
@@ -539,7 +572,15 @@ export class CommanderComponent implements OnInit {
   }
 
   protected onDialogBackdropClick(event: MouseEvent): void {
-    if (event.target === this.fixtureDetailDialog?.nativeElement) {
+    const dialog = this.fixtureDetailDialog?.nativeElement;
+    if (!dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    const isOutside =
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom;
+    if (isOutside) {
       this.closeFixtureModal();
     }
   }
@@ -572,9 +613,22 @@ export class CommanderComponent implements OnInit {
     return parts.join(', ');
   }
 
-  private showQueryResultToast(stats: { added: number; updated: number } | null): void {
-    const summary = stats ? this.formatUpsertStats(stats) : 'No fixtures found in response';
+  private showQueryResultToast(
+    stats: { added: number; updated: number } | null,
+    durationS?: number,
+  ): void {
+    let summary = stats ? this.formatUpsertStats(stats) : 'No fixtures found in response';
+    if (durationS !== undefined) {
+      const avg = this.discoveryAvgS();
+      const cnt = this.discoveryTimings().length;
+      summary += ` · ${durationS.toFixed(1)}s`;
+      if (cnt >= 2 && avg !== null) summary += ` · avg ${avg.toFixed(1)}s`;
+    }
     this.messageService.add({ key: 'query-result', severity: 'success', summary, life: 3000 });
+  }
+
+  private addDiscoveryTiming(durationS: number): void {
+    this.discoveryTimings.set([...this.discoveryTimings(), durationS].slice(-10));
   }
 
   private showErrorToast(message: string): void {

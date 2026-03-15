@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.8 - 2026-03-15
+
+### Changed
+- Clicking the health refresh button now resets the 30 s auto-poll timer, so the next automatic poll is always a full 30 s after the manual refresh.
+
 ## 0.1.7 - 2026-03-14
 
 ### Added

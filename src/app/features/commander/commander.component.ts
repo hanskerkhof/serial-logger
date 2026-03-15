@@ -84,6 +84,7 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionError = signal<string | null>(null);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
+  private healthPollTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly discoveryTimings = signal<number[]>(
     JSON.parse(localStorage.getItem('cmdr.discovery.timings') ?? '[]'),
   );
@@ -298,16 +299,24 @@ export class CommanderComponent implements OnInit {
     this.destroyRef.onDestroy(() => clearInterval(timer));
 
     // Auto-poll health every 30 s; skip if a fetch is already in flight
-    const healthPollTimer = setInterval(() => {
+    this.startHealthPollTimer();
+    this.destroyRef.onDestroy(() => {
+      if (this.healthPollTimer !== null) clearInterval(this.healthPollTimer);
+    });
+  }
+
+  protected reloadHealth(): void {
+    this.startHealthPollTimer(); // reset so next auto-poll is a full 30 s away
+    this.loadHealth();
+  }
+
+  private startHealthPollTimer(): void {
+    if (this.healthPollTimer !== null) clearInterval(this.healthPollTimer);
+    this.healthPollTimer = setInterval(() => {
       if (!this.loading() && !this.healthRefreshing()) {
         this.loadHealth();
       }
     }, 30_000);
-    this.destroyRef.onDestroy(() => clearInterval(healthPollTimer));
-  }
-
-  protected reloadHealth(): void {
-    this.loadHealth();
   }
 
   protected useTarget(url: string): void {

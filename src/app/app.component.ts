@@ -5,6 +5,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { filter } from 'rxjs';
 import { APP_VERSION, BUILD_DATE } from './build-info';
 import { CommanderApiService } from './commander-api.service';
+import { SerialService } from './serial.service';
 
 @Component({
   selector: 'app-root',
@@ -16,16 +17,22 @@ import { CommanderApiService } from './commander-api.service';
 export class AppComponent {
   private readonly router = inject(Router);
   private readonly commanderApi = inject(CommanderApiService);
+  private readonly serialService = inject(SerialService);
   protected readonly activeMode = signal<'direct' | 'commander'>(this.modeFromUrl(this.router.url));
   protected readonly appVersion = APP_VERSION;
   protected readonly buildDate = BUILD_DATE;
   protected readonly apiVersion = signal<string | null>(null);
   protected readonly apiBuildDate = signal<string | null>(null);
+  protected readonly isSerialSupported = this.serialService.isSupported;
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.activeMode.set(this.modeFromUrl(this.router.url));
     });
+
+    if (!this.serialService.isSupported && this.router.url.startsWith('/direct')) {
+      this.router.navigateByUrl('/commander');
+    }
 
     this.commanderApi.getHealth().subscribe({
       next: (health) => {

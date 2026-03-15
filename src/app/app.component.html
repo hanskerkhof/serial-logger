@@ -11,7 +11,7 @@
     <ng-template #end>
       <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">
         <p-tablist>
-          <p-tab value="direct">Direct</p-tab>
+          @if (isSerialSupported) {<p-tab value="direct">Direct</p-tab>}
           <p-tab value="commander">Commander</p-tab>
         </p-tablist>
       </p-tabs>

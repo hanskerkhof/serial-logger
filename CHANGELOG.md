@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.9 - 2026-03-15
+
+### Changed
+- Direct tab is hidden on iOS and Android (Web Serial API not available); navigating to `/direct` on those platforms redirects to `/commander`.
+
 ## 0.1.8 - 2026-03-15
 
 ### Changed

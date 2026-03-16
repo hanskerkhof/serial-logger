@@ -53,14 +53,43 @@ Wire commands sent to fixtures are prefixed automatically: `tcmd;<fixture_name>;
 
 `scripts/deploy-bauklank.mjs` copies the production build into `../../web/serial-logger-app/` when running in-repo (`bauklank-micros/frontend/serial-logger`). The target path can be overridden via `BAUKLANK_DEPLOY_TARGET` env var.
 
+Before building, the script also auto-writes:
+- `src/app/build-info.ts` — `APP_VERSION` and `BUILD_DATE`
+- `ngsw-config.json` — `appData.version` (used by the SW update dialog to show the new version)
+
 ## Release checklist
 
 When bumping the version (patch, minor, or major), always do **all** of the following before committing:
 
 1. `npm version <new-version> --no-git-tag-version` — updates `package.json` and `package-lock.json`.
 2. Update `src/app/build-info.ts` — set `APP_VERSION` and `BUILD_DATE` to match.
+   `ngsw-config.json` (`appData.version`) is also auto-updated by the deploy script — no manual edit needed.
 3. Add a new section to `CHANGELOG.md` — `## <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets summarising every change since the previous release. Move items from `## Unreleased` if any exist.
-4. Commit all four files together.
+4. Commit all changed files together.
+
+## PWA & Service Worker
+
+- `@angular/service-worker` v21.2.1 registered in production builds via `provideServiceWorker` in `src/main.ts`.
+- SW only activates on **HTTPS**. On plain HTTP (local IP) `SwUpdate.isEnabled` is `false` — no update detection, no caching. The Tailscale URL (`https://bklk-cmdr-2-studio.tailad320e.ts.net`) is the HTTPS entry point.
+- `checkForUpdate()` is called inside `CommanderComponent.startHealthPollTimer()` (every 30 s), not in a standalone interval. It only fires when `!loading() && !healthRefreshing() && swUpdate.isEnabled`.
+- `VERSION_READY` triggers `onUpdateReady()` in `AppComponent` — never a silent `document.location.reload()`.
+
+### Update dialog flow
+
+- PrimeNG `p-dialog` (non-closable modal, `[closable]="false"` + `[closeOnEscape]="false"`).
+- Shows new version from `VersionReadyEvent.latestVersion.appData.version`.
+- **"Update Now"** → reloads immediately.
+- **"Later"** → hides dialog, starts grace-period timer (`GRACE_PERIOD_MINUTES` constant in `app.component.ts`, currently 2 min for testing — restore to 10 for production), shows "↑ update available" badge in header.
+- After timer: dialog reappears, or auto-reloads if `MAX_LATER_COUNT = 3` exhausted.
+- Header badge shown when `updateAvailable() && !showUpdateDialog()`; clicking it reloads immediately.
+
+## Pi update
+
+Run `./scripts/update_studio_pi.sh` from the **root** `bauklank-micros` repo. The script:
+- Auto-discards local Pi changes before pulling (`git checkout -- .`) — dirty Python files no longer block the pull.
+- Restarts `cmdr-api.service` and verifies the frontend bundle.
+- Requires a **clean Mac-side repo** — commit/stash local changes first.
+- The `curl` health check at the end sometimes fails due to boot timing; `active (running)` in the service status is the reliable indicator.
 
 ## Fixture capabilities access pattern
 

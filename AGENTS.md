@@ -36,6 +36,7 @@ When bumping the version (patch, minor, or major), always do **all** of the foll
 
 1. `npm version <new-version> --no-git-tag-version` — updates `package.json` and `package-lock.json`.
 2. Update `src/app/build-info.ts` — set `APP_VERSION` and `BUILD_DATE` to match.
+   `ngsw-config.json` (`appData.version`) is also auto-updated by the deploy script — no manual edit needed.
 3. Add a new section to `CHANGELOG.md` — `## <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets summarising every change since the previous release. Move items from `## Unreleased` if any exist.
 4. Commit all changed files together.
 
@@ -81,6 +82,34 @@ protected readonly selectedFixtureFwStatus = computed<{ fw: string; release: str
 ## Shared components
 
 - `src/app/shared/fixture-player-controls/` — `FixturePlayerControlsComponent` renders `CmdrPlayerCapabilities`. Input: `player: CmdrPlayerCapabilities | null`. Shows capability detail when `attached`, "No player attached" when player object is present but `attached === false`, nothing when `null`.
+
+## PWA & Service Worker
+
+- `@angular/service-worker` v21.2.1 registered in production builds via `provideServiceWorker` in `src/main.ts`.
+- SW only activates on **HTTPS**. On plain HTTP (local IP) `SwUpdate.isEnabled` is `false` — no update detection, no caching. The Tailscale URL (`https://bklk-cmdr-2-studio.tailad320e.ts.net`) is the HTTPS entry point.
+- `checkForUpdate()` is called inside `CommanderComponent.startHealthPollTimer()` (every 30 s), not in a standalone interval. It only fires when `!loading() && !healthRefreshing() && swUpdate.isEnabled`.
+- `VERSION_READY` triggers `onUpdateReady()` in `AppComponent` — never a silent `document.location.reload()`.
+
+### Update dialog flow
+
+- PrimeNG `p-dialog` (non-closable modal, `[closable]="false"` + `[closeOnEscape]="false"`).
+- Shows new version from `VersionReadyEvent.latestVersion.appData.version`.
+- **"Update Now"** → reloads immediately.
+- **"Later"** → hides dialog, starts grace-period timer (`GRACE_PERIOD_MINUTES` constant in `app.component.ts`, currently 2 min for testing — restore to 10 for production), shows "↑ update available" badge in header.
+- After timer: dialog reappears, or auto-reloads if `MAX_LATER_COUNT = 3` exhausted.
+- Header badge shown when `updateAvailable() && !showUpdateDialog()`; clicking it reloads immediately.
+
+### Deploy script and ngsw-config
+
+`scripts/deploy-bauklank.mjs` auto-writes `ngsw-config.json appData.version` before `ng build` so the new version number is available in `VersionReadyEvent.latestVersion.appData`. Commit `ngsw-config.json` alongside each release — it is auto-managed, not hand-edited.
+
+## Pi update
+
+Run `./scripts/update_studio_pi.sh` from the **root** `bauklank-micros` repo. The script:
+- Auto-discards local Pi changes before pulling (`git checkout -- .`) — dirty Python files no longer block the pull.
+- Restarts `cmdr-api.service` and verifies the frontend bundle.
+- Requires a **clean Mac-side repo** — commit/stash local changes first.
+- The `curl` health check at the end sometimes fails due to boot timing; `active (running)` in the service status is the reliable indicator.
 
 ## Testing
 

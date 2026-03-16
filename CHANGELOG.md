@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.32 - 2026-03-16
+
+### Fixed
+- Block Escape key on the update dialog (`cancel` event preventDefault) so operators
+  cannot accidentally dismiss it without choosing Update Now or Later.
+
 ## 0.1.31 - 2026-03-16
 
 ### Fixed

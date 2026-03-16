@@ -41,7 +41,7 @@
   }
 </div>
 
-<dialog #updateDialog class="update-dialog">
+<dialog #updateDialog class="update-dialog" (cancel)="$event.preventDefault()">
   <h2 class="update-dialog__header">Update Available</h2>
   <div class="update-dialog__body">
     <p class="update-dialog__message">

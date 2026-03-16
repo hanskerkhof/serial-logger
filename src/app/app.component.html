@@ -21,4 +21,15 @@
   <main class="app-shell__content">
     <router-outlet></router-outlet>
   </main>
+
+  @if (showInstallBanner()) {
+    <div class="install-banner">
+      <span>
+        Install <strong>BAUKLANK Studio</strong>: tap
+        <span class="install-banner__share-icon" aria-hidden="true">⎙</span>
+        then <em>Add to Home Screen</em>
+      </span>
+      <button class="install-banner__dismiss" (click)="dismissInstallBanner()" aria-label="Dismiss">✕</button>
+    </div>
+  }
 </div>

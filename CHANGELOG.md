@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.16 - 2026-03-16
+
+### Added
+- iOS install hint banner: a dismissable fixed bottom bar prompts Safari users to tap Share → Add to Home Screen. Only shown on iOS when not already installed as a PWA. Dismissal stored in localStorage.
+
 ## 0.1.15 - 2026-03-16
 
 ### Added

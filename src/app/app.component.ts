@@ -26,6 +26,11 @@ export class AppComponent {
   protected readonly apiBuildDate = signal<string | null>(null);
   protected readonly isSerialSupported = this.serialService.isSupported;
 
+  private readonly isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  private readonly isStandalone = ('standalone' in navigator) && !!(navigator as any).standalone;
+  private readonly bannerDismissed = localStorage.getItem('pwa.installBannerDismissed') === '1';
+  protected readonly showInstallBanner = signal(this.isIos && !this.isStandalone && !this.bannerDismissed);
+
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.activeMode.set(this.modeFromUrl(this.router.url));
@@ -55,6 +60,11 @@ export class AppComponent {
     const [, month, day] = isoDate.split('-').map(Number);
     const year = isoDate.slice(0, 4);
     return `${day} ${months[month - 1]} ${year}`;
+  }
+
+  protected dismissInstallBanner(): void {
+    localStorage.setItem('pwa.installBannerDismissed', '1');
+    this.showInstallBanner.set(false);
   }
 
   protected onModeChange(mode: string | number | undefined): void {

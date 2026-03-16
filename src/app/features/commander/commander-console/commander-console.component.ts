@@ -82,6 +82,10 @@ export class CommanderConsoleComponent {
     this.lines.set([]);
   }
 
+  protected retry(): void {
+    this.connect(this.apiBaseUrl());
+  }
+
   protected formatTimestamp(epochSeconds: number): string {
     const date = new Date(epochSeconds * 1000);
     return date.toLocaleTimeString('nl-NL', { hour12: false }) + `.${String(date.getMilliseconds()).padStart(3, '0')}`;

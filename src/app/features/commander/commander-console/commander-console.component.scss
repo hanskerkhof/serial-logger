@@ -55,6 +55,22 @@
     &--disconnected { color: #ef4444; }
   }
 
+  &__retry {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 2px;
+    cursor: pointer;
+    color: #ef4444;
+    opacity: 0.55;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 1; }
+  }
+
   &__heart {
     font-size: 10px;
     transition: color 0.2s;

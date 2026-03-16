@@ -17,11 +17,6 @@
           ♥
         </span>
         {{ connected() ? 'Connected' : 'Disconnected' }}
-        @if (!connected()) {
-          <button class="commander-console__retry" type="button" title="Retry connection" (click)="retry()">
-            ↻ retry
-          </button>
-        }
       </span>
       <button
         pButton
@@ -44,7 +39,10 @@
   </header>
 
   @if (streamError(); as err) {
-    <p class="commander-console__error">{{ err }}</p>
+    <p class="commander-console__error">
+      {{ err }}
+      <button class="commander-console__retry" type="button" title="Retry connection" (click)="retry()">↻ retry</button>
+    </p>
   }
 
   <div #consoleBody class="commander-console__body console-log">

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.19 - 2026-03-16
+
+### Changed
+- Version bump to test SW auto-reload across all clients (browser, desktop PWA, iOS PWA).
+
 ## 0.1.18 - 2026-03-16
 
 ### Changed

@@ -3,9 +3,16 @@
     <ng-template #start>
       <div class="app-shell__title-block">
         <h1 class="app-shell__title">BAUKLANK Studio</h1>
-        <span class="app-shell__version">
-          FE: <strong>v{{ appVersion }}</strong>@if (buildDate) { - {{ buildDate }}}@if (apiVersion()) { | API: <strong>v{{ apiVersion() }}</strong>@if (apiBuildDate()) { - {{ apiBuildDate() }}}}
-        </span>
+        <div class="app-shell__version-row">
+          <span class="app-shell__version">
+            FE: <strong>v{{ appVersion }}</strong>@if (buildDate) { - {{ buildDate }}}@if (apiVersion()) { | API: <strong>v{{ apiVersion() }}</strong>@if (apiBuildDate()) { - {{ apiBuildDate() }}}}
+          </span>
+          @if (updateAvailable() && !showUpdateDialog()) {
+            <button class="app-shell__update-btn" (click)="onUpdateNow()" title="Click to apply the update now">
+              ↑ update available
+            </button>
+          }
+        </div>
       </div>
     </ng-template>
     <ng-template #end>
@@ -33,3 +40,34 @@
     </div>
   }
 </div>
+
+<p-dialog
+  header="Update Available"
+  [visible]="showUpdateDialog()"
+  [modal]="true"
+  [closable]="false"
+  [closeOnEscape]="false"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="update-dialog"
+  [style]="{ width: '22rem' }">
+  <p class="update-dialog__body">
+    A new version of <strong>BAUKLANK Studio</strong> is ready.
+  </p>
+  @if (remainingLaters() > 0) {
+    <p class="update-dialog__note">
+      Choosing Later will remind you again in <strong>{{ GRACE_PERIOD_MINUTES }}&nbsp;min</strong>.<br>
+      You can postpone <strong>{{ remainingLaters() }}</strong>
+      more {{ remainingLaters() === 1 ? 'time' : 'times' }}.
+    </p>
+  }
+  <ng-template #footer>
+    <p-button label="Update Now" (onClick)="onUpdateNow()" />
+    @if (remainingLaters() > 0) {
+      <p-button
+        [label]="remainingLaters() === 1 ? 'Later — last time' : 'Later'"
+        severity="secondary"
+        (onClick)="onUpdateLater()" />
+    }
+  </ng-template>
+</p-dialog>

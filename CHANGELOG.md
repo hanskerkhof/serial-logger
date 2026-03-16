@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.1.21 - 2026-03-16
+
+### Added
+- Update-available dialog (PrimeNG): when a new version is detected, a modal prompts the user to update now or later instead of silently reloading.
+- "Later" defers the update for a configurable grace period (default 10 min); dialog reappears after each grace period.
+- Users can postpone up to 3 times; after the 3rd Later the page reloads automatically when the next grace period expires.
+- Header badge "↑ update available" shown while update is pending and dialog is dismissed; clicking it reloads immediately.
+- Dialog shows the grace period and remaining postpones so the user knows what to expect.
+
 ## 0.1.20 - 2026-03-16
 
 ### Changed

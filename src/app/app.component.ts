@@ -1,7 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
 import { filter } from 'rxjs';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { APP_VERSION, BUILD_DATE } from './build-info';
@@ -11,7 +13,7 @@ import { SerialService } from './serial.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TabsModule, ToolbarModule],
+  imports: [RouterOutlet, TabsModule, ToolbarModule, DialogModule, ButtonModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
@@ -31,6 +33,17 @@ export class AppComponent {
   private readonly bannerDismissed = localStorage.getItem('pwa.installBannerDismissed') === '1';
   protected readonly showInstallBanner = signal(this.isIos && !this.isStandalone && !this.bannerDismissed);
 
+  // --- Update notification state ---
+  // Adjust GRACE_PERIOD_MINUTES to change how long the user can defer an update.
+  protected readonly GRACE_PERIOD_MINUTES = 10;
+  private readonly MAX_LATER_COUNT = 3;
+  protected readonly updateAvailable = signal(false);
+  protected readonly showUpdateDialog = signal(false);
+  private readonly laterCount = signal(0);
+  /** How many times the user can still press "Later" before the update is forced. */
+  protected readonly remainingLaters = computed(() => this.MAX_LATER_COUNT - this.laterCount());
+  private reminderTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.activeMode.set(this.modeFromUrl(this.router.url));
@@ -40,7 +53,7 @@ export class AppComponent {
     if (swUpdate.isEnabled) {
       swUpdate.versionUpdates
         .pipe(filter((e): e is VersionReadyEvent => e.type === 'VERSION_READY'))
-        .subscribe(() => document.location.reload());
+        .subscribe(() => this.onUpdateReady());
     }
 
     if (!this.serialService.isSupported && this.router.url.startsWith('/direct')) {
@@ -53,6 +66,31 @@ export class AppComponent {
         if (health.build_date) this.apiBuildDate.set(this.formatApiDate(health.build_date));
       },
     });
+  }
+
+  private onUpdateReady(): void {
+    this.updateAvailable.set(true);
+    this.showUpdateDialog.set(true);
+  }
+
+  protected onUpdateNow(): void {
+    document.location.reload();
+  }
+
+  protected onUpdateLater(): void {
+    this.showUpdateDialog.set(false);
+    this.laterCount.update((n) => n + 1);
+
+    if (this.reminderTimer !== null) clearTimeout(this.reminderTimer);
+    this.reminderTimer = setTimeout(() => {
+      this.reminderTimer = null;
+      // All postpones used up → silently reload; otherwise remind again.
+      if (this.laterCount() >= this.MAX_LATER_COUNT) {
+        document.location.reload();
+      } else {
+        this.showUpdateDialog.set(true);
+      }
+    }, this.GRACE_PERIOD_MINUTES * 60 * 1000);
   }
 
   private formatApiDate(isoDate: string): string {

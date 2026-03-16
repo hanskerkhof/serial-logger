@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.38 - 2026-03-16
+
+### Changed
+- Version bump to test update dialog styling fix.
+
 ## 0.1.37 - 2026-03-16
 
 ### Fixed

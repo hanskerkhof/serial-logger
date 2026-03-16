@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.36 - 2026-03-16
+
+### Changed
+- Version bump to test update dialog with effect() signal tracking fix.
+
 ## 0.1.35 - 2026-03-16
 
 ### Fixed

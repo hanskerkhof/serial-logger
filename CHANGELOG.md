@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.25 - 2026-03-16
+
+### Changed
+- Version bump and deploy refresh for the coordinated firmware/frontend `2.22.32` release cycle.
+
 ## 0.1.24 - 2026-03-16
 
 ### Added

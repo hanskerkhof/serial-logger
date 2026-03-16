@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.30 - 2026-03-16
+
+### Changed
+- Version bump to test update dialog z-index fix.
+
 ## 0.1.29 - 2026-03-16
 
 ### Changed

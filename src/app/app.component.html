@@ -52,7 +52,11 @@
   styleClass="update-dialog"
   [style]="{ width: '22rem' }">
   <p class="update-dialog__body">
-    A new version of <strong>BAUKLANK Studio</strong> is ready.
+    @if (newVersion()) {
+      <strong>BAUKLANK Studio v{{ newVersion() }}</strong> is ready to install.
+    } @else {
+      A new version of <strong>BAUKLANK Studio</strong> is ready.
+    }
   </p>
   @if (remainingLaters() > 0) {
     <p class="update-dialog__note">

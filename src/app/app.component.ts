@@ -39,6 +39,7 @@ export class AppComponent {
   private readonly MAX_LATER_COUNT = 3;
   protected readonly updateAvailable = signal(false);
   protected readonly showUpdateDialog = signal(false);
+  protected readonly newVersion = signal<string | null>(null);
   private readonly laterCount = signal(0);
   /** How many times the user can still press "Later" before the update is forced. */
   protected readonly remainingLaters = computed(() => this.MAX_LATER_COUNT - this.laterCount());
@@ -53,7 +54,10 @@ export class AppComponent {
     if (swUpdate.isEnabled) {
       swUpdate.versionUpdates
         .pipe(filter((e): e is VersionReadyEvent => e.type === 'VERSION_READY'))
-        .subscribe(() => this.onUpdateReady());
+        .subscribe((e) => {
+          const appData = e.latestVersion.appData as { version?: string } | undefined;
+          this.onUpdateReady(appData?.version ?? null);
+        });
     }
 
     if (!this.serialService.isSupported && this.router.url.startsWith('/direct')) {
@@ -68,7 +72,8 @@ export class AppComponent {
     });
   }
 
-  private onUpdateReady(): void {
+  private onUpdateReady(version: string | null): void {
+    this.newVersion.set(version);
     this.updateAvailable.set(true);
     this.showUpdateDialog.set(true);
   }

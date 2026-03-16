@@ -21,6 +21,13 @@ const buildInfoContent =
 fs.writeFileSync(path.join(appRoot, 'src', 'app', 'build-info.ts'), buildInfoContent, 'utf8');
 console.log(`✅ build-info.ts written: v${version} · ${buildDate}`);
 
+// --- 1b. Inject version into ngsw-config.json appData ---
+const ngswConfigPath = path.join(appRoot, 'ngsw-config.json');
+const ngswConfig = JSON.parse(fs.readFileSync(ngswConfigPath, 'utf8'));
+ngswConfig.appData = { version };
+fs.writeFileSync(ngswConfigPath, JSON.stringify(ngswConfig, null, 2) + '\n', 'utf8');
+console.log(`✅ ngsw-config.json appData.version: ${version}`);
+
 // --- 2. Build ---
 console.log('🔨 Building...');
 execSync('npx ng build', { cwd: appRoot, stdio: 'inherit' });

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.24 - 2026-03-16
+
+### Added
+- Update dialog now shows the new version number (e.g. "BAUKLANK Studio v0.1.24 is ready").
+- Deploy script writes `appData.version` into `ngsw-config.json` before each build so the version is available in `VersionReadyEvent.latestVersion.appData`.
+
 ## 0.1.23 - 2026-03-16
 
 ### Changed

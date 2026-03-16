@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, computed, effect, inject, isDevMode, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -32,9 +32,6 @@ export class AppComponent {
   private readonly isStandalone = ('standalone' in navigator) && !!(navigator as any).standalone;
   private readonly bannerDismissed = localStorage.getItem('pwa.installBannerDismissed') === '1';
   protected readonly showInstallBanner = signal(this.isIos && !this.isStandalone && !this.bannerDismissed);
-
-  /** DEV ONLY — toggle to open the update dialog without a real SW update. */
-  protected readonly isDevMode = isDevMode();
 
   // --- Update notification state ---
   // Adjust GRACE_PERIOD_MINUTES to change how long the user can defer an update.
@@ -93,11 +90,6 @@ export class AppComponent {
     this.newVersion.set(version);
     this.updateAvailable.set(true);
     this.showUpdateDialog.set(true);
-  }
-
-  /** DEV ONLY — simulate an update being ready for style testing. */
-  protected devTriggerUpdateDialog(): void {
-    this.onUpdateReady('DEV-TEST');
   }
 
   protected onUpdateNow(): void {

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.40 - 2026-03-16
+
+### Changed
+- Removed dev-only update dialog trigger button (styling iteration complete).
+
 ## 0.1.39 - 2026-03-16
 
 ### Fixed

@@ -9,7 +9,7 @@
           </span>
           @if (updateAvailable() && !showUpdateDialog()) {
             <button class="app-shell__update-btn" (click)="onUpdateNow()" title="Click to apply the update now">
-              ↑ update available
+              ↑ update available@if (newVersion()) { v{{ newVersion() }}}
             </button>
           }
         </div>

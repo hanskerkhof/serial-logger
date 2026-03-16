@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.27 - 2026-03-16
+
+### Changed
+- Header "update available" badge now shows the new version number (e.g. "↑ update available v0.1.27").
+
 ## 0.1.26 - 2026-03-16
 
 ### Changed

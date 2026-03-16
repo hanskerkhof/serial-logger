@@ -41,6 +41,7 @@ export class AppComponent {
       swUpdate.versionUpdates
         .pipe(filter((e): e is VersionReadyEvent => e.type === 'VERSION_READY'))
         .subscribe(() => document.location.reload());
+      setInterval(() => swUpdate.checkForUpdate(), 5 * 60 * 1000);
     }
 
     if (!this.serialService.isSupported && this.router.url.startsWith('/direct')) {

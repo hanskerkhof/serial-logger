@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.18 - 2026-03-16
+
+### Changed
+- Service worker now polls for a new version every 5 minutes (`checkForUpdate()`), so long-running open PWAs pick up deploys without needing a navigation event.
+
 ## 0.1.17 - 2026-03-16
 
 ### Changed

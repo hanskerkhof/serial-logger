@@ -153,6 +153,18 @@
   min-width: 0;
 }
 
+.commander__fixture-fw {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color, #6b7280);
+  flex-shrink: 0;
+  margin-left: auto;
+
+  &--outdated {
+    color: #f97316;
+    cursor: default;
+  }
+}
+
 .commander__custom input,
 .commander__query-row input,
 .commander__query-row select,

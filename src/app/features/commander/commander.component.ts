@@ -226,6 +226,22 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixture = this.fixtureStore.selectedFixture;
   protected readonly fixtureCount = this.fixtureStore.fixtureCount;
   protected readonly storageWarning = this.fixtureStore.storageWarning;
+
+  /** Per-fixture fw version status keyed by fixture_name. Recomputes whenever health or store changes. */
+  protected readonly fixtureFwStatusMap = computed(() => {
+    const release = this.health()?.api?.release_version ?? null;
+    const map = new Map<string, { fw: string; outdated: boolean; release: string | null }>();
+    for (const group of this.groupedFixtures()) {
+      for (const fixture of group.fixtures) {
+        const v = fixture.raw['fw_version'];
+        if (typeof v === 'string') {
+          const outdated = release !== null && compareVersions(v, release) < 0;
+          map.set(fixture.fixture_name, { fw: v, outdated, release });
+        }
+      }
+    }
+    return map;
+  });
   protected readonly exposedPlansByGroup = computed(() => {
     const grouped = new Map<string, CommanderExposedPlan[]>();
     for (const plan of this.exposedPlans()) {

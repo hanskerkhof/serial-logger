@@ -67,6 +67,13 @@
                   >
                     {{ fixture.fixture_name }}
                   </button>
+                  @if (fixtureFwStatusMap().get(fixture.fixture_name); as fws) {
+                    <span
+                      class="commander__fixture-fw"
+                      [class.commander__fixture-fw--outdated]="fws.outdated"
+                      [title]="fws.outdated && fws.release ? 'latest: v' + fws.release : ''"
+                    >v{{ fws.fw }}</span>
+                  }
                   <button
                     pButton
                     type="button"

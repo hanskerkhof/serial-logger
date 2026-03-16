@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.14 - 2026-03-16
+
+### Added
+- Web App Manifest (`manifest.webmanifest`) — name, icons, dark theme, standalone display mode.
+- PWA icons at 180×180, 192×192, 512×512 (placeholder BK monogram; replace with final artwork).
+- iOS meta tags: `apple-mobile-web-app-capable`, status bar style, `apple-touch-icon`, `theme-color`.
+- App is now installable via Safari Share → Add to Home Screen on iOS; Chrome/Edge desktop install icon appears when served over HTTPS.
+
 ## 0.1.13 - 2026-03-16
 
 ### Changed

@@ -103,12 +103,9 @@ export class AppComponent {
     if (this.reminderTimer !== null) clearTimeout(this.reminderTimer);
     this.reminderTimer = setTimeout(() => {
       this.reminderTimer = null;
-      // All postpones used up → silently reload; otherwise remind again.
-      if (this.laterCount() >= this.MAX_LATER_COUNT) {
-        document.location.reload();
-      } else {
-        this.showUpdateDialog.set(true);
-      }
+      // Always show the dialog again — if no laters remain the template
+      // hides the Later button, leaving only "Update Now".
+      this.showUpdateDialog.set(true);
     }, this.GRACE_PERIOD_MINUTES * 60 * 1000);
   }
 

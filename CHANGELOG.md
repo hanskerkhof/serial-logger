@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.41 - 2026-03-16
+
+### Changed
+- After all "Later" deferrals are used up the dialog reappears with only "Update Now" instead of silently reloading.
+
 ## 0.1.40 - 2026-03-16
 
 ### Changed

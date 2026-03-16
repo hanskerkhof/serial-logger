@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.34 - 2026-03-16
+
+### Changed
+- Version bump to trigger SW update detection for dialog layering test.
+
 ## 0.1.33 - 2026-03-16
 
 ### Changed

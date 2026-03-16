@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.13 - 2026-03-16
+
+### Changed
+- App renamed to **BAUKLANK Studio** — browser tab title, toolbar heading, and PWA manifest name updated; internal directory and package names unchanged.
+
 ## 0.1.11 - 2026-03-16
 
 ### Added

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.31 - 2026-03-16
+
+### Fixed
+- Update dialog now always appears above the fixture detail dialog.
+  Replaced PrimeNG `p-dialog` with native `<dialog showModal()>` so the update
+  dialog enters the browser top layer and wins regardless of z-index.
+  Side effect: removes PrimeNG DialogModule + ButtonModule from AppComponent (~35 kB bundle saving).
+
 ## 0.1.30 - 2026-03-16
 
 ### Changed

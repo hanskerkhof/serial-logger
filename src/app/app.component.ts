@@ -1,9 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
-import { DialogModule } from 'primeng/dialog';
-import { ButtonModule } from 'primeng/button';
 import { filter } from 'rxjs';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { APP_VERSION, BUILD_DATE } from './build-info';
@@ -13,11 +11,13 @@ import { SerialService } from './serial.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TabsModule, ToolbarModule, DialogModule, ButtonModule],
+  imports: [RouterOutlet, TabsModule, ToolbarModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {
+  @ViewChild('updateDialog') private updateDialogRef!: ElementRef<HTMLDialogElement>;
+
   private readonly router = inject(Router);
   private readonly commanderApi = inject(CommanderApiService);
   private readonly serialService = inject(SerialService);
@@ -46,6 +46,17 @@ export class AppComponent {
   private reminderTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Drive the native <dialog> via showModal/close so it enters the top layer
+    // and always renders above other showModal dialogs.
+    effect(() => {
+      const el = this.updateDialogRef?.nativeElement;
+      if (!el) return;
+      if (this.showUpdateDialog()) {
+        if (!el.open) el.showModal();
+      } else {
+        if (el.open) el.close();
+      }
+    });
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.activeMode.set(this.modeFromUrl(this.router.url));
     });

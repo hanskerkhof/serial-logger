@@ -305,6 +305,10 @@ export interface components {
             expected_fixture_name?: string | null;
             /** Fqbn */
             fqbn?: string | null;
+            /** Last Reboot At Utc */
+            last_reboot_at_utc?: string | null;
+            /** Last Reboot Reason */
+            last_reboot_reason?: string | null;
             /** Port */
             port?: string | null;
             /** Probe Elapsed Ms */
@@ -312,6 +316,8 @@ export interface components {
             proxy?: components["schemas"]["CommanderProxyStatus"] | null;
             /** Resolver Source */
             resolver_source?: string | null;
+            /** Uptime Seconds */
+            uptime_seconds?: number | null;
         } & {
             [key: string]: unknown;
         };

@@ -155,7 +155,7 @@ export class CommanderComponent implements OnInit {
     return this.relativeTime(f.lastUpdatedAt);
   });
 
-  private relativeTime(ts: number | string | unknown): string | null {
+  protected relativeTime(ts: number | string | unknown): string | null {
     if (ts === null || ts === undefined) return null;
     let ms: number;
     if (typeof ts === 'number') {
@@ -173,6 +173,19 @@ export class CommanderComponent implements OnInit {
     const diffM = Math.floor(diffS / 60);
     if (diffM < 60) return `${diffM}m ago`;
     return `${Math.floor(diffM / 60)}h ago`;
+  }
+
+  protected formatDurationSeconds(totalSeconds: number | null | undefined): string | null {
+    if (totalSeconds === null || totalSeconds === undefined || !Number.isFinite(totalSeconds)) {
+      return null;
+    }
+    const whole = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(whole / 3600);
+    const minutes = Math.floor((whole % 3600) / 60);
+    const seconds = whole % 60;
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
   }
 
   constructor() {

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.22 - 2026-03-16
+
+### Changed
+- Version bump to test update-available dialog end-to-end.
+
 ## 0.1.21 - 2026-03-16
 
 ### Added

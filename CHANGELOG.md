@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.17 - 2026-03-16
+
+### Changed
+- Version bump to verify service worker auto-reload on new deploy (end-to-end PWA release test).
+
 ## 0.1.16 - 2026-03-16
 
 ### Added

@@ -570,7 +570,10 @@ export class CommanderComponent implements OnInit {
       next: (result) => {
         this.modalQuerySub = null;
         this.queryResult.set(result);
-        this.ingestQueryResult(result, 'fixture_query');
+        // Pass the selected fixture's store key so the record is updated under
+        // the correct name even when the API summary reports a different
+        // fixture_name (CMDR alias vs fixture self-identity).
+        this.ingestQueryResult(result, 'fixture_query', fixture);
         this.modalQueryLoading.set(false);
       },
       error: (err: unknown) => {
@@ -714,8 +717,9 @@ export class CommanderComponent implements OnInit {
   private ingestQueryResult(
     result: CommanderQueryResponse,
     source: FixtureSource,
+    storeKeyOverride?: string,
   ): { added: number; updated: number } | null {
-    const fixtures = this.extractFixtures(result, source);
+    const fixtures = this.extractFixtures(result, source, storeKeyOverride);
     if (!fixtures.length) {
       return null;
     }
@@ -762,7 +766,14 @@ export class CommanderComponent implements OnInit {
     return true;
   }
 
-  private extractFixtures(result: CommanderQueryResponse, source: FixtureSource): FixtureRecord[] {
+  private extractFixtures(
+    result: CommanderQueryResponse,
+    source: FixtureSource,
+    /** When querying a single fixture from the modal, pass its store key so the
+     *  record is always updated under the correct name even if the fixture
+     *  self-reports a different fixture_name in the response summary. */
+    storeKeyOverride?: string,
+  ): FixtureRecord[] {
     const summary = this.getSummary(result);
     if (!summary || typeof summary !== 'object') {
       return [];
@@ -777,7 +788,10 @@ export class CommanderComponent implements OnInit {
     const records: FixtureRecord[] = [];
 
     for (const item of extracted) {
-      const fixture_name = this.readString(item, 'fixture_name');
+      // Use the store key override for single-fixture modal queries so the
+      // existing record is updated even when the fixture self-reports a
+      // different fixture_name (e.g. CMDR alias vs self-reported identity).
+      const fixture_name = storeKeyOverride ?? this.readString(item, 'fixture_name');
       const plan_name = this.readString(item, 'plan_name');
 
       if (!fixture_name) {
@@ -792,7 +806,7 @@ export class CommanderComponent implements OnInit {
       records.push({
         fixture_name,
         plan_name,
-        raw: item,
+        raw: { ...item, fixture_name },
         lastUpdatedAt: now,
         source,
       });

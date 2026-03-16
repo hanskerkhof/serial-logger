@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
 import { filter } from 'rxjs';
+import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { APP_VERSION, BUILD_DATE } from './build-info';
 import { CommanderApiService } from './commander-api.service';
 import { SerialService } from './serial.service';
@@ -29,6 +30,13 @@ export class AppComponent {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.activeMode.set(this.modeFromUrl(this.router.url));
     });
+
+    const swUpdate = inject(SwUpdate);
+    if (swUpdate.isEnabled) {
+      swUpdate.versionUpdates
+        .pipe(filter((e): e is VersionReadyEvent => e.type === 'VERSION_READY'))
+        .subscribe(() => document.location.reload());
+    }
 
     if (!this.serialService.isSupported && this.router.url.startsWith('/direct')) {
       this.router.navigateByUrl('/commander');

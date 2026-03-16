@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.15 - 2026-03-16
+
+### Added
+- Angular service worker (`ngsw-worker.js`) registered in production builds — caches app shell (JS, CSS, manifest, icons) for faster loads and future offline support.
+- Auto-reload on new version: app silently reloads when the service worker detects a new build is ready, keeping installed PWA in sync with deployments.
+
 ## 0.1.14 - 2026-03-16
 
 ### Added

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.42 - 2026-03-16
+
+### Changed
+- Version bump for update-dialog flow testing.
+
 ## 0.1.41 - 2026-03-16
 
 ### Changed

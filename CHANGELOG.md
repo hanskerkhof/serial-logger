@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.11 - 2026-03-16
+
+### Added
+- Commander health panel now shows `commander fqbn` from `/health` (`commander.fqbn`).
+
+### Changed
+- Regenerated CMDR OpenAPI TypeScript models to include `CommanderHealthStatus.fqbn`.
+
 ## 0.1.10 - 2026-03-16
 
 ### Added

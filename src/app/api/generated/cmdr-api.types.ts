@@ -303,6 +303,8 @@ export interface components {
             detected_fixture_name?: string | null;
             /** Expected Fixture Name */
             expected_fixture_name?: string | null;
+            /** Fqbn */
+            fqbn?: string | null;
             /** Port */
             port?: string | null;
             /** Probe Elapsed Ms */

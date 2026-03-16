@@ -150,6 +150,7 @@
             @if (currentHealth.commander; as commanderHealth) {
               <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
               <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
+              <div><strong>commander fqbn:</strong> {{ commanderHealth.fqbn || '-' }}</div>
               <div><strong>serial port:</strong> {{ commanderHealth.port || '-' }}</div>
               <div><strong>resolver source:</strong> {{ commanderHealth.resolver_source || '-' }}</div>
               @if (commanderHealth.proxy; as proxyHealth) {

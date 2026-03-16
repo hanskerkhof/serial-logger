@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.37 - 2026-03-16
+
+### Fixed
+- Update dialog text color: `<h2>` header and body paragraphs were inheriting a blue
+  PrimeNG heading color instead of the intended light text. Added explicit
+  `color: var(--p-text-color, #e4e4e7)` to `&__header`, `&__message`, and `&__note`.
+
 ## 0.1.36 - 2026-03-16
 
 ### Changed

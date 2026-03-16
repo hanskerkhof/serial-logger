@@ -137,6 +137,7 @@
     font-size: 1rem;
     font-weight: 600;
     letter-spacing: 0.01em;
+    color: var(--p-text-color, #e4e4e7);
   }
 
   &__body {
@@ -147,6 +148,7 @@
   &__message {
     margin: 0 0 0.5rem;
     line-height: 1.5;
+    color: var(--p-text-color, #e4e4e7);
   }
 
   &__note {
@@ -154,6 +156,7 @@
     font-size: 0.85rem;
     opacity: 0.7;
     line-height: 1.5;
+    color: var(--p-text-color, #e4e4e7);
   }
 
   &__footer {

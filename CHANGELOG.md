@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.29 - 2026-03-16
+
+### Changed
+- Version bump to test full PWA update dialog cycle.
+
 ## 0.1.28 - 2026-03-16
 
 ### Fixed

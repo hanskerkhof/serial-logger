@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.1.39 - 2026-03-16
+
+### Fixed
+- Update dialog styling: moved styles from component SCSS to global styles.scss so
+  descendant selectors can override PrimeNG's global h2/strong color rules without
+  Angular encapsulation specificity fights. Dialog now correctly uses light theme
+  (white background, dark text) matching the rest of the app.
+- Added `* { color: inherit }` guard inside .update-dialog to prevent PrimeNG
+  heading/element color rules from bleeding into the dialog.
+
+### Added
+- Dev-only "⚙ update dialog" button in the toolbar (only visible with `ng serve`,
+  stripped from production builds) for quick local style iteration without a Pi deploy.
+
 ## 0.1.38 - 2026-03-16
 
 ### Changed

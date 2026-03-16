@@ -16,6 +16,9 @@
       </div>
     </ng-template>
     <ng-template #end>
+      @if (isDevMode) {
+        <button class="app-shell__dev-btn" (click)="devTriggerUpdateDialog()" title="DEV: open update dialog">⚙ update dialog</button>
+      }
       <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">
         <p-tablist>
           @if (isSerialSupported) {<p-tab value="direct">Direct</p-tab>}

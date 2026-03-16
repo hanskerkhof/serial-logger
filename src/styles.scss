@@ -49,6 +49,94 @@ pre {
   margin-top: 0;
 }
 
+// Update dialog — native <dialog showModal()> enters the browser top layer,
+// always rendering above all other showModal dialogs (e.g. fixture detail).
+// Styles are global (not component-scoped) so descendant selectors can override
+// PrimeNG's global h2/strong color rules without specificity fights.
+.update-dialog {
+  width: 22rem;
+  max-width: 96vw;
+  border: 1px solid var(--p-surface-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--p-surface-0, #ffffff);
+  color: var(--p-text-color, #1f2937);
+  padding: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+
+  // Force ALL descendant elements to inherit this dialog's text color,
+  // preventing PrimeNG global h2/strong rules from bleeding in.
+  *, h1, h2, h3, h4, h5, h6, p, strong, em, span {
+    color: inherit;
+  }
+
+  &::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__header {
+    margin: 0;
+    padding: 1.25rem 1.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--p-text-color, #1f2937);
+  }
+
+  &__body {
+    padding: 1rem 1.5rem;
+    flex: 1;
+  }
+
+  &__message {
+    margin: 0 0 0.5rem;
+    line-height: 1.5;
+    color: var(--p-text-color, #1f2937);
+  }
+
+  &__note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--p-text-muted-color, #6b7280);
+    line-height: 1.5;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem 1.25rem;
+    border-top: 1px solid var(--p-surface-border, #e5e7eb);
+  }
+
+  &__btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 0.85; }
+
+    &--primary {
+      background: var(--p-primary-color, #6366f1);
+      color: var(--p-primary-contrast-color, #fff);
+    }
+
+    &--secondary {
+      background: var(--p-surface-100, #f3f4f6);
+      color: var(--p-text-color, #1f2937);
+      border: 1px solid var(--p-surface-border, #e5e7eb);
+    }
+  }
+}
+
 // Generic terminal / log window
 .console-log {
   background: #0d0d0d;

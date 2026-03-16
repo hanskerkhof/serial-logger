@@ -35,7 +35,7 @@ export class AppComponent {
 
   // --- Update notification state ---
   // Adjust GRACE_PERIOD_MINUTES to change how long the user can defer an update.
-  protected readonly GRACE_PERIOD_MINUTES = 10;
+  protected readonly GRACE_PERIOD_MINUTES = 2;
   private readonly MAX_LATER_COUNT = 3;
   protected readonly updateAvailable = signal(false);
   protected readonly showUpdateDialog = signal(false);

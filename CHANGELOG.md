@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.23 - 2026-03-16
+
+### Changed
+- Update dialog grace period reduced to 2 min for testing (was 10 min).
+
 ## 0.1.22 - 2026-03-16
 
 ### Changed

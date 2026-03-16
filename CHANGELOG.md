@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.35 - 2026-03-16
+
+### Fixed
+- Update dialog effect() was not tracking showUpdateDialog signal as a dependency.
+  Signal must be read before any early-return guard so Angular registers it,
+  otherwise the effect never re-runs when the update becomes available.
+
 ## 0.1.34 - 2026-03-16
 
 ### Changed

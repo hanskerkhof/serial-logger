@@ -49,9 +49,12 @@ export class AppComponent {
     // Drive the native <dialog> via showModal/close so it enters the top layer
     // and always renders above other showModal dialogs.
     effect(() => {
+      // Read the signal first so it is always tracked as a dependency,
+      // even on the initial run when @ViewChild may not be resolved yet.
+      const show = this.showUpdateDialog();
       const el = this.updateDialogRef?.nativeElement;
       if (!el) return;
-      if (this.showUpdateDialog()) {
+      if (show) {
         if (!el.open) el.showModal();
       } else {
         if (el.open) el.close();

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.33 - 2026-03-16
+
+### Changed
+- Version bump to test update dialog layering above fixture detail dialog.
+
 ## 0.1.32 - 2026-03-16
 
 ### Fixed

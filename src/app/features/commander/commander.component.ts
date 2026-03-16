@@ -10,6 +10,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { SwUpdate } from '@angular/service-worker';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -134,6 +135,7 @@ export class CommanderComponent implements OnInit {
   private readonly fixtureStore = inject(FixtureStoreService);
   private readonly messageService = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly swUpdate = inject(SwUpdate);
 
   protected readonly now = signal(Date.now());
   protected readonly heartbeatLabel = computed(() => {
@@ -347,6 +349,7 @@ export class CommanderComponent implements OnInit {
     this.healthPollTimer = setInterval(() => {
       if (!this.loading() && !this.healthRefreshing()) {
         this.loadHealth();
+        if (this.swUpdate.isEnabled) this.swUpdate.checkForUpdate();
       }
     }, 30_000);
   }

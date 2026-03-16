@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.20 - 2026-03-16
+
+### Changed
+- `checkForUpdate()` moved from a dedicated 5-minute `setInterval` in `AppComponent` into the Commander's existing 30-second health poll timer — version checks now piggyback on the health poll instead of running a separate interval.
+
 ## 0.1.19 - 2026-03-16
 
 ### Changed

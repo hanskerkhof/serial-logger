@@ -215,6 +215,71 @@
   margin-top: auto;
 }
 
+.commander__custom-commands {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.commander__custom-commands-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.commander__custom-command-card {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.commander__custom-command-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.commander__custom-command-args {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.commander__custom-arg-row {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.commander__custom-arg-label {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+
+.commander__custom-arg-number {
+  min-width: 0;
+  width: 100%;
+}
+
+.commander__custom-arg-slider {
+  width: 100%;
+}
+
+.commander__custom-arg-value {
+  min-width: 2.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+.commander__custom-command-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 @media (max-width: 960px) {
   .commander {
     grid-template-columns: 1fr;

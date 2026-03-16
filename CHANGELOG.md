@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.1.10 - 2026-03-16
+
+### Added
+- Fixture modal now renders metadata-driven custom controls from `summary.fixtures[].custom_command_ui` (`button`, `slider`, `number`, and `checkbox` control support).
+- PALESP32 (`PALETTE_ESP32`) custom controls now appear in the modal from fixture metadata: `startupSequence`, per-player `setVolume`, and per-player `playTracks`.
+
+### Changed
+- Regenerated CMDR OpenAPI TypeScript models to include `custom_command_ui` and custom command UI schema types.
+- Custom-command template validation now rejects undeclared `{placeholders}` before send, instead of silently sending unresolved keys.
+- Added explicit number-input class for custom args (`.commander__custom-arg-number`) for stable styling hooks.
+- Custom command cards now hide the `Run` button when `send_on_release` is enabled (slider release is the only trigger for those commands).
+
 ## 0.1.9 - 2026-03-15
 
 ### Changed

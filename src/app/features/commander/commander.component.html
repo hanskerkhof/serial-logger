@@ -374,6 +374,74 @@
       <p class="commander__dialog-message">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
     }
     <app-fixture-player-controls [player]="selectedFixturePlayer()" />
+    @if (selectedFixtureCustomCommands().length > 0) {
+      <section class="commander__custom-commands" aria-label="Custom commands">
+        <h4 class="commander__custom-commands-title">Custom Commands</h4>
+        @for (command of selectedFixtureCustomCommands(); track command.id) {
+          <div class="commander__custom-command-card">
+            <div class="commander__custom-command-header">
+              <strong>{{ command.label }}</strong>
+            </div>
+            @if ((command.args?.length ?? 0) > 0) {
+              <div class="commander__custom-command-args">
+                @for (arg of command.args ?? []; track arg.name) {
+                  <label class="commander__custom-arg-row">
+                    <span class="commander__custom-arg-label">{{ arg.label }}</span>
+                    @switch (arg.control) {
+                      @case ('slider') {
+                        <input
+                          class="commander__custom-arg-slider"
+                          type="range"
+                          [min]="arg.min ?? 0"
+                          [max]="arg.max ?? 100"
+                          [step]="arg.step ?? 1"
+                          [ngModel]="customCommandArgValue(command.id, arg)"
+                          (ngModelChange)="updateCustomCommandArg(command.id, arg, $event)"
+                          (change)="onCustomCommandSliderRelease(command)"
+                        />
+                        <span class="commander__custom-arg-value">{{ customCommandArgValue(command.id, arg) }}</span>
+                      }
+                      @case ('checkbox') {
+                        <input
+                          type="checkbox"
+                          [ngModel]="customCommandArgValue(command.id, arg)"
+                          (ngModelChange)="updateCustomCommandArg(command.id, arg, $event)"
+                        />
+                      }
+                      @default {
+                        <input
+                          class="commander__custom-arg-number"
+                          pInputText
+                          type="number"
+                          [min]="arg.min ?? 0"
+                          [max]="arg.max ?? null"
+                          [step]="arg.step ?? 1"
+                          [ngModel]="customCommandArgValue(command.id, arg)"
+                          (ngModelChange)="updateCustomCommandArg(command.id, arg, $event)"
+                        />
+                      }
+                    }
+                  </label>
+                }
+              </div>
+            }
+            @if (!commandSendOnRelease(command)) {
+              <div class="commander__custom-command-actions">
+                <button
+                  pButton
+                  type="button"
+                  label="Run"
+                  severity="secondary"
+                  size="small"
+                  (click)="runCustomCommand(command)"
+                  [disabled]="fixtureActionLoading()"
+                ></button>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
     <footer class="commander__dialog-footer">
       <input
         pInputText

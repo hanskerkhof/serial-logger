@@ -377,6 +377,36 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** CustomCommandUiArg */
+        CustomCommandUiArg: {
+            /** Control */
+            control: string;
+            /** Default */
+            default?: unknown | null;
+            /** Label */
+            label: string;
+            /** Max */
+            max?: number | null;
+            /** Min */
+            min?: number | null;
+            /** Name */
+            name: string;
+            /** Step */
+            step?: number | null;
+        };
+        /** CustomCommandUiItem */
+        CustomCommandUiItem: {
+            /** Args */
+            args?: components["schemas"]["CustomCommandUiArg"][];
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Send On Release */
+            send_on_release?: boolean | null;
+            /** Wire Template */
+            wire_template: string;
+        };
         /** DiscoveryResponse */
         DiscoveryResponse: {
             /** Issued Commands */
@@ -448,6 +478,8 @@ export interface components {
             capabilities_status?: string | null;
             /** Channel */
             channel?: number | null;
+            /** Custom Command Ui */
+            custom_command_ui?: components["schemas"]["CustomCommandUiItem"][] | null;
             /** Fixture Group */
             fixture_group?: string | null;
             /** Fixture Name */
@@ -536,6 +568,8 @@ export interface components {
             capabilities?: components["schemas"]["FixtureCapabilities"] | null;
             /** Capabilities Status */
             capabilities_status: string;
+            /** Custom Command Ui */
+            custom_command_ui?: components["schemas"]["CustomCommandUiItem"][] | null;
             /** Fixture Name */
             fixture_name: string;
         } & {

@@ -31,7 +31,13 @@ import {
   FixturePlanActionResponse,
   RawCommandResponse,
 } from '../../commander-api.service';
-import { CmdrFixtureCapabilities, CmdrPlanControls, CmdrPlayerCapabilities } from '../../api/cmdr-models';
+import {
+  CmdrCustomCommandUiArg,
+  CmdrCustomCommandUiItem,
+  CmdrFixtureCapabilities,
+  CmdrPlanControls,
+  CmdrPlayerCapabilities,
+} from '../../api/cmdr-models';
 import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
 import { FixturePlayerControlsComponent } from '../../shared/fixture-player-controls/fixture-player-controls.component';
@@ -40,6 +46,8 @@ interface SelectOption {
   label: string;
   value: string;
 }
+
+type CustomCommandValue = string | number | boolean;
 
 function compareVersions(a: string, b: string): number {
   const seg = (s: string) => s.replace(/^v/, '').split('.').map(Number);
@@ -108,6 +116,7 @@ export class CommanderComponent implements OnInit {
     return `Full Discovery · ${last.toFixed(1)}s · avg ${avg!.toFixed(1)}s`;
   });
   protected readonly manualCommand = signal('');
+  protected readonly customCommandValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
   private modalQuerySub: Subscription | null = null;
@@ -173,6 +182,10 @@ export class CommanderComponent implements OnInit {
     effect(() =>
       localStorage.setItem('cmdr.discovery.timings', JSON.stringify(this.discoveryTimings())),
     );
+    effect(() => {
+      const commands = this.selectedFixtureCustomCommands();
+      this.customCommandValues.set(this.buildInitialCustomCommandValues(commands));
+    });
 
     effect(() => {
       const isDiscovery = this.discoveryLoading();
@@ -259,6 +272,12 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixturePlayer = computed<CmdrPlayerCapabilities | null>(() => {
     const caps = this.selectedFixture()?.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null;
     return caps?.player ?? null;
+  });
+
+  protected readonly selectedFixtureCustomCommands = computed<CmdrCustomCommandUiItem[]>(() => {
+    const raw = this.selectedFixture()?.raw['custom_command_ui'];
+    if (!Array.isArray(raw)) return [];
+    return raw as CmdrCustomCommandUiItem[];
   });
 
   protected readonly selectedFixtureFwStatus = computed<{
@@ -585,6 +604,59 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, command);
   }
 
+  protected customCommandArgValue(commandId: string, arg: CmdrCustomCommandUiArg): CustomCommandValue {
+    const commandValues = this.customCommandValues()[commandId];
+    if (commandValues && arg.name in commandValues) {
+      return commandValues[arg.name];
+    }
+    return this.defaultValueForArg(arg);
+  }
+
+  protected updateCustomCommandArg(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {
+    const nextValue = this.normalizeArgValue(arg, rawValue);
+    this.customCommandValues.update((current) => {
+      const commandValues = { ...(current[commandId] ?? {}) };
+      commandValues[arg.name] = nextValue;
+      return {
+        ...current,
+        [commandId]: commandValues,
+      };
+    });
+  }
+
+  protected onCustomCommandSliderRelease(command: CmdrCustomCommandUiItem): void {
+    if (!this.commandSendOnRelease(command)) return;
+    this.runCustomCommand(command);
+  }
+
+  protected runCustomCommand(command: CmdrCustomCommandUiItem): void {
+    const selected = this.selectedFixture();
+    const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) {
+      this.fixtureActionMessage.set('No fixture selected.');
+      return;
+    }
+    const wireTemplate = (command.wire_template ?? '').trim();
+    if (!wireTemplate) {
+      this.fixtureActionMessage.set('Command template is empty.');
+      return;
+    }
+    const unknownPlaceholders = this.findUnknownTemplatePlaceholders(
+      wireTemplate,
+      command.args ?? [],
+    );
+    if (unknownPlaceholders.length > 0) {
+      this.fixtureActionMessage.set(
+        `Command template placeholders missing in args: ${unknownPlaceholders.join(', ')}`,
+      );
+      return;
+    }
+
+    const commandValues = this.customCommandValues()[command.id] ?? {};
+    const wireCommand = this.buildCommandFromTemplate(wireTemplate, commandValues);
+    this.sendCommand(fixture, wireCommand);
+  }
+
   protected onDialogBackdropClick(event: MouseEvent): void {
     const dialog = this.fixtureDetailDialog?.nativeElement;
     if (!dialog) return;
@@ -885,6 +957,101 @@ export class CommanderComponent implements OnInit {
         this.fixtureActionLoading.set(false);
       },
     });
+  }
+
+  private buildInitialCustomCommandValues(
+    commands: CmdrCustomCommandUiItem[],
+  ): Record<string, Record<string, CustomCommandValue>> {
+    const initial: Record<string, Record<string, CustomCommandValue>> = {};
+    for (const command of commands) {
+      const commandValues: Record<string, CustomCommandValue> = {};
+      for (const arg of command.args ?? []) {
+        commandValues[arg.name] = this.defaultValueForArg(arg);
+      }
+      initial[command.id] = commandValues;
+    }
+    return initial;
+  }
+
+  private buildCommandFromTemplate(
+    wireTemplate: string,
+    values: Record<string, CustomCommandValue>,
+  ): string {
+    return wireTemplate.replace(/\{([a-zA-Z0-9_]+)\}/g, (_full, key: string) => {
+      const value = values[key];
+      return this.serializeTemplateValue(value);
+    });
+  }
+
+  private findUnknownTemplatePlaceholders(
+    wireTemplate: string,
+    args: CmdrCustomCommandUiArg[],
+  ): string[] {
+    const declaredNames = new Set((args ?? []).map((arg) => arg.name));
+    const missing = new Set<string>();
+    const pattern = /\{([a-zA-Z0-9_]+)\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(wireTemplate)) !== null) {
+      const key = match[1];
+      if (!declaredNames.has(key)) {
+        missing.add(key);
+      }
+    }
+    return Array.from(missing);
+  }
+
+  private serializeTemplateValue(value: CustomCommandValue | undefined): string {
+    if (typeof value === 'boolean') return value ? '1' : '0';
+    if (typeof value === 'number' && Number.isFinite(value)) return `${value}`;
+    if (typeof value === 'string') return value;
+    return '';
+  }
+
+  private defaultValueForArg(arg: CmdrCustomCommandUiArg): CustomCommandValue {
+    if (arg.control === 'checkbox') {
+      return this.toBoolean(arg.default ?? false);
+    }
+    if (arg.control === 'slider' || arg.control === 'number') {
+      const fallback = typeof arg.min === 'number' ? arg.min : 0;
+      return this.toNumber(arg.default, fallback);
+    }
+    if (typeof arg.default === 'string') return arg.default;
+    return '';
+  }
+
+  private normalizeArgValue(arg: CmdrCustomCommandUiArg, rawValue: unknown): CustomCommandValue {
+    if (arg.control === 'checkbox') {
+      return this.toBoolean(rawValue);
+    }
+    if (arg.control === 'slider' || arg.control === 'number') {
+      const fallback = typeof arg.min === 'number' ? arg.min : 0;
+      return this.toNumber(rawValue, fallback);
+    }
+    return typeof rawValue === 'string' ? rawValue : `${rawValue ?? ''}`;
+  }
+
+  private toNumber(rawValue: unknown, fallback: number): number {
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) return rawValue;
+    if (typeof rawValue === 'string') {
+      const parsed = Number(rawValue);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallback;
+  }
+
+  private toBoolean(rawValue: unknown): boolean {
+    if (typeof rawValue === 'boolean') return rawValue;
+    if (typeof rawValue === 'number') return rawValue !== 0;
+    if (typeof rawValue === 'string') {
+      const lowered = rawValue.trim().toLowerCase();
+      return lowered === '1' || lowered === 'true' || lowered === 'yes' || lowered === 'on';
+    }
+    return false;
+  }
+
+  protected commandSendOnRelease(command: CmdrCustomCommandUiItem): boolean {
+    const value = (command as Record<string, unknown>)['send_on_release'];
+    return value === true;
   }
 
   private formatError(prefix: string, err: unknown): string {

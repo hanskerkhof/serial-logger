@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.57 - 2026-03-17
+
+### Fixed
+- Sidebar reload buttons (plan group / plan) are now disabled while any query is in-flight (`backendBusy`), in addition to when Commander is unavailable.
+
 ## 0.1.56 - 2026-03-17
 
 ### Added

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.55 - 2026-03-17
+
+### Changed
+- Version bump for synchronized FE/FW release cycle.
+
 ## 0.1.54 - 2026-03-17
 
 ### Changed

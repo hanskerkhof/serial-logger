@@ -94,6 +94,10 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   private healthPollTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly nextHealthPollAt = signal(Date.now() + 30_000);
+  protected readonly nextHealthPollCountdown = computed(() =>
+    Math.max(0, Math.round((this.nextHealthPollAt() - this.now()) / 1000)),
+  );
   protected readonly discoveryTimings = signal<number[]>(
     JSON.parse(localStorage.getItem('cmdr.discovery.timings') ?? '[]'),
   );
@@ -206,15 +210,15 @@ export class CommanderComponent implements OnInit {
     });
 
     effect(() => {
-      if (this.commanderUnavailable()) {
-        const detail = this.healthError()
-          ? 'API unreachable — run queries are disabled.'
-          : 'Commander not detected — run queries are disabled.';
+      const unavailable = this.commanderUnavailable();
+      // setTimeout: p-toast subscribes to MessageService during view init,
+      // after this constructor effect fires — defer so the message isn't lost.
+      setTimeout(() => {
         this.messageService.clear('cmdr-offline');
-        this.messageService.add({ key: 'cmdr-offline', severity: 'warn', summary: 'Commander unavailable', detail, sticky: true });
-      } else {
-        this.messageService.clear('cmdr-offline');
-      }
+        if (unavailable) {
+          this.messageService.add({ key: 'cmdr-offline', severity: 'warn', summary: 'Commander unavailable', sticky: true });
+        }
+      }, 0);
     });
 
     effect(() => {
@@ -377,12 +381,19 @@ export class CommanderComponent implements OnInit {
 
   private startHealthPollTimer(): void {
     if (this.healthPollTimer !== null) clearInterval(this.healthPollTimer);
+    this.nextHealthPollAt.set(Date.now() + 30_000);
     this.healthPollTimer = setInterval(() => {
       if (!this.loading() && !this.healthRefreshing()) {
         this.loadHealth();
         if (this.swUpdate.isEnabled) this.swUpdate.checkForUpdate();
       }
+      this.nextHealthPollAt.set(Date.now() + 30_000);
     }, 30_000);
+  }
+
+  protected retryHealth(): void {
+    this.loadHealth(true);
+    this.startHealthPollTimer();
   }
 
   protected useTarget(url: string): void {

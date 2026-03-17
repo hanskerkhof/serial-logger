@@ -1,7 +1,21 @@
 <p-toast key="status" position="top-center"></p-toast>
 <p-toast key="query-result" position="top-center"></p-toast>
 <p-toast key="cmdr-error" position="top-center"></p-toast>
-<p-toast key="cmdr-offline" position="top-center"></p-toast>
+<p-toast key="cmdr-offline" position="top-center">
+  <ng-template pTemplate="message" let-message>
+    <div class="cmdr-offline-toast">
+      <strong class="cmdr-offline-toast__summary">Commander unavailable</strong>
+      <span class="cmdr-offline-toast__detail">
+        @if (healthError()) { API unreachable — run queries are disabled. }
+        @else { Commander not detected — run queries are disabled. }
+      </span>
+      <span class="cmdr-offline-toast__footer">
+        Next check in {{ nextHealthPollCountdown() }}s
+        · <button class="cmdr-offline-toast__retry" (click)="retryHealth()">retry now</button>
+      </span>
+    </div>
+  </ng-template>
+</p-toast>
 <section class="commander" aria-label="Commander mode">
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">

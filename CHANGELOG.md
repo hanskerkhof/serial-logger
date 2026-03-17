@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.49 - 2026-03-17
+
+### Changed
+- Commander unavailable toast now shows live countdown to next health poll and a "retry now" link.
+
 ## 0.1.48 - 2026-03-17
 
 ### Added

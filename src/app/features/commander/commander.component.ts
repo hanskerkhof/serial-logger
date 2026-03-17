@@ -128,6 +128,9 @@ export class CommanderComponent implements OnInit {
   protected readonly backendBusy = computed(
     () => this.discoveryLoading() || this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading(),
   );
+  protected readonly commanderUnavailable = computed(
+    () => !!this.healthError() || this.health()?.commander?.detected !== true,
+  );
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
@@ -200,6 +203,18 @@ export class CommanderComponent implements OnInit {
     effect(() => {
       const commands = this.selectedFixtureCustomCommands();
       this.customCommandValues.set(this.buildInitialCustomCommandValues(commands));
+    });
+
+    effect(() => {
+      if (this.commanderUnavailable()) {
+        const detail = this.healthError()
+          ? 'API unreachable — run queries are disabled.'
+          : 'Commander not detected — run queries are disabled.';
+        this.messageService.clear('cmdr-offline');
+        this.messageService.add({ key: 'cmdr-offline', severity: 'warn', summary: 'Commander unavailable', detail, sticky: true });
+      } else {
+        this.messageService.clear('cmdr-offline');
+      }
     });
 
     effect(() => {

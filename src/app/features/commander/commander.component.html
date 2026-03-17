@@ -1,6 +1,7 @@
 <p-toast key="status" position="top-center"></p-toast>
 <p-toast key="query-result" position="top-center"></p-toast>
 <p-toast key="cmdr-error" position="top-center"></p-toast>
+<p-toast key="cmdr-offline" position="top-center"></p-toast>
 <section class="commander" aria-label="Commander mode">
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">
@@ -22,7 +23,7 @@
         size="small"
         [loading]="discoveryLoading()"
         (click)="runFullDiscovery()"
-        [disabled]="backendBusy()"
+        [disabled]="backendBusy() || commanderUnavailable()"
       ></button>
     </div>
 
@@ -223,7 +224,7 @@
           iconPos="right"
           [loading]="fixtureQueryLoading()"
           (click)="runFixtureQuery()"
-          [disabled]="backendBusy() || lanGroupListLoading() || fixtureOptions().length === 0 || !fixtureName()"
+          [disabled]="backendBusy() || commanderUnavailable() || lanGroupListLoading() || fixtureOptions().length === 0 || !fixtureName()"
         ></button>
       </p-inputgroup>
 
@@ -254,7 +255,7 @@
           iconPos="right"
           [loading]="planQueryLoading()"
           (click)="runPlanQuery()"
-          [disabled]="backendBusy() || planListLoading() || planOptions().length === 0 || !planName()"
+          [disabled]="backendBusy() || commanderUnavailable() || planListLoading() || planOptions().length === 0 || !planName()"
         ></button>
       </p-inputgroup>
 
@@ -285,7 +286,7 @@
           iconPos="right"
           [loading]="planGroupQueryLoading()"
           (click)="runPlanGroupQuery()"
-          [disabled]="backendBusy() || lanGroupListLoading() || !planGroupName()"
+          [disabled]="backendBusy() || commanderUnavailable() || lanGroupListLoading() || !planGroupName()"
         ></button>
       </p-inputgroup>
 
@@ -356,7 +357,7 @@
           size="small"
           [loading]="modalQueryLoading()"
           (click)="runModalFixtureQuery()"
-          [disabled]="modalQueryLoading()"
+          [disabled]="modalQueryLoading() || commanderUnavailable()"
         ></button>
         @if (modalQueryError(); as modalError) {
           <span class="commander__dialog-header-error">{{ modalError }}</span>
@@ -445,7 +446,7 @@
                   severity="secondary"
                   size="small"
                   (click)="runCustomCommand(command)"
-                  [disabled]="fixtureActionLoading()"
+                  [disabled]="fixtureActionLoading() || commanderUnavailable()"
                 ></button>
               </div>
             }
@@ -469,7 +470,7 @@
         label="Send"
         size="small"
         (click)="runManualCommand()"
-        [disabled]="fixtureActionLoading() || !manualCommand().trim()"
+        [disabled]="fixtureActionLoading() || commanderUnavailable() || !manualCommand().trim()"
       ></button>
       @if (selectedFixturePlanControls()?.trigger?.available) {
         <button
@@ -479,7 +480,7 @@
           severity="secondary"
           size="small"
           (click)="runModalPlanAction('trigger')"
-          [disabled]="fixtureActionLoading()"
+          [disabled]="fixtureActionLoading() || commanderUnavailable()"
         ></button>
       }
       @if (selectedFixturePlanControls()?.stop?.available) {
@@ -490,7 +491,7 @@
           severity="secondary"
           size="small"
           (click)="runModalPlanAction('stop')"
-          [disabled]="fixtureActionLoading()"
+          [disabled]="fixtureActionLoading() || commanderUnavailable()"
         ></button>
       }
       <button

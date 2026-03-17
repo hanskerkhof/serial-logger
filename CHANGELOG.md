@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.48 - 2026-03-17
+
+### Added
+- Sticky "Commander unavailable" toast when API is unreachable or commander not detected.
+- All Run/Send/query buttons disabled while commander is unavailable.
+
 ## 0.1.42 - 2026-03-16
 
 ### Changed

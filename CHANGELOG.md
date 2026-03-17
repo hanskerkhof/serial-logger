@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.58 - 2026-03-17
+
+### Changed
+- Angular updated: core/router/forms/etc 21.2.1 → 21.2.4, CLI/build 21.2.1 → 21.2.2.
+
 ## 0.1.57 - 2026-03-17
 
 ### Fixed

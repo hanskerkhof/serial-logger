@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.54 - 2026-03-17
+
+### Changed
+- Health endpoint now uses the same exponential backoff on failure (3 → 6 → 12 → 24 → 30 s, capped). On success resets to the normal 30 s interval. Manual ↻ retry in the toast resets the backoff and fires immediately.
+
 ## 0.1.53 - 2026-03-17
 
 ### Fixed

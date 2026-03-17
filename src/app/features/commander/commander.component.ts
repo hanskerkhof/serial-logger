@@ -93,7 +93,11 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionError = signal<string | null>(null);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
-  private healthPollTimer: ReturnType<typeof setInterval> | null = null;
+  private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
+  private healthRetryDelayMs = 3_000;
+  private static readonly HEALTH_POLL_MS = 30_000;
+  private static readonly HEALTH_INITIAL_RETRY_MS = 3_000;
+  private static readonly HEALTH_MAX_RETRY_MS = 30_000;
   private readonly nextHealthPollAt = signal(Date.now() + 30_000);
   protected readonly nextHealthPollCountdown = computed(() =>
     Math.max(0, Math.round((this.nextHealthPollAt() - this.now()) / 1000)),
@@ -387,36 +391,44 @@ export class CommanderComponent implements OnInit {
 
     // Auto-poll health every 30 s; skip if a fetch is already in flight
     this.startHealthPollTimer();
-    this.destroyRef.onDestroy(() => {
-      if (this.healthPollTimer !== null) clearInterval(this.healthPollTimer);
-    });
+    this.destroyRef.onDestroy(() => this.cancelHealthPollTimer());
   }
 
   protected reloadHealth(): void {
-    this.startHealthPollTimer(); // reset so next auto-poll is a full 30 s away
+    this.cancelHealthPollTimer();
     this.loadHealth();
   }
 
-  private startHealthPollTimer(): void {
-    if (this.healthPollTimer !== null) clearInterval(this.healthPollTimer);
-    this.nextHealthPollAt.set(Date.now() + 30_000);
-    this.healthPollTimer = setInterval(() => {
+  private startHealthPollTimer(delayMs = CommanderComponent.HEALTH_POLL_MS): void {
+    this.cancelHealthPollTimer();
+    this.nextHealthPollAt.set(Date.now() + delayMs);
+    this.healthPollTimer = setTimeout(() => {
+      this.healthPollTimer = null;
       if (!this.loading() && !this.healthRefreshing()) {
         this.loadHealth();
         if (this.swUpdate.isEnabled) this.swUpdate.checkForUpdate();
       }
-      this.nextHealthPollAt.set(Date.now() + 30_000);
-    }, 30_000);
+    }, delayMs);
+  }
+
+  private cancelHealthPollTimer(): void {
+    if (this.healthPollTimer !== null) {
+      clearTimeout(this.healthPollTimer);
+      this.healthPollTimer = null;
+    }
   }
 
   protected retryHealth(): void {
+    this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS; // Reset backoff
+    this.cancelHealthPollTimer();
     this.loadHealth(true);
-    this.startHealthPollTimer();
   }
 
   protected useTarget(url: string): void {
     this.commanderApi.setApiBaseUrl(url);
     this.customUrl.set(this.activeApiUrl());
+    this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS;
+    this.cancelHealthPollTimer();
     this.loadHealth(true); // URL changed — stale health data, force full loading state
     this.loadExposedPlans();
     this.loadLanGroups();
@@ -430,6 +442,8 @@ export class CommanderComponent implements OnInit {
     }
 
     this.customUrl.set(this.activeApiUrl());
+    this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS;
+    this.cancelHealthPollTimer();
     this.loadHealth(true); // URL changed — stale health data, force full loading state
     this.loadExposedPlans();
     this.loadLanGroups();
@@ -911,6 +925,9 @@ export class CommanderComponent implements OnInit {
         this.healthError.set(null); // clear degraded state on success
         this.loading.set(false);
         this.healthRefreshing.set(false);
+        // Reset backoff — schedule next poll at normal 30 s interval
+        this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS;
+        this.startHealthPollTimer();
         if (wasOffline) {
           // API just came back — re-fetch all registered recovery endpoints
           this.runRecoveryCallbacks();
@@ -921,6 +938,12 @@ export class CommanderComponent implements OnInit {
         this.healthError.set('API unreachable');
         this.loading.set(false);
         this.healthRefreshing.set(false);
+        // Schedule next retry with exponential backoff, then double the delay
+        this.startHealthPollTimer(this.healthRetryDelayMs);
+        this.healthRetryDelayMs = Math.min(
+          this.healthRetryDelayMs * 2,
+          CommanderComponent.HEALTH_MAX_RETRY_MS,
+        );
       },
     });
   }

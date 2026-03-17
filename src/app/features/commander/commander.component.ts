@@ -660,7 +660,8 @@ export class CommanderComponent implements OnInit {
     this.rebootConfirmPending.set(false);
     const fixture = this.selectedFixture()?.fixture_name;
     if (!fixture) return;
-    this.sendCommand(fixture, 'cmd;reboot;');
+    // Full wire form with ACK — recommended for disruptive commands (COMMAND_PROTOCOL.md)
+    this.sendCommand(fixture, `ack;tcmd;${fixture};cmd;reboot;`);
   }
 
   protected runModalFixtureQuery(): void {

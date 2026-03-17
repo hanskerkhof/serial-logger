@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.61 - 2026-03-17
+
+### Fixed
+- Reboot command now uses the recommended ACK path: `ack;tcmd;<fixture>;cmd;reboot;` per COMMAND_PROTOCOL.md.
+
 ## 0.1.60 - 2026-03-17
 
 ### Fixed

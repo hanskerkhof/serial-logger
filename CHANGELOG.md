@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.59 - 2026-03-17
+
+### Added
+- Fixture modal: Reboot button (⏻) in header actions. First click shows "Confirm reboot" + "Cancel"; second click sends the `R` command to the fixture via `sendCommand()`. Button is disabled while a query is in-flight or Commander is unavailable.
+
 ## 0.1.58 - 2026-03-17
 
 ### Changed

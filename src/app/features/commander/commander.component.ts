@@ -93,6 +93,7 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionError = signal<string | null>(null);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
+  protected readonly rebootConfirmPending = signal(false);
   private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
   private healthRetryDelayMs = 3_000;
   private static readonly HEALTH_POLL_MS = 30_000;
@@ -648,6 +649,18 @@ export class CommanderComponent implements OnInit {
     this.modalQueryError.set(null);
     this.fixtureActionMessage.set(null);
     this.fixtureActionError.set(null);
+    this.rebootConfirmPending.set(false);
+  }
+
+  protected rebootFixture(): void {
+    if (!this.rebootConfirmPending()) {
+      this.rebootConfirmPending.set(true);
+      return;
+    }
+    this.rebootConfirmPending.set(false);
+    const fixture = this.selectedFixture()?.fixture_name;
+    if (!fixture) return;
+    this.sendCommand(fixture, 'R');
   }
 
   protected runModalFixtureQuery(): void {

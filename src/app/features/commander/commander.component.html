@@ -407,6 +407,41 @@
           (click)="runModalFixtureQuery()"
           [disabled]="modalQueryLoading() || commanderUnavailable()"
         ></button>
+        @if (!rebootConfirmPending()) {
+          <button
+            pButton
+            type="button"
+            icon="pi pi-power-off"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            title="Reboot fixture"
+            [disabled]="fixtureActionLoading() || commanderUnavailable()"
+            (click)="rebootFixture()"
+          ></button>
+        } @else {
+          <button
+            pButton
+            type="button"
+            label="Confirm reboot"
+            icon="pi pi-power-off"
+            iconPos="right"
+            severity="danger"
+            size="small"
+            [disabled]="fixtureActionLoading() || commanderUnavailable()"
+            (click)="rebootFixture()"
+          ></button>
+          <button
+            pButton
+            type="button"
+            [text]="true"
+            size="small"
+            severity="secondary"
+            label="Cancel"
+            (click)="rebootConfirmPending.set(false)"
+          ></button>
+        }
         @if (modalQueryError(); as modalError) {
           <span class="commander__dialog-header-error">{{ modalError }}</span>
         }

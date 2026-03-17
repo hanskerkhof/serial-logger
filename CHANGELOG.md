@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.60 - 2026-03-17
+
+### Fixed
+- Reboot command corrected from `R` (raw serial) to `cmd;reboot;` (proper tcmd wire payload per COMMAND_PROTOCOL.md).
+
 ## 0.1.59 - 2026-03-17
 
 ### Added

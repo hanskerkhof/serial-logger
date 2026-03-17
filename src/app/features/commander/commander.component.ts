@@ -660,7 +660,7 @@ export class CommanderComponent implements OnInit {
     this.rebootConfirmPending.set(false);
     const fixture = this.selectedFixture()?.fixture_name;
     if (!fixture) return;
-    this.sendCommand(fixture, 'R');
+    this.sendCommand(fixture, 'cmd;reboot;');
   }
 
   protected runModalFixtureQuery(): void {

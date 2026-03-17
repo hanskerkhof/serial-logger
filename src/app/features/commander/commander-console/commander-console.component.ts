@@ -49,6 +49,10 @@ export class CommanderConsoleComponent {
   private readonly destroyRef = inject(DestroyRef);
   private disposeStream: (() => void) | null = null;
   private heartbeatPulseTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryDelayMs = 3_000;
+  private static readonly INITIAL_RETRY_MS = 3_000;
+  private static readonly MAX_RETRY_MS = 30_000;
 
   constructor() {
     effect(() => {
@@ -83,6 +87,7 @@ export class CommanderConsoleComponent {
   }
 
   protected retry(): void {
+    this.retryDelayMs = CommanderConsoleComponent.INITIAL_RETRY_MS; // Reset backoff on manual retry
     this.connect(this.apiBaseUrl());
   }
 
@@ -114,10 +119,15 @@ export class CommanderConsoleComponent {
       onOpen: () => {
         this.connected.set(true);
         this.streamError.set(null);
+        this.retryDelayMs = CommanderConsoleComponent.INITIAL_RETRY_MS; // Reset backoff
       },
       onError: (message) => {
         this.connected.set(false);
         this.streamError.set(message);
+        // Close the EventSource immediately so the browser doesn't also retry
+        // independently. We schedule our own reconnect with exponential backoff.
+        this.disconnect();
+        this.scheduleReconnect(url);
       },
       onEvent: (event) => {
         this.handleStreamEvent(event);
@@ -125,7 +135,22 @@ export class CommanderConsoleComponent {
     });
   }
 
+  private scheduleReconnect(url: string): void {
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      this.connect(url);
+    }, this.retryDelayMs);
+    this.retryDelayMs = Math.min(
+      this.retryDelayMs * 2,
+      CommanderConsoleComponent.MAX_RETRY_MS,
+    );
+  }
+
   private disconnect(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
     if (this.disposeStream) {
       this.disposeStream();
       this.disposeStream = null;

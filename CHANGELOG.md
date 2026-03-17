@@ -4,8 +4,8 @@
 
 ## 0.1.53 - 2026-03-17
 
-### Changed
-- Version bump for commander/API release cycle and studio deploy.
+### Fixed
+- Commander SSE stream now auto-reconnects with exponential backoff (3 s → 6 s → … → 30 s max) instead of relying on the browser's unreliable native `EventSource` retry. Manual ↻ retry resets the backoff and reconnects immediately.
 
 ## 0.1.52 - 2026-03-17
 

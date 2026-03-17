@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.56 - 2026-03-17
+
+### Added
+- Sidebar fixture list now has a two-level hierarchy: plan_group (uppercase label) → plan_name (indented with left border). Each level has a ↻ reload button that triggers the corresponding plan-group or plan query (same as the form dropdowns on the right). Trash button remains on the plan level.
+
 ## 0.1.55 - 2026-03-17
 
 ### Changed

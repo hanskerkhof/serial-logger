@@ -23,6 +23,7 @@
 }
 
 .commander__sidebar-header,
+.commander__plan-group-header,
 .commander__group-header,
 .commander__dialog-header,
 .commander__dialog-footer {
@@ -115,10 +116,44 @@
   }
 }
 
+.commander__plan-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commander__plan-group-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--p-text-muted-color);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .commander__group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--p-surface-200, #e5e7eb);
+}
+
+.commander__group-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .commander__fixture-list {

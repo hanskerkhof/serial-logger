@@ -43,50 +43,48 @@
       <p class="commander__sidebar-warning" role="status">{{ warning }}</p>
     }
 
-    @if (groupedFixtures().length === 0) {
+    @if (groupedFixturesByPlanGroup().length === 0) {
       <p class="commander__sidebar-empty">No fixtures yet. Run fixture/plan queries to populate.</p>
     } @else {
       <div class="commander__groups">
-        @for (group of groupedFixtures(); track group.plan_name) {
-          <section class="commander__group">
-            <header class="commander__group-header">
-              <h4 class="commander__group-title">{{ group.plan_name }}</h4>
+        @for (outerGroup of groupedFixturesByPlanGroup(); track outerGroup.plan_group) {
+          <section class="commander__plan-group">
+            <header class="commander__plan-group-header">
+              <h4 class="commander__plan-group-title">{{ outerGroup.plan_group }}</h4>
               <button
                 pButton
                 type="button"
-                class="commander__trash-btn"
-                icon="pi pi-trash"
+                class="commander__reload-btn"
+                icon="pi pi-refresh"
                 [text]="true"
                 [rounded]="true"
                 severity="secondary"
                 size="small"
-                title="Remove this plan from local store"
-                aria-label="Remove plan {{ group.plan_name }}"
-                (click)="removePlan(group.plan_name, $event)"
+                [disabled]="commanderUnavailable()"
+                title="Re-query plan group {{ outerGroup.plan_group }}"
+                aria-label="Reload plan group {{ outerGroup.plan_group }}"
+                (click)="sidebarRefreshPlanGroup(outerGroup.plan_group, $event)"
               ></button>
             </header>
 
-            <ul class="commander__fixture-list">
-              @for (fixture of group.fixtures; track fixture.fixture_name) {
-                <li class="commander__fixture-row">
+            @for (plan of outerGroup.plans; track plan.plan_name) {
+              <section class="commander__group">
+                <header class="commander__group-header">
+                  <h4 class="commander__group-title">{{ plan.plan_name }}</h4>
                   <button
                     pButton
                     type="button"
-                    class="commander__fixture-btn"
+                    class="commander__reload-btn"
+                    icon="pi pi-refresh"
+                    [text]="true"
+                    [rounded]="true"
                     severity="secondary"
                     size="small"
-                    [class.commander__fixture-btn--active]="selectedFixtureName() === fixture.fixture_name"
-                    (click)="selectFixture(fixture)"
-                  >
-                    {{ fixture.fixture_name }}
-                  </button>
-                  @if (fixtureFwStatusMap().get(fixture.fixture_name); as fws) {
-                    <span
-                      class="commander__fixture-fw"
-                      [class.commander__fixture-fw--outdated]="fws.outdated"
-                      [title]="fws.outdated && fws.release ? 'latest: v' + fws.release : ''"
-                    >v{{ fws.fw }}</span>
-                  }
+                    [disabled]="commanderUnavailable()"
+                    title="Re-query plan {{ plan.plan_name }}"
+                    aria-label="Reload plan {{ plan.plan_name }}"
+                    (click)="sidebarRefreshPlan(plan.plan_name, $event)"
+                  ></button>
                   <button
                     pButton
                     type="button"
@@ -96,13 +94,51 @@
                     [rounded]="true"
                     severity="secondary"
                     size="small"
-                    title="Remove fixture from local store"
-                    aria-label="Remove fixture {{ fixture.fixture_name }}"
-                    (click)="removeFixture(fixture, $event)"
+                    title="Remove this plan from local store"
+                    aria-label="Remove plan {{ plan.plan_name }}"
+                    (click)="removePlan(plan.plan_name, $event)"
                   ></button>
-                </li>
-              }
-            </ul>
+                </header>
+
+                <ul class="commander__fixture-list">
+                  @for (fixture of plan.fixtures; track fixture.fixture_name) {
+                    <li class="commander__fixture-row">
+                      <button
+                        pButton
+                        type="button"
+                        class="commander__fixture-btn"
+                        severity="secondary"
+                        size="small"
+                        [class.commander__fixture-btn--active]="selectedFixtureName() === fixture.fixture_name"
+                        (click)="selectFixture(fixture)"
+                      >
+                        {{ fixture.fixture_name }}
+                      </button>
+                      @if (fixtureFwStatusMap().get(fixture.fixture_name); as fws) {
+                        <span
+                          class="commander__fixture-fw"
+                          [class.commander__fixture-fw--outdated]="fws.outdated"
+                          [title]="fws.outdated && fws.release ? 'latest: v' + fws.release : ''"
+                        >v{{ fws.fw }}</span>
+                      }
+                      <button
+                        pButton
+                        type="button"
+                        class="commander__trash-btn"
+                        icon="pi pi-trash"
+                        [text]="true"
+                        [rounded]="true"
+                        severity="secondary"
+                        size="small"
+                        title="Remove fixture from local store"
+                        aria-label="Remove fixture {{ fixture.fixture_name }}"
+                        (click)="removeFixture(fixture, $event)"
+                      ></button>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
           </section>
         }
       </div>

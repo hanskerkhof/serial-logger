@@ -39,7 +39,7 @@ import {
   CmdrPlanControls,
   CmdrPlayerCapabilities,
 } from '../../api/cmdr-models';
-import { FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
+import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
 import { FixturePlayerControlsComponent } from '../../shared/fixture-player-controls/fixture-player-controls.component';
 
@@ -263,6 +263,30 @@ export class CommanderComponent implements OnInit {
   protected readonly targets: readonly CommanderApiTarget[] = this.commanderApi.targets;
   protected readonly activeApiUrl = this.commanderApi.apiBaseUrl;
   protected readonly groupedFixtures = this.fixtureStore.fixturesGroupedByPlanName;
+
+  /** Two-level sidebar tree: plan_group → [plan → [fixtures]] */
+  protected readonly groupedFixturesByPlanGroup = computed(() => {
+    // Build plan_name → plan_group lookup from the exposed plans list
+    const planToGroup = new Map<string, string>();
+    for (const plan of this.exposedPlans()) {
+      planToGroup.set(plan.plan_name, (plan.plan_group || plan.plan_name).trim() || plan.plan_name);
+    }
+
+    const outerMap = new Map<string, FixturePlanGroup[]>();
+    for (const planGroup of this.groupedFixtures()) {
+      const pgName = planToGroup.get(planGroup.plan_name) ?? planGroup.plan_name;
+      const list = outerMap.get(pgName) ?? [];
+      list.push(planGroup);
+      outerMap.set(pgName, list);
+    }
+
+    return Array.from(outerMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([plan_group, plans]) => ({
+        plan_group,
+        plans: [...plans].sort((a, b) => a.plan_name.localeCompare(b.plan_name)),
+      }));
+  });
   protected readonly selectedFixtureName = this.fixtureStore.selectedFixtureName;
   protected readonly selectedFixture = this.fixtureStore.selectedFixture;
   protected readonly fixtureCount = this.fixtureStore.fixtureCount;
@@ -547,6 +571,20 @@ export class CommanderComponent implements OnInit {
 
   protected onPlanGroupSelected(value: string): void {
     this.planGroupName.set(value);
+  }
+
+  /** Called from sidebar reload button — sets the dropdown and fires the plan query. */
+  protected sidebarRefreshPlan(planName: string, event: Event): void {
+    event.stopPropagation();
+    this.planName.set(planName);
+    this.runPlanQuery();
+  }
+
+  /** Called from sidebar reload button — sets the dropdown and fires the plan group query. */
+  protected sidebarRefreshPlanGroup(planGroup: string, event: Event): void {
+    event.stopPropagation();
+    this.planGroupName.set(planGroup);
+    this.runPlanGroupQuery();
   }
 
   protected runPlanGroupQuery(): void {

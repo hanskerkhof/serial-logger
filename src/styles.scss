@@ -141,7 +141,7 @@ pre {
 // appear mid-page. Both the 'app' and 'cmdr-offline' toast containers share
 // this rule and their messages stack vertically within each container.
 .p-toast.p-toast-top-center {
-  top: 0;
+  top: 0 !important;
   padding-top: 0.5rem;
 }
 

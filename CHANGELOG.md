@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.1.53 - 2026-03-17
+
+### Changed
+- Version bump for commander/API release cycle and studio deploy.
+
+## 0.1.52 - 2026-03-17
+
+### Added
+- Green "Commander available" success toast on recovery — only shown when coming out of an unavailable state, never on initial page load when everything is fine.
+
+## 0.1.51 - 2026-03-17
+
+### Fixed
+- Toasts now flush to the very top of the viewport (`top: 0 !important` overrides PrimeNG inline style).
+- Grace period before showing "Commander unavailable" toast — suppressed while initial health fetch is in flight.
+
+### Changed
+- Retry link in Commander unavailable toast now uses `↻ retry` icon to match Live Commander Console style.
+
 ## 0.1.50 - 2026-03-17
 
 ### Fixed

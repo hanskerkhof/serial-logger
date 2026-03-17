@@ -135,6 +135,9 @@ export class CommanderComponent implements OnInit {
   protected readonly commanderUnavailable = computed(
     () => this.loading() || !!this.healthError() || this.health()?.commander?.detected !== true,
   );
+  // Tracks whether we've been through at least one unavailable state this session
+  // so the "back online" toast only fires on recovery, never on initial load.
+  private _wasUnavailable = false;
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
@@ -211,12 +214,27 @@ export class CommanderComponent implements OnInit {
 
     effect(() => {
       const unavailable = this.commanderUnavailable();
+      // Read loading() explicitly so this effect re-runs when loading changes.
+      // We suppress the toast while the initial health fetch is still in flight
+      // to avoid flashing "unavailable" before the first response arrives.
+      const stillLoading = this.loading();
       // setTimeout: p-toast subscribes to MessageService during view init,
       // after this constructor effect fires — defer so the message isn't lost.
       setTimeout(() => {
         this.messageService.clear('cmdr-offline');
-        if (unavailable) {
+        if (unavailable && !stillLoading) {
+          this._wasUnavailable = true;
           this.messageService.add({ key: 'cmdr-offline', severity: 'warn', summary: 'Commander unavailable', sticky: true });
+        } else if (!unavailable && this._wasUnavailable) {
+          // Recovery: only toast if we previously showed the unavailable warning.
+          this._wasUnavailable = false;
+          this.messageService.add({
+            key: 'app',
+            severity: 'success',
+            summary: 'Commander available',
+            detail: 'Connection restored.',
+            life: 4000,
+          });
         }
       }, 0);
     });

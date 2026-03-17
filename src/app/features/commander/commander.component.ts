@@ -133,7 +133,7 @@ export class CommanderComponent implements OnInit {
     () => this.discoveryLoading() || this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading(),
   );
   protected readonly commanderUnavailable = computed(
-    () => !!this.healthError() || this.health()?.commander?.detected !== true,
+    () => this.loading() || !!this.healthError() || this.health()?.commander?.detected !== true,
   );
 
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
@@ -224,16 +224,16 @@ export class CommanderComponent implements OnInit {
     effect(() => {
       const isDiscovery = this.discoveryLoading();
       const isQuery = this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading();
-      this.messageService.clear('status');
+      this.messageService.clear('app');
       if (isDiscovery) {
         const avg = this.discoveryAvgS();
         const summary =
           avg !== null
             ? `Running full discovery… · ~${avg.toFixed(1)}s`
             : 'Running full discovery…';
-        this.messageService.add({ key: 'status', severity: 'warn', summary, sticky: true, closable: false });
+        this.messageService.add({ key: 'app', severity: 'warn', summary, sticky: true, closable: false });
       } else if (isQuery) {
-        this.messageService.add({ key: 'status', severity: 'warn', summary: 'Running query...', sticky: true, closable: false });
+        this.messageService.add({ key: 'app', severity: 'warn', summary: 'Running query...', sticky: true, closable: false });
       }
     });
   }
@@ -772,7 +772,7 @@ export class CommanderComponent implements OnInit {
       summary += ` · ${durationS.toFixed(1)}s`;
       if (cnt >= 2 && avg !== null) summary += ` · avg ${avg.toFixed(1)}s`;
     }
-    this.messageService.add({ key: 'query-result', severity: 'success', summary, life: 3000 });
+    this.messageService.add({ key: 'app', severity: 'success', summary, life: 3000 });
   }
 
   private addDiscoveryTiming(durationS: number): void {
@@ -780,16 +780,14 @@ export class CommanderComponent implements OnInit {
   }
 
   private showErrorToast(message: string): void {
-    this.messageService.add({ key: 'cmdr-error', severity: 'error', summary: message, life: 6000 });
+    // Suppress redundant errors when cmdr-offline toast already covers the unavailable state.
+    if (this.commanderUnavailable()) return;
+    this.messageService.add({ key: 'app', severity: 'error', summary: message, life: 6000 });
   }
 
-  /** Returns false and toasts immediately if the API is known to be unreachable. */
+  /** Returns false if the API is known to be unreachable (cmdr-offline toast covers the state). */
   private checkApiReachable(): boolean {
-    if (this.healthError()) {
-      this.showErrorToast('API unreachable');
-      return false;
-    }
-    return true;
+    return !this.healthError();
   }
 
   private extractFixtures(

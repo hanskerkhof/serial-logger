@@ -137,6 +137,20 @@ pre {
   }
 }
 
+// Toast positioning — flush against the top of the viewport so they never
+// appear mid-page. Both the 'app' and 'cmdr-offline' toast containers share
+// this rule and their messages stack vertically within each container.
+.p-toast.p-toast-top-center {
+  top: 0;
+  padding-top: 0.5rem;
+}
+
+// Close button: keep it top-aligned when custom message templates are taller
+// than a single line. PrimeNG default is align-items: center on this row.
+.p-toast-message-content {
+  align-items: flex-start !important;
+}
+
 // Generic terminal / log window
 .console-log {
   background: #0d0d0d;

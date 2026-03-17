@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.50 - 2026-03-17
+
+### Fixed
+- All toasts now appear at the top of the viewport (top: 0).
+- Toasts no longer overlap: status/query-result/errors merged into one container; redundant errors suppressed when commander unavailable.
+- Run buttons are disabled by default on load and during health fetch (not just after a failure).
+- Toast close button is top-aligned with multi-line custom template content.
+
 ## 0.1.49 - 2026-03-17
 
 ### Changed

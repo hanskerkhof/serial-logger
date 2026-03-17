@@ -88,7 +88,7 @@ When bumping the version (patch, minor, or major), always do **all** of the foll
 Run `./scripts/update_studio_pi.sh` from the **root** `bauklank-micros` repo. The script:
 - Auto-discards local Pi changes before pulling (`git checkout -- .`) — dirty Python files no longer block the pull.
 - Restarts `cmdr-api.service` and verifies the frontend bundle.
-- Requires a **clean Mac-side repo** — commit/stash local changes first.
+- Requires a **clean Mac-side repo** — only the files being released need to be committed. Do **not** stash or commit unrelated dirty files (e.g. `arduino/BAUKLANK_FIXTURE_v2/Version.h`) just to satisfy the script; let them remain dirty and unstaged.
 - The `curl` health check at the end sometimes fails due to boot timing; `active (running)` in the service status is the reliable indicator.
 
 ## Fixture capabilities access pattern

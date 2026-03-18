@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.65 - 2026-03-18
+
+### Fixed
+- Connected commander fixture now shows its correct firmware version in the sidebar and modal.
+  The Pi-connected commander cannot query itself over the serial bus, so its discovery-reported
+  version is stale; `health.release_version` is used as the authoritative override.
+
 ## 0.1.64 - 2026-03-18
 
 ### Added

@@ -295,12 +295,21 @@ export class CommanderComponent implements OnInit {
 
   /** Per-fixture fw version status keyed by fixture_name. Recomputes whenever health or store changes. */
   protected readonly fixtureFwStatusMap = computed(() => {
-    const release = this.health()?.api?.release_version ?? null;
+    const h = this.health();
+    const release = h?.api?.release_version ?? null;
+    // The Pi-connected commander cannot query itself; use health.release_version as its authoritative version.
+    const connectedCommander = h?.commander?.detected_fixture_name ?? null;
     const map = new Map<string, { fw: string; outdated: boolean; release: string | null }>();
     for (const group of this.groupedFixtures()) {
       for (const fixture of group.fixtures) {
-        const v = fixture.raw['fw_version'];
-        if (typeof v === 'string') {
+        const raw = fixture.raw['fw_version'];
+        const v =
+          connectedCommander && fixture.fixture_name === connectedCommander && release
+            ? release
+            : typeof raw === 'string'
+              ? raw
+              : null;
+        if (v !== null) {
           const outdated = release !== null && compareVersions(v, release) < 0;
           map.set(fixture.fixture_name, { fw: v, outdated, release });
         }
@@ -383,9 +392,19 @@ export class CommanderComponent implements OnInit {
     upToDate: boolean;
     direction: 'up-to-date' | 'fixture-outdated' | 'fixture-ahead';
   } | null>(() => {
-    const v = this.selectedFixture()?.raw['fw_version'];
-    if (typeof v !== 'string') return null;
-    const release = this.health()?.api?.release_version ?? null;
+    const h = this.health();
+    const release = h?.api?.release_version ?? null;
+    const connectedCommander = h?.commander?.detected_fixture_name ?? null;
+    const selected = this.selectedFixture();
+    const raw = selected?.raw['fw_version'];
+    // The Pi-connected commander cannot query itself; use health.release_version as its authoritative version.
+    const v =
+      connectedCommander && selected?.fixture_name === connectedCommander && release
+        ? release
+        : typeof raw === 'string'
+          ? raw
+          : null;
+    if (v === null) return null;
     const cmp = release !== null ? compareVersions(v, release) : 0;
     const direction =
       release === null ? 'up-to-date'

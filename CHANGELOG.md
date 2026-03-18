@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.68 - 2026-03-18
+
+### Changed
+- Version bump to sync with FW 2.3.4 (C3 TX power, reset reasons, fqbnKey, BKLK_CMDR_3). No FE
+  code changes — bump triggers service-worker update notification for open browsers.
+
 ## 0.1.67 - 2026-03-18
 
 ### Fixed

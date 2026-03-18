@@ -297,15 +297,16 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureFwStatusMap = computed(() => {
     const h = this.health();
     const release = h?.api?.release_version ?? null;
-    // The Pi-connected commander cannot query itself; use health.release_version as its authoritative version.
-    const connectedCommander = h?.commander?.detected_fixture_name ?? null;
+    const commanderFw = h?.commander?.fw_version ?? null;
+    const commanderFixture = h?.commander?.detected_fixture_name ?? null;
     const map = new Map<string, { fw: string; outdated: boolean; release: string | null }>();
     for (const group of this.groupedFixtures()) {
       for (const fixture of group.fixtures) {
         const raw = fixture.raw['fw_version'];
+        // Prefer the backend-reported fw_version for the connected commander (it probes itself via health).
         const v =
-          connectedCommander && fixture.fixture_name === connectedCommander && release
-            ? release
+          commanderFw && commanderFixture && fixture.fixture_name === commanderFixture
+            ? commanderFw
             : typeof raw === 'string'
               ? raw
               : null;
@@ -394,13 +395,14 @@ export class CommanderComponent implements OnInit {
   } | null>(() => {
     const h = this.health();
     const release = h?.api?.release_version ?? null;
-    const connectedCommander = h?.commander?.detected_fixture_name ?? null;
+    const commanderFw = h?.commander?.fw_version ?? null;
+    const commanderFixture = h?.commander?.detected_fixture_name ?? null;
     const selected = this.selectedFixture();
     const raw = selected?.raw['fw_version'];
-    // The Pi-connected commander cannot query itself; use health.release_version as its authoritative version.
+    // Prefer the backend-reported fw_version for the connected commander (it probes itself via health).
     const v =
-      connectedCommander && selected?.fixture_name === connectedCommander && release
-        ? release
+      commanderFw && commanderFixture && selected?.fixture_name === commanderFixture
+        ? commanderFw
         : typeof raw === 'string'
           ? raw
           : null;

@@ -305,6 +305,8 @@ export interface components {
             expected_fixture_name?: string | null;
             /** Fqbn */
             fqbn?: string | null;
+            /** Fw Version */
+            fw_version?: string | null;
             /** Last Reboot At Utc */
             last_reboot_at_utc?: string | null;
             /** Last Reboot Reason */

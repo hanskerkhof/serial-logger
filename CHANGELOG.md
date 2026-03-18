@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.1.66 - 2026-03-18
+
+### Fixed
+- Commander firmware version in health details now reads `commanderHealth.fw_version` (live backend
+  probe value) instead of `health.release_version` (expected version). This is the authoritative
+  value from the backend's own `identify` probe rather than a FE-side approximation.
+- `fixtureFwStatusMap` and `selectedFixtureFwStatus`: connected commander version is now sourced from
+  `health.commander.fw_version` (live probe) instead of the `release_version` workaround. The FE no
+  longer substitutes "what we think should be running" — it shows what the backend actually measured.
+
 ## 0.1.65 - 2026-03-18
 
 ### Fixed

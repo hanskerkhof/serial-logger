@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.67 - 2026-03-18
+
+### Fixed
+- Reboot command no longer returns a false 502 error. The fixture reboots successfully but cannot
+  complete the ACK handshake (it is already rebooting). Backend now dispatches `cmd;reboot` as
+  fire-and-forget (`ack=False`), so `accepted` reflects dispatch confirmation rather than timing out
+  waiting for a confirmation that never arrives. Listen window also reduced to 2 s for reboot.
+
 ## 0.1.66 - 2026-03-18
 
 ### Fixed

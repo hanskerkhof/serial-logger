@@ -207,6 +207,7 @@
               <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
               <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
               <div><strong>commander fqbn:</strong> {{ commanderHealth.fqbn || '-' }}</div>
+              <div><strong>commander version:</strong> {{ currentHealth.release_version || '-' }}</div>
               <div><strong>commander uptime:</strong> {{ formatDurationSeconds(commanderHealth.uptime_seconds) || '-' }}</div>
               <div><strong>last reboot reason:</strong> {{ commanderHealth.last_reboot_reason || '-' }}</div>
               <div><strong>last reboot:</strong> {{ commanderHealth.last_reboot_at_utc || '-' }} ({{ relativeTime(commanderHealth.last_reboot_at_utc) || '-' }})</div>

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.64 - 2026-03-18
+
+### Added
+- Health details: commander firmware version now shown alongside detected fixture, fqbn, and uptime.
+
 ## 0.1.63 - 2026-03-18
 
 ### Fixed

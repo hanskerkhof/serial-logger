@@ -614,6 +614,8 @@ export class CommanderComponent implements OnInit {
   }
 
   protected selectFixture(record: FixtureRecord): void {
+    // Diagnostic breadcrumb for fixture-selection mismatch investigations.
+    console.log('[cmdr][selectFixture]', { fixture_name: record.fixture_name, plan_name: record.plan_name });
     this.fixtureStore.setSelectedFixture(record.fixture_name);
     this.fixtureName.set(record.fixture_name);
     this.openFixtureModal();
@@ -894,13 +896,20 @@ export class CommanderComponent implements OnInit {
 
     const now = new Date().toISOString();
     const records: FixtureRecord[] = [];
+    const existingByName = this.fixtureStore.fixturesByName();
 
     for (const item of extracted) {
       // Use the store key override for single-fixture modal queries so the
       // existing record is updated even when the fixture self-reports a
       // different fixture_name (e.g. CMDR alias vs self-reported identity).
-      const fixture_name = storeKeyOverride ?? this.readString(item, 'fixture_name');
-      const plan_name = this.readString(item, 'plan_name');
+      const reported_fixture_name = this.readString(item, 'fixture_name');
+      const fixture_name = storeKeyOverride ?? reported_fixture_name;
+      const payload_plan_name = this.readString(item, 'plan_name');
+      const existing_record = fixture_name ? existingByName[fixture_name] : undefined;
+      const plan_name =
+        storeKeyOverride && existing_record?.plan_name
+          ? existing_record.plan_name
+          : payload_plan_name;
 
       if (!fixture_name) {
         this.error.set(`Fixture payload missing fixture_name: ${JSON.stringify(item)}`);
@@ -909,6 +918,14 @@ export class CommanderComponent implements OnInit {
       if (!plan_name) {
         this.error.set(`Fixture payload missing plan_name for ${fixture_name}.`);
         continue;
+      }
+      if (storeKeyOverride && reported_fixture_name && reported_fixture_name !== fixture_name) {
+        console.warn('[cmdr][extractFixtures] storeKeyOverride identity mismatch', {
+          store_fixture_name: fixture_name,
+          payload_fixture_name: reported_fixture_name,
+          payload_plan_name: payload_plan_name ?? null,
+          preserved_plan_name: existing_record?.plan_name ?? null,
+        });
       }
 
       records.push({

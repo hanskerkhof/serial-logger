@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+- Fixture modal shows wrong fixture name (cross-contamination fix): when `storeKeyOverride` is set,
+  `plan_name` is now preserved from the existing store record instead of being overwritten by the
+  payload, preventing concurrent queries from flipping fixture grouping.
+- `FixtureStoreService.upsertFixtures`: incoming fixtures sharing a MAC with an existing record under
+  a different name are now merged into the canonical entry instead of creating duplicate entries.
+
+### Added
+- Diagnostic `console.log` in `selectFixture` and `console.warn` in `extractFixtures` for
+  fixture-identity mismatch investigations.
+
 ## 0.1.61 - 2026-03-17
 
 ### Fixed

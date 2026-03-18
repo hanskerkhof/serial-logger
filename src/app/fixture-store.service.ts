@@ -60,10 +60,50 @@ export class FixtureStoreService {
 
   upsertFixtures(fixtures: FixtureRecord[]): { added: number; updated: number } {
     const current = this.fixturesByName();
+    const currentByMac = new Map<string, string>();
+    for (const existing of Object.values(current)) {
+      const mac = this.readFixtureMac(existing);
+      if (mac && !currentByMac.has(mac)) {
+        currentByMac.set(mac, existing.fixture_name);
+      }
+    }
+    const mergedByName = new Map<string, FixtureRecord>();
+
+    for (const fixture of fixtures) {
+      const incomingMac = this.readFixtureMac(fixture);
+      const canonicalNameForMac = incomingMac ? currentByMac.get(incomingMac) : undefined;
+      if (incomingMac && canonicalNameForMac && canonicalNameForMac !== fixture.fixture_name) {
+        console.warn('[cmdr][fixture-store] mac_conflict_merge', {
+          mac: incomingMac,
+          incoming_fixture_name: fixture.fixture_name,
+          canonical_fixture_name: canonicalNameForMac,
+        });
+        const canonicalCurrent = current[canonicalNameForMac];
+        const canonicalIncoming = mergedByName.get(canonicalNameForMac);
+        const canonicalBase = canonicalIncoming ?? canonicalCurrent;
+        mergedByName.set(canonicalNameForMac, {
+          ...fixture,
+          fixture_name: canonicalNameForMac,
+          plan_name: canonicalBase?.plan_name || fixture.plan_name,
+          raw: {
+            ...(canonicalBase?.raw ?? {}),
+            ...(fixture.raw ?? {}),
+            fixture_name: canonicalNameForMac,
+            wifi_mac_address: incomingMac,
+          },
+        });
+        continue;
+      }
+      if (incomingMac && !canonicalNameForMac) {
+        currentByMac.set(incomingMac, fixture.fixture_name);
+      }
+      mergedByName.set(fixture.fixture_name, fixture);
+    }
+
     let added = 0;
     let updated = 0;
 
-    for (const fixture of fixtures) {
+    for (const fixture of mergedByName.values()) {
       if (fixture.fixture_name in current) {
         updated++;
       } else {
@@ -73,13 +113,34 @@ export class FixtureStoreService {
 
     this.fixturesByName.update((cur) => {
       const next = { ...cur };
-      for (const fixture of fixtures) {
+      for (const fixture of mergedByName.values()) {
         next[fixture.fixture_name] = fixture;
       }
       return next;
     });
     this.persistToStorage();
     return { added, updated };
+  }
+
+  private readFixtureMac(fixture: FixtureRecord): string | null {
+    const raw = fixture.raw ?? {};
+    const direct = this.normalizeMac(raw['wifi_mac_address']);
+    if (direct) return direct;
+    return this.normalizeMac(raw['target_wifi_mac']);
+  }
+
+  private normalizeMac(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const text = value.trim().toUpperCase().replaceAll('-', ':');
+    if (!text) return null;
+    const parts = text.split(':');
+    if (parts.length !== 6) return null;
+    const normalized: string[] = [];
+    for (const part of parts) {
+      if (!/^[0-9A-F]{1,2}$/.test(part)) return null;
+      normalized.push(part.padStart(2, '0'));
+    }
+    return normalized.join(':');
   }
 
   setSelectedFixture(fixture_name: string | null): void {

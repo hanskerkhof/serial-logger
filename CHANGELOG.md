@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.63 - 2026-03-18
+
 ### Fixed
 - Fixture modal shows wrong fixture name (cross-contamination fix): when `storeKeyOverride` is set,
   `plan_name` is now preserved from the existing store record instead of being overwritten by the

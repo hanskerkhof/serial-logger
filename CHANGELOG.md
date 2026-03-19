@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.69 - 2026-03-19
+
+### Changed
+- Version bump to sync with FW 2.3.5 (dsrdtr=False serial fix, CMDR rename, docs). No FE code
+  changes — bump triggers service-worker update notification for open browsers.
+
 ## 0.1.68 - 2026-03-18
 
 ### Changed

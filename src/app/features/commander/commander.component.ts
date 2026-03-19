@@ -504,6 +504,7 @@ export class CommanderComponent implements OnInit {
     this.commanderApi.getFixtureVersion(fixtureName).subscribe({
       next: (result) => {
         this.otaChecking.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
+        this.ingestQueryResult(result, 'fixture_query', fixtureName);
         const fixtureVersion = result.summary?.fw_version ?? null;
 
         if (releaseVersion && fixtureVersion === releaseVersion) {

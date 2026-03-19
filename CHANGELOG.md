@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-03-19
+
+### Changed
+- Minor version bump to align with FW 2.4.0 (`compile_all_fixtures.py` tooling, `NO_PLAYER` SD card copy fix, CMDR_1 hardware swap, `ESP32C3_SUPER_MINI` enum rename). No FE code changes — bump triggers service-worker update notification for open browsers.
+
 ## 0.1.71 - 2026-03-19
 
 ### Fixed

@@ -1028,9 +1028,16 @@ export class CommanderComponent implements OnInit {
         // Auto-discover on first API success when fixture store is empty.
         // Covers both initial load and recovery-after-offline. The flag ensures
         // it fires at most once per session even across health polls.
+        // Delayed by 3 s so the commander serial connection has time to stabilise
+        // before the discovery request hits the API (USB-CDC boards can take
+        // a few seconds to come online after the API opens the serial port).
         if (!this._autoDiscoveryTriggered && this.fixtureStore.fixtureCount() === 0) {
           this._autoDiscoveryTriggered = true;
-          this.runFullDiscovery();
+          setTimeout(() => {
+            if (this.fixtureStore.fixtureCount() === 0 && this.health()?.commander?.detected === true) {
+              this.runFullDiscovery();
+            }
+          }, 3000);
         }
       },
       error: () => {

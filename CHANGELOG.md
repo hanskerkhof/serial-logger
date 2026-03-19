@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.71 - 2026-03-19
+
+### Fixed
+- Auto-discovery now waits 3 s after first API success before firing, and re-checks that the
+  commander is still detected. Prevents the discovery request from hitting the API before the
+  serial proxy has finished its initial USB-CDC connect/boot cycle.
+
 ## 0.1.70 - 2026-03-19
 
 ### Added

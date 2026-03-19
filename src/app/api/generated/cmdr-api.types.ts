@@ -106,6 +106,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fixtures/{fixture_name}/rssi-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fixture Rssi Session
+         * @description Trigger an RSSI diagnostic session on the named fixture.
+         *
+         *     Sends cmd;rssi;action=start;durationMs=<duration_ms> via the commander.
+         *     The fixture records RSSI for the requested duration then sends a BK_RSSI_REPORT
+         *     binary packet back to the commander, which emits BK_RSSI_REPORT JSON on serial.
+         */
+        post: operations["fixture_rssi_session_fixtures__fixture_name__rssi_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fixtures/{fixture_name}/version": {
         parameters: {
             query?: never;
@@ -475,6 +499,21 @@ export interface components {
             /** Action */
             action: string;
         };
+        /** FixtureRssiReport */
+        FixtureRssiReport: {
+            /** Fixture Name */
+            fixture_name: string;
+            /** Peer Count */
+            peer_count: number;
+            /** Peers */
+            peers: components["schemas"]["RssiPeerEntry"][];
+            /** Received At */
+            received_at: string;
+            /** Sender Mac */
+            sender_mac: string;
+            /** Session Duration Ms */
+            session_duration_ms: number;
+        };
         /** FixtureSummary */
         FixtureSummary: {
             /** Build Date */
@@ -510,6 +549,11 @@ export interface components {
             player_type?: string | null;
             /** Request Id */
             request_id?: string | null;
+            rssi?: components["schemas"]["FixtureRssiReport"] | null;
+            /** Rssi Dbm */
+            rssi_dbm?: number | null;
+            /** Rssi Quality */
+            rssi_quality?: string | null;
             /** Universe */
             universe?: number | null;
             /** Uptime */
@@ -633,6 +677,25 @@ export interface components {
             play_track_available: boolean;
             /** Volume Control Available */
             volume_control_available: boolean;
+        };
+        /** RssiPeerEntry */
+        RssiPeerEntry: {
+            /** Avg Rssi */
+            avg_rssi: number;
+            /** Mac */
+            mac: string;
+            /** Max Rssi */
+            max_rssi: number;
+            /** Min Rssi */
+            min_rssi: number;
+            /** Quality */
+            quality: number;
+            /** Quality Label */
+            quality_label: string;
+            /** Trend */
+            trend: number;
+            /** Trend Label */
+            trend_label: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -857,6 +920,39 @@ export interface operations {
                 "application/json": components["schemas"]["FixturePlanActionRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureCommandResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_rssi_session_fixtures__fixture_name__rssi_session_post: {
+        parameters: {
+            query?: {
+                duration_ms?: number;
+            };
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-03-19
+
+### Added
+- RSSI / Link Quality section in fixture detail modal showing quality badge, avg dBm, session duration, and per-peer table (Avg / Min / Max / Trend).
+- Fixture name resolved from MAC address in RSSI peer table (e.g. BKLK_CMDR_1 alongside E8:F6:0A:36:81:E4).
+- "Start RSSI session" button triggers a 20 s diagnostic session on the fixture; auto-refreshes the modal on completion.
+- ESP8266 notice shown when RSSI session is unavailable on the platform.
+- Section header clarifies direction: "Link Quality (what the fixture heard)".
+- Passive `rssi_dbm` / `rssi_quality` fields shown in fixture modal from commander-side recording (available without running a session).
+
 ## 0.2.0 - 2026-03-19
 
 ### Changed

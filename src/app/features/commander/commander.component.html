@@ -470,6 +470,80 @@
       <p class="commander__dialog-message">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
     }
     <app-fixture-player-controls [player]="selectedFixturePlayer()" />
+    <section class="commander__rssi-session" aria-label="RSSI session">
+      @if (selectedFixtureIsEsp8266()) {
+        <p class="commander__rssi-session-unsupported">
+          ⚠ RSSI sessions are not supported on ESP8266 boards (ESP-01, D1 Mini).
+        </p>
+      } @else {
+        <button
+          pButton
+          type="button"
+          [label]="rssiSessionCountdown() !== null ? ('Session active · ' + rssiSessionCountdown() + 's') : 'Start RSSI session'"
+          icon="pi pi-wifi"
+          iconPos="left"
+          severity="secondary"
+          size="small"
+          [loading]="rssiSessionLoading()"
+          [disabled]="rssiSessionLoading() || rssiSessionCountdown() !== null || commanderUnavailable()"
+          (click)="startRssiSession(20000)"
+        ></button>
+      }
+    </section>
+    @if (selectedFixtureRssiDbm() !== null || selectedFixtureRssi()) {
+      <section class="commander__rssi" aria-label="Link quality">
+        <h4 class="commander__rssi-title">
+          Link Quality
+          @if (selectedFixtureRssi()) {
+            <span class="commander__rssi-direction">signal received by fixture</span>
+          } @else {
+            <span class="commander__rssi-direction">signal received by commander</span>
+          }
+        </h4>
+        <div class="commander__rssi-summary">
+          @if (selectedFixtureRssiQuality(); as quality) {
+            <span class="commander__rssi-badge commander__rssi-badge--{{ rssiQualityClass(quality) }}">
+              {{ quality.replace('_', ' ') }}
+            </span>
+          }
+          @if (selectedFixtureRssiDbm(); as dbm) {
+            <span class="commander__rssi-dbm">{{ dbm }} dBm</span>
+          }
+          @if (selectedFixtureRssi(); as rssi) {
+            <span class="commander__rssi-duration">{{ rssiDurationLabel(rssi) }}</span>
+          }
+        </div>
+        @if (selectedFixtureRssi(); as rssi) {
+          <table class="commander__rssi-table">
+            <thead>
+              <tr>
+                <th>Peer MAC</th>
+                <th>Avg</th>
+                <th>Min</th>
+                <th>Max</th>
+                <th>Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (peer of rssi.peers; track peer.mac) {
+                <tr>
+                  <td class="commander__rssi-mac">
+                    @if (macToFixtureName()[peer.mac.toUpperCase()]; as name) {
+                      <span class="commander__rssi-fixture-name">{{ name }}</span>
+                    }
+                    <span class="commander__rssi-mac-addr">{{ peer.mac }}</span>
+                  </td>
+                  <td>{{ peer.avg_rssi }} dBm</td>
+                  <td>{{ peer.min_rssi }}</td>
+                  <td>{{ peer.max_rssi }}</td>
+                  <td>{{ peer.trend_label }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </section>
+    }
     @if (selectedFixtureCustomCommands().length > 0) {
       <section class="commander__custom-commands" aria-label="Custom commands">
         <h4 class="commander__custom-commands-title">Custom Commands</h4>

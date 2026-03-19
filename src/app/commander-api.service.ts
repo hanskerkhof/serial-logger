@@ -111,6 +111,16 @@ export class CommanderApiService {
     );
   }
 
+  postFixtureRssiSession(
+    fixtureName: string,
+    durationMs = 60000,
+  ): Observable<CmdrFixtureCommandResponse> {
+    return this.http.post<CmdrFixtureCommandResponse>(
+      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/rssi-session?duration_ms=${durationMs}`,
+      {},
+    );
+  }
+
   postRawCommand(command: string, listenSeconds = 3.0): Observable<CmdrRawResponse> {
     return this.http.post<CmdrRawResponse>(`${this.apiBaseUrl()}/commander/raw`, {
       command,

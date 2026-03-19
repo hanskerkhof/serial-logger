@@ -36,6 +36,7 @@ import {
   CmdrCustomCommandUiArg,
   CmdrCustomCommandUiItem,
   CmdrFixtureCapabilities,
+  CmdrFixtureRssiReport,
   CmdrPlanControls,
   CmdrPlayerCapabilities,
 } from '../../api/cmdr-models';
@@ -94,6 +95,9 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   protected readonly rebootConfirmPending = signal(false);
+  protected readonly rssiSessionLoading = signal(false);
+  protected readonly rssiSessionCountdown = signal<number | null>(null);
+  private rssiSessionTimer: ReturnType<typeof setInterval> | null = null;
   private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
   private healthRetryDelayMs = 3_000;
   private static readonly HEALTH_POLL_MS = 30_000;
@@ -389,6 +393,95 @@ export class CommanderComponent implements OnInit {
     if (!Array.isArray(raw)) return [];
     return raw as CmdrCustomCommandUiItem[];
   });
+
+  /** MAC (upper-case, colon-separated) → fixture name, built from the store. */
+  protected readonly macToFixtureName = computed<Record<string, string>>(() => {
+    const byName = this.fixtureStore.fixturesByName();
+    const map: Record<string, string> = {};
+    for (const record of Object.values(byName)) {
+      const mac = String(record.raw['wifi_mac_address'] ?? record.raw['target_wifi_mac'] ?? '')
+        .trim()
+        .toUpperCase();
+      if (mac) map[mac] = record.fixture_name;
+    }
+    return map;
+  });
+
+  protected readonly selectedFixtureRssi = computed<CmdrFixtureRssiReport | null>(() => {
+    const raw = this.selectedFixture()?.raw['rssi'];
+    return raw != null ? (raw as CmdrFixtureRssiReport) : null;
+  });
+
+  protected readonly selectedFixtureRssiDbm = computed<number | null>(() => {
+    const rssi = this.selectedFixtureRssi();
+    if (rssi) {
+      const first = rssi.peers?.[0];
+      return first?.avg_rssi ?? null;
+    }
+    const raw = this.selectedFixture()?.raw;
+    const dbm = raw?.['rssi_dbm'];
+    return typeof dbm === 'number' ? dbm : null;
+  });
+
+  protected readonly selectedFixtureRssiQuality = computed<string | null>(() => {
+    const rssi = this.selectedFixtureRssi();
+    if (rssi) return rssi.peers?.[0]?.quality_label ?? null;
+    const raw = this.selectedFixture()?.raw;
+    const q = raw?.['rssi_quality'];
+    return typeof q === 'string' ? q : null;
+  });
+
+  protected rssiQualityClass(qualityLabel: string | null | undefined): string {
+    return (qualityLabel ?? 'UNKNOWN').toLowerCase().replace('_', '-');
+  }
+
+  protected rssiDurationLabel(rssi: CmdrFixtureRssiReport): string {
+    const ms = rssi.session_duration_ms;
+    return ms ? `${Math.round(ms / 1000)}s session` : '';
+  }
+
+  /** True when the selected fixture's FQBN is ESP8266-based (no RSSI session support). */
+  protected readonly selectedFixtureIsEsp8266 = computed<boolean>(() => {
+    const fqbn = String(this.selectedFixture()?.raw['fqbn'] ?? '').toUpperCase();
+    return fqbn.includes('ESP8266') || fqbn.includes('D1_MINI') || fqbn.includes('ESP_01');
+  });
+
+  protected startRssiSession(durationMs = 20000): void {
+    const fixture = this.selectedFixture()?.fixture_name?.trim();
+    if (!fixture) return;
+
+    if (this.rssiSessionTimer) {
+      clearInterval(this.rssiSessionTimer);
+      this.rssiSessionTimer = null;
+    }
+
+    this.rssiSessionLoading.set(true);
+    this.rssiSessionCountdown.set(null);
+
+    this.commanderApi.postFixtureRssiSession(fixture, durationMs).subscribe({
+      next: () => {
+        this.rssiSessionLoading.set(false);
+        let remaining = Math.round(durationMs / 1000);
+        this.rssiSessionCountdown.set(remaining);
+        this.rssiSessionTimer = setInterval(() => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            clearInterval(this.rssiSessionTimer!);
+            this.rssiSessionTimer = null;
+            this.rssiSessionCountdown.set(null);
+            // Auto-refresh the fixture data to pick up the new report.
+            this.runModalFixtureQuery();
+          } else {
+            this.rssiSessionCountdown.set(remaining);
+          }
+        }, 1000);
+      },
+      error: (err: unknown) => {
+        this.rssiSessionLoading.set(false);
+        this.fixtureActionError.set(this.formatError('RSSI session failed', err));
+      },
+    });
+  }
 
   protected readonly selectedFixtureFwStatus = computed<{
     fw: string;

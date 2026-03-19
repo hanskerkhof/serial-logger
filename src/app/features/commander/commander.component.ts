@@ -40,6 +40,7 @@ import {
   CmdrFixtureRssiReport,
   CmdrPlanControls,
   CmdrPlayerCapabilities,
+  CmdrVersionsResponse,
 } from '../../api/cmdr-models';
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
@@ -100,12 +101,8 @@ export class CommanderComponent implements OnInit {
   protected readonly rssiSessionCountdown = signal<number | null>(null);
   private rssiSessionTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly otaInProgress = signal<Set<string>>(new Set());
-  protected readonly otaChecking = signal<Set<string>>(new Set());
   protected readonly selectedFixtureOtaInProgress = computed(() =>
     this.otaInProgress().has(this.selectedFixtureName() ?? ''),
-  );
-  protected readonly selectedFixtureOtaChecking = computed(() =>
-    this.otaChecking().has(this.selectedFixtureName() ?? ''),
   );
   private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
   private healthRetryDelayMs = 3_000;
@@ -495,53 +492,38 @@ export class CommanderComponent implements OnInit {
   }
 
   protected startOtaUpdate(fixtureName: string): void {
-    if (this.otaInProgress().has(fixtureName) || this.otaChecking().has(fixtureName)) return;
+    if (this.otaInProgress().has(fixtureName) || this.modalQueryLoading()) return;
 
-    // Phase 1: query fixture first to confirm it is actually outdated
-    this.otaChecking.update((s) => new Set([...s, fixtureName]));
     const releaseVersion = this.health()?.api?.release_version ?? null;
 
-    this.commanderApi.getFixtureVersion(fixtureName).subscribe({
-      next: (result) => {
-        this.otaChecking.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
-        this.ingestQueryResult(result, 'fixture_query', fixtureName);
-        const fixtureVersion = result.summary?.fw_version ?? null;
+    // Phase 1: run the fixture query (same as "Run query" button) to get the live version
+    this.runModalFixtureQuery((result) => {
+      const fixtureVersion = result.summary?.fw_version ?? null;
 
-        if (releaseVersion && fixtureVersion === releaseVersion) {
-          this.messageService.add({
-            key: 'app',
-            severity: 'info',
-            summary: 'Already up to date',
-            detail: `${fixtureName} is already on v${fixtureVersion}`,
-            life: 5000,
-          });
-          return;
-        }
-
-        // Phase 2: fixture confirmed outdated — start OTA
-        this.otaInProgress.update((s) => new Set([...s, fixtureName]));
-        this.commanderApi.postOtaUpdate(fixtureName).subscribe({
-          error: (err: unknown) => {
-            this.otaInProgress.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
-            const status = (err as { status?: number })?.status;
-            const detail = status === 409
-              ? 'An update is already running for this fixture'
-              : `Failed to start update for ${fixtureName}`;
-            this.messageService.add({ key: 'app', severity: 'error', summary: 'OTA error', detail, life: 6000 });
-          },
-          // 202 success — wait for ota_complete via commander stream
-        });
-      },
-      error: () => {
-        this.otaChecking.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
+      if (releaseVersion && fixtureVersion === releaseVersion) {
         this.messageService.add({
           key: 'app',
-          severity: 'error',
-          summary: 'OTA pre-check failed',
-          detail: `Could not query ${fixtureName} before starting update`,
-          life: 6000,
+          severity: 'info',
+          summary: 'Already up to date',
+          detail: `${fixtureName} is already on v${fixtureVersion}`,
+          life: 5000,
         });
-      },
+        return;
+      }
+
+      // Phase 2: fixture confirmed outdated — start OTA
+      this.otaInProgress.update((s) => new Set([...s, fixtureName]));
+      this.commanderApi.postOtaUpdate(fixtureName).subscribe({
+        error: (err: unknown) => {
+          this.otaInProgress.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
+          const status = (err as { status?: number })?.status;
+          const detail = status === 409
+            ? 'An update is already running for this fixture'
+            : `Failed to start update for ${fixtureName}`;
+          this.messageService.add({ key: 'app', severity: 'error', summary: 'OTA error', detail, life: 6000 });
+        },
+        // 202 success — wait for ota_complete via commander stream
+      });
     });
   }
 
@@ -870,7 +852,7 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, `ack;tcmd;${fixture};cmd;reboot;`);
   }
 
-  protected runModalFixtureQuery(): void {
+  protected runModalFixtureQuery(onComplete?: (result: CmdrVersionsResponse) => void): void {
     const selected = this.selectedFixture();
     const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
     if (!fixture) {
@@ -891,6 +873,7 @@ export class CommanderComponent implements OnInit {
         // fixture_name (CMDR alias vs fixture self-identity).
         this.ingestQueryResult(result, 'fixture_query', fixture);
         this.modalQueryLoading.set(false);
+        onComplete?.(result);
       },
       error: (err: unknown) => {
         this.modalQuerySub = null;

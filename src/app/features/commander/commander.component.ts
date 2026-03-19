@@ -100,8 +100,12 @@ export class CommanderComponent implements OnInit {
   protected readonly rssiSessionCountdown = signal<number | null>(null);
   private rssiSessionTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly otaInProgress = signal<Set<string>>(new Set());
+  protected readonly otaChecking = signal<Set<string>>(new Set());
   protected readonly selectedFixtureOtaInProgress = computed(() =>
     this.otaInProgress().has(this.selectedFixtureName() ?? ''),
+  );
+  protected readonly selectedFixtureOtaChecking = computed(() =>
+    this.otaChecking().has(this.selectedFixtureName() ?? ''),
   );
   private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
   private healthRetryDelayMs = 3_000;
@@ -491,19 +495,52 @@ export class CommanderComponent implements OnInit {
   }
 
   protected startOtaUpdate(fixtureName: string): void {
-    if (this.otaInProgress().has(fixtureName)) return;
-    this.otaInProgress.update((s) => new Set([...s, fixtureName]));
+    if (this.otaInProgress().has(fixtureName) || this.otaChecking().has(fixtureName)) return;
 
-    this.commanderApi.postOtaUpdate(fixtureName).subscribe({
-      error: (err: unknown) => {
-        this.otaInProgress.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
-        const status = (err as { status?: number })?.status;
-        const detail = status === 409
-          ? 'An update is already running for this fixture'
-          : `Failed to start update for ${fixtureName}`;
-        this.messageService.add({ key: 'app', severity: 'error', summary: 'OTA error', detail, life: 6000 });
+    // Phase 1: query fixture first to confirm it is actually outdated
+    this.otaChecking.update((s) => new Set([...s, fixtureName]));
+    const releaseVersion = this.health()?.api?.release_version ?? null;
+
+    this.commanderApi.getFixtureVersion(fixtureName).subscribe({
+      next: (result) => {
+        this.otaChecking.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
+        const fixtureVersion = result.summary?.fw_version ?? null;
+
+        if (releaseVersion && fixtureVersion === releaseVersion) {
+          this.messageService.add({
+            key: 'app',
+            severity: 'info',
+            summary: 'Already up to date',
+            detail: `${fixtureName} is already on v${fixtureVersion}`,
+            life: 5000,
+          });
+          return;
+        }
+
+        // Phase 2: fixture confirmed outdated — start OTA
+        this.otaInProgress.update((s) => new Set([...s, fixtureName]));
+        this.commanderApi.postOtaUpdate(fixtureName).subscribe({
+          error: (err: unknown) => {
+            this.otaInProgress.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
+            const status = (err as { status?: number })?.status;
+            const detail = status === 409
+              ? 'An update is already running for this fixture'
+              : `Failed to start update for ${fixtureName}`;
+            this.messageService.add({ key: 'app', severity: 'error', summary: 'OTA error', detail, life: 6000 });
+          },
+          // 202 success — wait for ota_complete via commander stream
+        });
       },
-      // 202 success — wait for ota_complete via commander stream
+      error: () => {
+        this.otaChecking.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
+        this.messageService.add({
+          key: 'app',
+          severity: 'error',
+          summary: 'OTA pre-check failed',
+          detail: `Could not query ${fixtureName} before starting update`,
+          life: 6000,
+        });
+      },
     });
   }
 

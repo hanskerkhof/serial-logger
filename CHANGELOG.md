@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.70 - 2026-03-19
+
+### Added
+- Auto-discovery on page load: when the fixture store is empty, a full discovery runs automatically
+  on the first successful API connection (including after offline recovery).
+
 ## 0.1.69 - 2026-03-19
 
 ### Changed

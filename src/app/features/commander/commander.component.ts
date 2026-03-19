@@ -144,6 +144,9 @@ export class CommanderComponent implements OnInit {
   // so the "back online" toast only fires on recovery, never on initial load.
   private _wasUnavailable = false;
 
+  // Ensures auto-discovery on empty store fires at most once per session.
+  private _autoDiscoveryTriggered = false;
+
   @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
   private readonly commanderApi = inject(CommanderApiService);
@@ -1021,6 +1024,13 @@ export class CommanderComponent implements OnInit {
         if (wasOffline) {
           // API just came back — re-fetch all registered recovery endpoints
           this.runRecoveryCallbacks();
+        }
+        // Auto-discover on first API success when fixture store is empty.
+        // Covers both initial load and recovery-after-offline. The flag ensures
+        // it fires at most once per session even across health polls.
+        if (!this._autoDiscoveryTriggered && this.fixtureStore.fixtureCount() === 0) {
+          this._autoDiscoveryTriggered = true;
+          this.runFullDiscovery();
         }
       },
       error: () => {

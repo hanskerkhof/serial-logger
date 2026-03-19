@@ -31,6 +31,7 @@ import {
   CommanderQueryResponse,
   FixturePlanActionResponse,
   RawCommandResponse,
+  OtaStreamEvent,
 } from '../../commander-api.service';
 import {
   CmdrCustomCommandUiArg,
@@ -98,6 +99,10 @@ export class CommanderComponent implements OnInit {
   protected readonly rssiSessionLoading = signal(false);
   protected readonly rssiSessionCountdown = signal<number | null>(null);
   private rssiSessionTimer: ReturnType<typeof setInterval> | null = null;
+  protected readonly otaInProgress = signal<Set<string>>(new Set());
+  protected readonly selectedFixtureOtaInProgress = computed(() =>
+    this.otaInProgress().has(this.selectedFixtureName() ?? ''),
+  );
   private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
   private healthRetryDelayMs = 3_000;
   private static readonly HEALTH_POLL_MS = 30_000;
@@ -144,6 +149,8 @@ export class CommanderComponent implements OnInit {
   protected readonly commanderUnavailable = computed(
     () => this.loading() || !!this.healthError() || this.health()?.commander?.detected !== true,
   );
+  /** True only when the API reports it can compile firmware (macOS only). Gates the OTA Update button. */
+  protected readonly compileSupported = computed(() => this.health()?.compile_supported === true);
   // Tracks whether we've been through at least one unavailable state this session
   // so the "back online" toast only fires on recovery, never on initial load.
   private _wasUnavailable = false;
@@ -480,6 +487,48 @@ export class CommanderComponent implements OnInit {
         this.rssiSessionLoading.set(false);
         this.fixtureActionError.set(this.formatError('RSSI session failed', err));
       },
+    });
+  }
+
+  protected startOtaUpdate(fixtureName: string): void {
+    if (this.otaInProgress().has(fixtureName)) return;
+    this.otaInProgress.update((s) => new Set([...s, fixtureName]));
+
+    this.commanderApi.postOtaUpdate(fixtureName).subscribe({
+      error: (err: unknown) => {
+        this.otaInProgress.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
+        const status = (err as { status?: number })?.status;
+        const detail = status === 409
+          ? 'An update is already running for this fixture'
+          : `Failed to start update for ${fixtureName}`;
+        this.messageService.add({ key: 'app', severity: 'error', summary: 'OTA error', detail, life: 6000 });
+      },
+      // 202 success — wait for ota_complete via commander stream
+    });
+  }
+
+  protected onOtaComplete(event: { fixture_name: string; fw_version?: string }): void {
+    this.otaInProgress.update((s) => { const n = new Set(s); n.delete(event.fixture_name); return n; });
+    this.messageService.add({
+      key: 'app',
+      severity: 'success',
+      summary: 'Firmware updated',
+      detail: `${event.fixture_name} updated to v${event.fw_version ?? '?'}`,
+      life: 6000,
+    });
+    if (this.selectedFixtureName() === event.fixture_name) {
+      this.runModalFixtureQuery();
+    }
+  }
+
+  protected onOtaError(event: { fixture_name: string; message?: string }): void {
+    this.otaInProgress.update((s) => { const n = new Set(s); n.delete(event.fixture_name); return n; });
+    this.messageService.add({
+      key: 'app',
+      severity: 'error',
+      summary: 'OTA update failed',
+      detail: event.message ?? `Update failed for ${event.fixture_name}`,
+      life: 8000,
     });
   }
 

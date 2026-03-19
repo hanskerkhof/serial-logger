@@ -44,10 +44,22 @@ export interface CommanderStreamEvent {
   [key: string]: unknown;
 }
 
+// OTA update stream events — pushed to /commander/stream by the API background task
+export interface OtaStreamEvent {
+  step: 'compiling' | 'uploading' | 'verifying' | 'complete' | 'error';
+  fixture_name: string;
+  message?: string;
+  fw_version?: string; // present on 'complete'
+  error?: string;      // present on 'error'
+}
+
 export interface CommanderStreamHandlers {
   onOpen?: () => void;
   onEvent: (event: CommanderStreamEvent) => void;
   onError?: (message: string) => void;
+  ota_progress?: (event: OtaStreamEvent) => void;
+  ota_complete?: (event: OtaStreamEvent) => void;
+  ota_error?: (event: OtaStreamEvent) => void;
 }
 
 const commanderApiUrlStorageKey = 'cmdr.api.baseUrl';
@@ -111,6 +123,13 @@ export class CommanderApiService {
     );
   }
 
+  postOtaUpdate(fixtureName: string): Observable<{ ok: boolean; fixture_name: string; status: string }> {
+    return this.http.post<{ ok: boolean; fixture_name: string; status: string }>(
+      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/ota-update`,
+      {},
+    );
+  }
+
   postFixtureRssiSession(
     fixtureName: string,
     durationMs = 60000,
@@ -170,6 +189,27 @@ export class CommanderApiService {
       source.addEventListener(eventType, (event) =>
         handleMessage(event as MessageEvent, eventType),
       );
+    }
+
+    // OTA update events — pushed by background task into the commander stream
+    const parseOtaEvent = (event: Event): OtaStreamEvent | null => {
+      try {
+        return JSON.parse(String((event as MessageEvent).data ?? '{}')) as OtaStreamEvent;
+      } catch {
+        return null;
+      }
+    };
+    if (handlers.ota_progress) {
+      const h = handlers.ota_progress;
+      source.addEventListener('ota_progress', (e) => { const d = parseOtaEvent(e); if (d) h(d); });
+    }
+    if (handlers.ota_complete) {
+      const h = handlers.ota_complete;
+      source.addEventListener('ota_complete', (e) => { const d = parseOtaEvent(e); if (d) h(d); });
+    }
+    if (handlers.ota_error) {
+      const h = handlers.ota_error;
+      source.addEventListener('ota_error', (e) => { const d = parseOtaEvent(e); if (d) h(d); });
     }
 
     source.onmessage = (event) => handleMessage(event);

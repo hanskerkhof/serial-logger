@@ -194,6 +194,7 @@
             <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
             <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
             <div><strong>service:</strong> {{ currentHealth.service }}</div>
+            <div><strong>compile_supported:</strong> {{ currentHealth.compile_supported ?? false }} {{ currentHealth.compile_supported ? '(darwin)' : '(linux)' }}</div>
             @if (currentHealth.release_version) {
               <div><strong>release_version:</strong> {{ currentHealth.release_version }}</div>
             }
@@ -341,7 +342,11 @@
 
     </section>
 
-    <app-commander-console [apiBaseUrl]="activeApiUrl()"></app-commander-console>
+    <app-commander-console
+      [apiBaseUrl]="activeApiUrl()"
+      (otaComplete)="onOtaComplete($event)"
+      (otaError)="onOtaError($event)"
+    ></app-commander-console>
 
     <section class="commander__raw-section" aria-label="Raw commander command">
       <p-inputgroup>
@@ -387,7 +392,25 @@
           [class.commander__dialog-fw-status--ahead]="fws.direction === 'fixture-ahead'"
         >
           @switch (fws.direction) {
-            @case ('fixture-outdated') { outdated · latest: v{{ fws.release }} }
+            @case ('fixture-outdated') {
+              outdated · latest: v{{ fws.release }}
+              @if (compileSupported()) {
+                <button
+                  pButton
+                  type="button"
+                  [text]="true"
+                  size="small"
+                  severity="secondary"
+                  [label]="selectedFixtureOtaInProgress() ? 'Updating…' : 'Update'"
+                  icon="pi pi-download"
+                  iconPos="left"
+                  [loading]="selectedFixtureOtaInProgress()"
+                  [disabled]="selectedFixtureOtaInProgress() || commanderUnavailable()"
+                  (click)="startOtaUpdate(selectedFixtureName()!)"
+                  class="commander__dialog-fw-update-btn"
+                ></button>
+              }
+            }
             @case ('fixture-ahead') { API outdated · release: v{{ fws.release }} }
           }
         </span>

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.1 - 2026-03-19
+
+### Added
+- One-click "Update" button in the fixture detail modal for outdated fixtures — triggers a compile + OTA sequence on the API, streams progress back via SSE, and shows a success toast on completion followed by an automatic modal refresh. Button only appears when the API is running on macOS (`compile_supported: true`).
+- `compile_supported` field shown in the Heartbeat details panel (true/false + platform name).
+
 ## 0.3.0 - 2026-03-19
 
 ### Added

@@ -576,6 +576,8 @@ export interface components {
             /** Build Time */
             build_time?: string | null;
             commander: components["schemas"]["CommanderHealthStatus"];
+            /** Compile Supported */
+            compile_supported?: boolean;
             /** Ok */
             ok: boolean;
             /** Release Version */

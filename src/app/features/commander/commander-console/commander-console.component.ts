@@ -7,10 +7,11 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { CommanderApiService, CommanderStreamEvent } from '../../../commander-api.service';
+import { CommanderApiService, CommanderStreamEvent, OtaStreamEvent } from '../../../commander-api.service';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -33,6 +34,9 @@ interface ConsoleLine {
 })
 export class CommanderConsoleComponent {
   apiBaseUrl = input.required<string>();
+  readonly otaProgress = output<OtaStreamEvent>();
+  readonly otaComplete = output<OtaStreamEvent>();
+  readonly otaError = output<OtaStreamEvent>();
 
   protected readonly connected = signal(false);
   protected readonly streamError = signal<string | null>(null);
@@ -132,6 +136,9 @@ export class CommanderConsoleComponent {
       onEvent: (event) => {
         this.handleStreamEvent(event);
       },
+      ota_progress: (event) => this.otaProgress.emit(event),
+      ota_complete: (event) => this.otaComplete.emit(event),
+      ota_error: (event) => this.otaError.emit(event),
     });
   }
 

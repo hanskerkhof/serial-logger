@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- Refreshed BAUKLANK Studio app icon set (favicon, Apple touch icon, and PWA icon sizes 180/192/512) with the approved BK/STUDIO mark and synced deployed web assets.
+
 ## 0.4.2 - 2026-03-20
 
 ### Changed

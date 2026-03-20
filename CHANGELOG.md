@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.6 - 2026-03-20
+
+### Changed
+- Added icon generation `v5` with no outline box and larger `BK/STDO` lettering for stronger Dock/app-launcher readability.
+- Switched active PWA manifest icon references to `icon-*-v5.png`.
+- Updated HTML cache-bust query strings to `?v=5` for `favicon.ico`, `manifest.webmanifest`, and `apple-touch-icon.png`.
+- Retained earlier icon generations (`v1` to `v4`) for quick fallback.
+- Version bump and Studio redeploy to `v0.4.6`.
+
 ## 0.4.5 - 2026-03-20
 
 ### Changed

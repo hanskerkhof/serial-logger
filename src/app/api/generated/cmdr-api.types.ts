@@ -449,6 +449,8 @@ export interface components {
             min?: number | null;
             /** Name */
             name: string;
+            /** State Path */
+            state_path?: string | null;
             /** Step */
             step?: number | null;
         };
@@ -572,6 +574,10 @@ export interface components {
             plan_group: string | null;
             /** Plan Name */
             plan_name: string | null;
+            /** Plan State */
+            plan_state?: {
+                [key: string]: unknown;
+            } | null;
             /** Player Type */
             player_type: string | null;
             /** Request Id */

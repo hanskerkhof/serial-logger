@@ -391,6 +391,11 @@ export class CommanderComponent implements OnInit {
     return caps?.plan_controls ?? null;
   });
 
+  protected readonly selectedFixturePlanState = computed<string | null>(() => {
+    const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
+    return (ps?.['plan_state'] as string) || null;
+  });
+
   protected readonly selectedFixturePlayer = computed<CmdrPlayerCapabilities | null>(() => {
     const caps = this.selectedFixture()?.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null;
     return caps?.player ?? null;
@@ -805,6 +810,9 @@ export class CommanderComponent implements OnInit {
     this.fixtureStore.setSelectedFixture(record.fixture_name);
     this.fixtureName.set(record.fixture_name);
     this.openFixtureModal();
+    if (record.raw['plan_state'] == null && !this.modalQueryLoading()) {
+      this.runModalFixtureQuery();
+    }
   }
 
   protected removeFixture(record: FixtureRecord, event: Event): void {

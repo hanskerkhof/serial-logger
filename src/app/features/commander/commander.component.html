@@ -657,6 +657,11 @@
         (click)="runManualCommand()"
         [disabled]="fixtureActionLoading() || commanderUnavailable() || !manualCommand().trim()"
       ></button>
+      @if (selectedFixturePlanState(); as planState) {
+        <span class="commander__plan-state-badge commander__plan-state-badge--{{ planState.toLowerCase() }}">
+          {{ planState }}
+        </span>
+      }
       @if (selectedFixturePlanControls()?.trigger?.available) {
         <button
           pButton

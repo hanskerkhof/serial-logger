@@ -314,6 +314,19 @@
   flex-wrap: wrap;
 }
 
+.commander__plan-state-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 1rem;
+  background: var(--p-surface-200);
+  color: var(--p-text-color);
+
+  &--running  { background: #16a34a; color: #fff; }
+  &--stopped  { background: var(--p-surface-300); color: var(--p-text-muted-color); }
+  &--paused   { background: #ca8a04; color: #fff; }
+}
+
 .commander__rssi-badge {
   font-size: 0.75rem;
   font-weight: 600;

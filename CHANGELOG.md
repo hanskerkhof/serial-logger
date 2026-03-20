@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-03-20
+
+### Added
+- Fixture modal auto-fires Run Query on first open when `plan_state` is absent (fixture has only been discovered, not individually queried). Subsequent reopens skip the auto-query if live data is already available in the store.
+- `custom_command_ui` sliders and number inputs now initialise with live fixture state values after Run Query — `set_volumes` sliders show current per-player volumes, `play_tracks` inputs show currently active track numbers.
+
 ## 0.3.3 - 2026-03-20
 
 ### Changed

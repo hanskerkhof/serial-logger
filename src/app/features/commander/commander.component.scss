@@ -339,6 +339,12 @@
   opacity: 0.65;
 }
 
+.commander__rssi-no-data {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  font-style: italic;
+}
+
 .commander__rssi-table {
   font-size: 0.8rem;
   border-collapse: collapse;

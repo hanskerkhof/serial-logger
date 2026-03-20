@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.3.3 - 2026-03-20
+
+### Changed
+- Version bump and Studio redeploy to refresh PWA update signaling and align with API `v2.4.5`.
+
 ## 0.3.2 - 2026-03-20
 
 ### Changed

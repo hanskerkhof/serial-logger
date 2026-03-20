@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.1 - 2026-03-20
+
+### Added
+- Keyboard-select auto-run behavior for Commander dropdowns: selecting via keyboard (`Enter`) now immediately runs the corresponding query for fixture, plan, or plan group.
+
+### Changed
+- Fixture modal first-open auto-query now gates on per-fixture session tracking instead of only `plan_state` null checks, preventing repeated auto-runs while still fetching once per fixture per session.
+- Version bump and Studio redeploy to align FE release with FW `v2.4.8`.
+
 ## 0.4.0 - 2026-03-20
 
 ### Added

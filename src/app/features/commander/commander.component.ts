@@ -18,7 +18,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputTextModule } from 'primeng/inputtext';
-import { SelectModule } from 'primeng/select';
+import { SelectChangeEvent, SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
 import { MessageService } from 'primeng/api';
@@ -140,6 +140,8 @@ export class CommanderComponent implements OnInit {
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
   private modalQuerySub: Subscription | null = null;
+  /** Fixture names that have been auto-queried on first modal open this session. */
+  private readonly autoQueriedFixtures = new Set<string>();
   protected readonly rawCommand = signal('');
   protected readonly rawCommandLoading = signal(false);
   protected readonly rawCommandResult = signal<RawCommandResponse | null>(null);
@@ -765,6 +767,25 @@ export class CommanderComponent implements OnInit {
     this.planGroupName.set(value);
   }
 
+  /** Auto-run when item selected via keyboard (Enter). Mouse selections require the Run button. */
+  protected onFixtureSelectChange(event: SelectChangeEvent): void {
+    if (!(event.originalEvent instanceof KeyboardEvent)) return;
+    this.fixtureName.set(event.value);
+    this.runFixtureQuery();
+  }
+
+  protected onPlanSelectChange(event: SelectChangeEvent): void {
+    if (!(event.originalEvent instanceof KeyboardEvent)) return;
+    this.planName.set(event.value);
+    this.runPlanQuery();
+  }
+
+  protected onPlanGroupSelectChange(event: SelectChangeEvent): void {
+    if (!(event.originalEvent instanceof KeyboardEvent)) return;
+    this.planGroupName.set(event.value);
+    this.runPlanGroupQuery();
+  }
+
   /** Called from sidebar reload button — sets the dropdown and fires the plan query. */
   protected sidebarRefreshPlan(planName: string, event: Event): void {
     event.stopPropagation();
@@ -810,7 +831,8 @@ export class CommanderComponent implements OnInit {
     this.fixtureStore.setSelectedFixture(record.fixture_name);
     this.fixtureName.set(record.fixture_name);
     this.openFixtureModal();
-    if (record.raw['plan_state'] == null && !this.modalQueryLoading()) {
+    if (!this.autoQueriedFixtures.has(record.fixture_name) && !this.modalQueryLoading()) {
+      this.autoQueriedFixtures.add(record.fixture_name);
       this.runModalFixtureQuery();
     }
   }

@@ -513,8 +513,7 @@
         ></button>
       }
     </section>
-    @if (selectedFixtureRssiDbm() !== null || selectedFixtureRssi()) {
-      <section class="commander__rssi" aria-label="Link quality">
+    <section class="commander__rssi" aria-label="Link quality">
         <h4 class="commander__rssi-title">
           Link Quality
           @if (selectedFixtureRssi()) {
@@ -571,7 +570,6 @@
           </table>
         }
       </section>
-    }
     @if (selectedFixtureCustomCommands().length > 0) {
       <section class="commander__custom-commands" aria-label="Custom commands">
         <h4 class="commander__custom-commands-title">Custom Commands</h4>

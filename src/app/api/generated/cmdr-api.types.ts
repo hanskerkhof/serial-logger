@@ -297,34 +297,34 @@ export interface components {
         /** ApiReleaseMetadata */
         ApiReleaseMetadata: {
             /** Build Date */
-            build_date?: string | null;
+            build_date: string | null;
             /** Build Time */
-            build_time?: string | null;
+            build_time: string | null;
             /** Git Commit */
-            git_commit?: string | null;
+            git_commit: string | null;
             /** Release Version */
-            release_version?: string | null;
+            release_version: string | null;
         } & {
             [key: string]: unknown;
         };
         /** CommandResult */
         CommandResult: {
             /** Accepted */
-            accepted?: boolean | null;
+            accepted: boolean | null;
             /** Command */
-            command?: string | null;
+            command: string | null;
             /** Proxy */
-            proxy?: {
+            proxy: {
                 [key: string]: unknown;
             } | null;
             /** Raw Output */
-            raw_output?: string | null;
+            raw_output: string | null;
             /** Request Id */
-            request_id?: string | null;
+            request_id: string | null;
             /** Serial Error */
-            serial_error?: string | null;
+            serial_error: string | null;
             /** Timing */
-            timing?: {
+            timing: {
                 [key: string]: unknown;
             } | null;
         } & {
@@ -333,66 +333,66 @@ export interface components {
         /** CommanderConnection */
         CommanderConnection: {
             /** Baud */
-            baud?: number | null;
+            baud: number | null;
             /** Port */
-            port?: string | null;
+            port: string | null;
         } & {
             [key: string]: unknown;
         };
         /** CommanderHealthStatus */
         CommanderHealthStatus: {
             /** Baud */
-            baud?: number | null;
+            baud: number | null;
             /** Candidate Ports */
-            candidate_ports?: string[];
+            candidate_ports: string[];
             /** Detected */
-            detected?: boolean | null;
+            detected: boolean | null;
             /** Detected Fixture Name */
-            detected_fixture_name?: string | null;
+            detected_fixture_name: string | null;
             /** Expected Fixture Name */
-            expected_fixture_name?: string | null;
+            expected_fixture_name: string | null;
             /** Fqbn */
-            fqbn?: string | null;
+            fqbn: string | null;
             /** Fw Version */
-            fw_version?: string | null;
+            fw_version: string | null;
             /** Last Reboot At Utc */
-            last_reboot_at_utc?: string | null;
+            last_reboot_at_utc: string | null;
             /** Last Reboot Reason */
-            last_reboot_reason?: string | null;
+            last_reboot_reason: string | null;
             /** Port */
-            port?: string | null;
+            port: string | null;
             /** Probe Elapsed Ms */
-            probe_elapsed_ms?: number | null;
-            proxy?: components["schemas"]["CommanderProxyStatus"] | null;
+            probe_elapsed_ms: number | null;
+            proxy: components["schemas"]["CommanderProxyStatus"] | null;
             /** Resolver Source */
-            resolver_source?: string | null;
+            resolver_source: string | null;
             /** Uptime Seconds */
-            uptime_seconds?: number | null;
+            uptime_seconds: number | null;
         } & {
             [key: string]: unknown;
         };
         /** CommanderProxyStatus */
         CommanderProxyStatus: {
             /** Active */
-            active?: boolean | null;
+            active: boolean | null;
             /** Baud */
-            baud?: number | null;
+            baud: number | null;
             /** Continuous Serial Mirror */
-            continuous_serial_mirror?: boolean | null;
+            continuous_serial_mirror: boolean | null;
             /** Event Buffer Size */
-            event_buffer_size?: number | null;
+            event_buffer_size: number | null;
             /** Last Event At Utc */
-            last_event_at_utc?: string | null;
+            last_event_at_utc: string | null;
             /** Last Event Type */
-            last_event_type?: string | null;
+            last_event_type: string | null;
             /** Last Transition At Utc */
-            last_transition_at_utc?: string | null;
+            last_transition_at_utc: string | null;
             /** Last Transition Reason */
-            last_transition_reason?: string | null;
+            last_transition_reason: string | null;
             /** Port */
-            port?: string | null;
+            port: string | null;
             /** State */
-            state?: string | null;
+            state: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -409,13 +409,13 @@ export interface components {
         /** CommanderRawConnection */
         CommanderRawConnection: {
             /** Baud */
-            baud?: number | null;
+            baud: number | null;
             /** Port */
-            port?: string | null;
+            port: string | null;
             /** Probe Elapsed Ms */
-            probe_elapsed_ms?: number | null;
+            probe_elapsed_ms: number | null;
             /** Resolver Source */
-            resolver_source?: string | null;
+            resolver_source: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -429,7 +429,7 @@ export interface components {
             /** Service */
             service: string;
             /** Timing */
-            timing?: {
+            timing: {
                 [key: string]: unknown;
             } | null;
         } & {
@@ -473,7 +473,7 @@ export interface components {
             ok: boolean;
             /** Service */
             service: string;
-            summary: components["schemas"]["VersionsSummary"] | null;
+            summary: components["schemas"]["VersionsSummary"];
         } & {
             [key: string]: unknown;
         };
@@ -599,19 +599,16 @@ export interface components {
         HealthResponse: {
             api: components["schemas"]["ApiReleaseMetadata"];
             /** Build Date */
-            build_date?: string | null;
+            build_date: string | null;
             /** Build Time */
-            build_time?: string | null;
+            build_time: string | null;
             commander: components["schemas"]["CommanderHealthStatus"];
-            /**
-             * Compile Supported
-             * @default false
-             */
+            /** Compile Supported */
             compile_supported: boolean;
             /** Ok */
             ok: boolean;
             /** Release Version */
-            release_version?: string | null;
+            release_version: string | null;
             /** Service */
             service: string;
             /** Utc */
@@ -759,7 +756,7 @@ export interface components {
             resolved_fixtures: string[];
             /** Service */
             service: string;
-            summary: components["schemas"]["VersionsSummary"] | null;
+            summary: components["schemas"]["VersionsSummary"];
         } & {
             [key: string]: unknown;
         };

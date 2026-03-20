@@ -89,6 +89,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fixtures/{fixture_name}/ota-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fixture Ota Update
+         * @description Compile + OTA update a single fixture.
+         *
+         *     Returns 202 immediately. Progress and completion events are pushed to /commander/stream
+         *     as `ota_progress`, `ota_complete`, and `ota_error` SSE events.
+         *     Returns 409 if an update for this fixture is already running.
+         */
+        post: operations["fixture_ota_update_fixtures__fixture_name__ota_update_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fixtures/{fixture_name}/plan": {
         parameters: {
             query?: never;
@@ -119,7 +143,7 @@ export interface paths {
          * Fixture Rssi Session
          * @description Trigger an RSSI diagnostic session on the named fixture.
          *
-         *     Sends cmd;rssi;action=start;durationMs=<duration_ms> via the commander.
+         *     Sends cmd;rssi;action=start;durationMs=<duration_ms>;toMacAddress=<commander_mac> via the commander.
          *     The fixture records RSSI for the requested duration then sends a BK_RSSI_REPORT
          *     binary packet back to the commander, which emits BK_RSSI_REPORT JSON on serial.
          */
@@ -444,12 +468,12 @@ export interface components {
         /** DiscoveryResponse */
         DiscoveryResponse: {
             /** Issued Commands */
-            issued_commands?: string[] | null;
+            issued_commands: string[];
             /** Ok */
             ok: boolean;
             /** Service */
             service: string;
-            summary?: components["schemas"]["VersionsSummary"] | null;
+            summary: components["schemas"]["VersionsSummary"] | null;
         } & {
             [key: string]: unknown;
         };
@@ -517,49 +541,49 @@ export interface components {
         /** FixtureSummary */
         FixtureSummary: {
             /** Build Date */
-            build_date?: string | null;
+            build_date: string | null;
             /** Build Date Time */
-            build_date_time?: string | null;
+            build_date_time: string | null;
             /** Build Time */
-            build_time?: string | null;
-            capabilities?: components["schemas"]["FixtureCapabilities"] | null;
+            build_time: string | null;
+            capabilities: components["schemas"]["FixtureCapabilities"] | null;
             /** Capabilities Status */
-            capabilities_status?: string | null;
+            capabilities_status: string | null;
             /** Channel */
-            channel?: number | null;
+            channel: number | null;
             /** Custom Command Ui */
-            custom_command_ui?: components["schemas"]["CustomCommandUiItem"][] | null;
+            custom_command_ui: components["schemas"]["CustomCommandUiItem"][];
             /** Fixture Group */
-            fixture_group?: string | null;
+            fixture_group: string | null;
             /** Fixture Name */
-            fixture_name?: string | null;
+            fixture_name: string | null;
             /** Fixture Type */
-            fixture_type?: string | null;
+            fixture_type: string | null;
             /** Fqbn */
-            fqbn?: string | null;
+            fqbn: string | null;
             /** Fw Version */
-            fw_version?: string | null;
+            fw_version: string | null;
             /** Last Recv */
-            last_recv?: string | null;
+            last_recv: string | null;
             /** Plan Group */
-            plan_group?: string | null;
+            plan_group: string | null;
             /** Plan Name */
-            plan_name?: string | null;
+            plan_name: string | null;
             /** Player Type */
-            player_type?: string | null;
+            player_type: string | null;
             /** Request Id */
-            request_id?: string | null;
-            rssi?: components["schemas"]["FixtureRssiReport"] | null;
+            request_id: string | null;
+            rssi: components["schemas"]["FixtureRssiReport"] | null;
             /** Rssi Dbm */
-            rssi_dbm?: number | null;
+            rssi_dbm: number | null;
             /** Rssi Quality */
-            rssi_quality?: string | null;
+            rssi_quality: string | null;
             /** Universe */
-            universe?: number | null;
+            universe: number | null;
             /** Uptime */
-            uptime?: string | null;
+            uptime: string | null;
             /** Wifi Mac Address */
-            wifi_mac_address?: string | null;
+            wifi_mac_address: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -576,8 +600,11 @@ export interface components {
             /** Build Time */
             build_time?: string | null;
             commander: components["schemas"]["CommanderHealthStatus"];
-            /** Compile Supported */
-            compile_supported?: boolean;
+            /**
+             * Compile Supported
+             * @default false
+             */
+            compile_supported: boolean;
             /** Ok */
             ok: boolean;
             /** Release Version */
@@ -711,41 +738,41 @@ export interface components {
         /** VersionsResponse */
         VersionsResponse: {
             /** Fixture Name */
-            fixture_name?: string | null;
+            fixture_name: string | null;
             /** Issued Commands */
-            issued_commands?: string[] | null;
+            issued_commands: string[];
             /** Ok */
             ok: boolean;
             /** Plan Group */
-            plan_group?: string | null;
+            plan_group: string | null;
             /** Plan Name */
-            plan_name?: string | null;
+            plan_name: string | null;
             /** Probe Fixture */
-            probe_fixture?: string | null;
+            probe_fixture: string | null;
             /** Resolved Fixtures */
-            resolved_fixtures?: string[] | null;
+            resolved_fixtures: string[];
             /** Service */
             service: string;
-            summary?: components["schemas"]["VersionsSummary"] | null;
+            summary: components["schemas"]["VersionsSummary"] | null;
         } & {
             [key: string]: unknown;
         };
         /** VersionsSummary */
         VersionsSummary: {
             /** Build Date */
-            build_date?: string | null;
+            build_date: string | null;
             /** Build Time */
-            build_time?: string | null;
+            build_time: string | null;
             /** Fixture Name */
-            fixture_name?: string | null;
+            fixture_name: string | null;
             /** Fixtures */
-            fixtures?: components["schemas"]["FixtureSummary"][] | null;
+            fixtures: components["schemas"]["FixtureSummary"][];
             /** Fw Version */
-            fw_version?: string | null;
+            fw_version: string | null;
             /** Requested Fixture */
-            requested_fixture?: string | null;
+            requested_fixture: string | null;
             /** Responded Count */
-            responded_count?: number | null;
+            responded_count: number;
         } & {
             [key: string]: unknown;
         };
@@ -895,6 +922,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixtureCommandResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_ota_update_fixtures__fixture_name__ota_update_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

@@ -544,7 +544,8 @@
           <table class="commander__rssi-table">
             <thead>
               <tr>
-                <th>Peer MAC</th>
+                <th>Peer</th>
+                <th>MAC</th>
                 <th>Avg</th>
                 <th>Min</th>
                 <th>Max</th>
@@ -554,10 +555,10 @@
             <tbody>
               @for (peer of rssi.peers; track peer.mac) {
                 <tr>
-                  <td class="commander__rssi-mac">
-                    @if (macToFixtureName()[peer.mac.toUpperCase()]; as name) {
-                      <span class="commander__rssi-fixture-name">{{ name }}</span>
-                    }
+                  <td class="commander__rssi-peer-name">
+                    {{ macToFixtureName()[peer.mac.toUpperCase()] || '—' }}
+                  </td>
+                  <td>
                     <span class="commander__rssi-mac-addr">{{ peer.mac }}</span>
                   </td>
                   <td>{{ peer.avg_rssi }} dBm</td>

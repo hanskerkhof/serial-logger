@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.3.2 - 2026-03-20
+
+### Changed
+- RSSI peer table split into separate Peer and MAC columns; fixture name shown in Peer column (or `—` if not yet resolved), MAC address in its own column.
+
 ## 0.3.1 - 2026-03-19
 
 ### Added

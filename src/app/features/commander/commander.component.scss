@@ -359,13 +359,7 @@
   th { opacity: 0.7; font-weight: 600; }
 }
 
-.commander__rssi-mac {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.commander__rssi-fixture-name {
+.commander__rssi-peer-name {
   font-size: 0.8rem;
   font-weight: 600;
 }

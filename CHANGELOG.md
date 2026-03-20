@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.4 - 2026-03-20
+
+### Changed
+- Added icon generation `v3` set with `STDO` acronym (`icon-180x180-v3.png`, `icon-192x192-v3.png`, `icon-512x512-v3.png`) and switched manifest references from `v2` to `v3`.
+- Updated HTML cache-bust query strings to `?v=3` for `favicon.ico`, `manifest.webmanifest`, and `apple-touch-icon.png`.
+- Retained `v1` and `v2` icon generations for fast rollback/switching.
+- Version bump and Studio redeploy to `v0.4.4`.
+
 ## 0.4.3 - 2026-03-20
 
 ### Changed

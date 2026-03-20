@@ -547,8 +547,11 @@ export interface components {
             /** Build Time */
             build_time: string | null;
             capabilities: components["schemas"]["FixtureCapabilities"] | null;
-            /** Capabilities Status */
-            capabilities_status: string | null;
+            /**
+             * Capabilities Status
+             * @enum {string}
+             */
+            capabilities_status: "ok" | "unknown";
             /** Channel */
             channel: number | null;
             /** Custom Command Ui */
@@ -649,8 +652,11 @@ export interface components {
         /** LanGroupFixtureDetail */
         LanGroupFixtureDetail: {
             capabilities?: components["schemas"]["FixtureCapabilities"] | null;
-            /** Capabilities Status */
-            capabilities_status: string;
+            /**
+             * Capabilities Status
+             * @enum {string}
+             */
+            capabilities_status: "ok" | "unknown";
             /** Custom Command Ui */
             custom_command_ui?: components["schemas"]["CustomCommandUiItem"][] | null;
             /** Fixture Name */

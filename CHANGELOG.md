@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.4.2 - 2026-03-20
+
+### Changed
+- Upgraded Angular patch stack to latest published 21.x releases (`@angular/core` and framework packages `21.2.5`, `@angular/cli` / `@angular/build` `21.2.3`).
+- Version bump and Studio redeploy to align FE release with FW `v2.4.8`.
+
 ## 0.4.1 - 2026-03-20
 
 ### Added

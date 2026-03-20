@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.7 - 2026-03-20
+
+### Changed
+- Added icon generation `v6` with slightly smaller `BK/STDO` text than `v5` to better match neighboring app icon visual weight.
+- Switched active PWA manifest icon references to `icon-*-v6.png`.
+- Updated HTML cache-bust query strings to `?v=6` for `favicon.ico`, `manifest.webmanifest`, and `apple-touch-icon.png`.
+- Retained earlier icon generations (`v1` to `v5`) for quick fallback.
+- Version bump and Studio redeploy to `v0.4.7`.
+
 ## 0.4.6 - 2026-03-20
 
 ### Changed

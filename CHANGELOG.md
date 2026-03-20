@@ -2,10 +2,14 @@
 
 ## Unreleased
 
+## 0.4.3 - 2026-03-20
+
 ### Changed
 - Refreshed BAUKLANK Studio app icon set (favicon, Apple touch icon, and PWA icon sizes 180/192/512) with the approved BK/STUDIO mark and synced deployed web assets.
 - Added icon cache-busting for Chrome app installs by versioning manifest icon filenames (`*-v2.png`) and app-head icon/manifest URLs (`?v=2`).
 - Restored the previous icon set as `*-v1.png` alongside current `*-v2.png` to allow fast manifest switching between icon generations.
+- Removed legacy non-suffixed icon assets (`icon-180x180.png`, `icon-192x192.png`, `icon-512x512.png`) so only explicit `v1`/`v2` variants remain.
+- Version bump and Studio redeploy to `v0.4.3`.
 
 ## 0.4.2 - 2026-03-20
 

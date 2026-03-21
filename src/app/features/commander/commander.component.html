@@ -37,6 +37,18 @@
         (click)="runFullDiscovery()"
         [disabled]="backendBusy() || commanderUnavailable()"
       ></button>
+      <button
+        pButton
+        type="button"
+        [label]="discoverFixturesButtonLabel()"
+        icon="pi pi-refresh"
+        iconPos="right"
+        severity="secondary"
+        size="small"
+        [loading]="discoverFixturesLoading()"
+        (click)="runSidebarFixtureDiscovery()"
+        [disabled]="backendBusy() || commanderUnavailable()"
+      ></button>
     </div>
 
     @if (storageWarning(); as warning) {
@@ -60,6 +72,7 @@
                 [rounded]="true"
                 severity="secondary"
                 size="small"
+                [loading]="sidebarRefreshingPlanGroup() === outerGroup.plan_group"
                 [disabled]="commanderUnavailable() || backendBusy()"
                 title="Re-query plan group {{ outerGroup.plan_group }}"
                 aria-label="Reload plan group {{ outerGroup.plan_group }}"
@@ -80,6 +93,7 @@
                     [rounded]="true"
                     severity="secondary"
                     size="small"
+                    [loading]="sidebarRefreshingPlan() === plan.plan_name"
                     [disabled]="commanderUnavailable() || backendBusy()"
                     title="Re-query plan {{ plan.plan_name }}"
                     aria-label="Reload plan {{ plan.plan_name }}"
@@ -121,6 +135,21 @@
                           [title]="fws.outdated && fws.release ? 'latest: v' + fws.release : ''"
                         >v{{ fws.fw }}</span>
                       }
+                      <button
+                        pButton
+                        type="button"
+                        class="commander__reload-btn"
+                        icon="pi pi-refresh"
+                        [text]="true"
+                        [rounded]="true"
+                        severity="secondary"
+                        size="small"
+                        [loading]="sidebarRefreshingFixture() === fixture.fixture_name"
+                        [disabled]="commanderUnavailable() || backendBusy()"
+                        title="Re-query fixture {{ fixture.fixture_name }}"
+                        aria-label="Reload fixture {{ fixture.fixture_name }}"
+                        (click)="sidebarRefreshFixture(fixture.fixture_name, $event)"
+                      ></button>
                       <button
                         pButton
                         type="button"

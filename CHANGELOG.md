@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.5.2 - 2026-03-21
+
+### Added
+- Sidebar fixture list now includes a per-fixture `Re-query fixture <FIXTURE_NAME>` button with row-level spinner feedback while the fixture query is running.
+- New sidebar action button `Discover fixtures` runs sequential per-fixture queries across the current sidebar list to preload `BK_PLAN_STATE` before opening fixture modals.
+
+### Changed
+- During `Discover fixtures`, the button label now shows live progress in the format `Discover fixtures - <FIXTURE_NAME> - XX.Xs` while each fixture is queried.
+- After `Discover fixtures` completes, the button label switches to `Discover fixtures - DONE - XX.XXs` for the completed batch duration.
+- Frontend patch release bump and Studio redeploy to `v0.5.2`.
+
 ## 0.5.1 - 2026-03-21
 
 ### Changed

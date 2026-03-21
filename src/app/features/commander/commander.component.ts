@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { InputGroupModule } from 'primeng/inputgroup';
@@ -87,7 +87,14 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureQueryLoading = signal(false);
   protected readonly planQueryLoading = signal(false);
   protected readonly planGroupQueryLoading = signal(false);
+  protected readonly sidebarRefreshingFixture = signal<string | null>(null);
+  protected readonly sidebarRefreshingPlan = signal<string | null>(null);
+  protected readonly sidebarRefreshingPlanGroup = signal<string | null>(null);
   protected readonly discoveryLoading = signal(false);
+  protected readonly discoverFixturesLoading = signal(false);
+  protected readonly discoverFixturesCurrentFixture = signal<string | null>(null);
+  protected readonly discoverFixturesElapsedS = signal<number>(0);
+  protected readonly discoverFixturesLastDurationS = signal<number | null>(null);
   protected readonly health = signal<CommanderHealthResponse | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
@@ -143,6 +150,18 @@ export class CommanderComponent implements OnInit {
     if (last === null) return 'Full Discovery';
     if (cnt < 2) return `Full Discovery · ${last.toFixed(1)}s`;
     return `Full Discovery · ${last.toFixed(1)}s · avg ${avg!.toFixed(1)}s`;
+  });
+  protected readonly discoverFixturesButtonLabel = computed(() => {
+    if (this.discoverFixturesLoading()) {
+      const current = this.discoverFixturesCurrentFixture();
+      const elapsed = this.discoverFixturesElapsedS().toFixed(1);
+      return current
+        ? `Discover fixtures - ${current} - ${elapsed}s`
+        : `Discover fixtures - ${elapsed}s`;
+    }
+    const duration = this.discoverFixturesLastDurationS();
+    if (duration === null) return 'Discover fixtures';
+    return `Discover fixtures - DONE - ${duration.toFixed(2)}s`;
   });
   protected readonly manualCommand = signal('');
   protected readonly customCommandValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
@@ -677,10 +696,14 @@ export class CommanderComponent implements OnInit {
   }
 
   protected runFixtureQuery(): void {
-    if (!this.checkApiReachable()) return;
+    if (!this.checkApiReachable()) {
+      this.sidebarRefreshingFixture.set(null);
+      return;
+    }
     const fixture = this.fixtureName().trim();
     if (!fixture) {
       this.error.set('Fixture name is required.');
+      this.sidebarRefreshingFixture.set(null);
       return;
     }
 
@@ -691,12 +714,14 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'fixture_query');
         this.fixtureQueryLoading.set(false);
+        this.sidebarRefreshingFixture.set(null);
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.showErrorToast(this.formatError(`Fixture query failed for ${fixture}`, err));
         this.queryResult.set(null);
         this.fixtureQueryLoading.set(false);
+        this.sidebarRefreshingFixture.set(null);
       },
     });
   }
@@ -728,11 +753,86 @@ export class CommanderComponent implements OnInit {
     });
   }
 
+  protected runSidebarFixtureDiscovery(): void {
+    if (!this.checkApiReachable() || this.discoverFixturesLoading()) return;
+
+    const fixtureNames = Array.from(
+      new Set(
+        this.groupedFixturesByPlanGroup().flatMap((outerGroup) =>
+          outerGroup.plans.flatMap((plan) => plan.fixtures.map((fixture) => fixture.fixture_name)),
+        ),
+      ),
+    );
+
+    if (!fixtureNames.length) {
+      this.messageService.add({
+        key: 'app',
+        severity: 'info',
+        summary: 'No fixtures in the local list to query',
+        life: 3000,
+      });
+      return;
+    }
+
+    this.error.set(null);
+    this.discoverFixturesLoading.set(true);
+    this.discoverFixturesCurrentFixture.set(null);
+    this.discoverFixturesElapsedS.set(0);
+    void this.runSidebarFixtureDiscoverySequential(fixtureNames);
+  }
+
+  private async runSidebarFixtureDiscoverySequential(fixtureNames: string[]): Promise<void> {
+    const startedAt = performance.now();
+    let successCount = 0;
+    const failures: string[] = [];
+
+    try {
+      for (const fixtureName of fixtureNames) {
+        this.discoverFixturesCurrentFixture.set(fixtureName);
+        this.sidebarRefreshingFixture.set(fixtureName);
+        try {
+          const result = await firstValueFrom(this.commanderApi.getFixtureVersion(fixtureName));
+          this.ingestQueryResult(result, 'fixture_query', fixtureName);
+          this.autoQueriedFixtures.add(fixtureName);
+          successCount += 1;
+        } catch (err: unknown) {
+          console.warn('[cmdr][discover-fixtures] fixture query failed', { fixtureName, err });
+          failures.push(fixtureName);
+        } finally {
+          this.discoverFixturesElapsedS.set((performance.now() - startedAt) / 1000);
+        }
+      }
+    } finally {
+      this.sidebarRefreshingFixture.set(null);
+      this.discoverFixturesCurrentFixture.set(null);
+      this.discoverFixturesLoading.set(false);
+      this.discoverFixturesLastDurationS.set((performance.now() - startedAt) / 1000);
+    }
+
+    const total = fixtureNames.length;
+    const failedCount = failures.length;
+    const severity = failedCount > 0 ? 'warn' : 'success';
+    const summary =
+      failedCount > 0
+        ? `Discover fixtures finished: ${successCount}/${total} queried, ${failedCount} failed`
+        : `Discover fixtures finished: ${successCount}/${total} queried`;
+    const detail =
+      failedCount > 0
+        ? `Failed: ${failures.slice(0, 5).join(', ')}${failedCount > 5 ? ', ...' : ''}`
+        : undefined;
+
+    this.messageService.add({ key: 'app', severity, summary, detail, life: 6000 });
+  }
+
   protected runPlanQuery(): void {
-    if (!this.checkApiReachable()) return;
+    if (!this.checkApiReachable()) {
+      this.sidebarRefreshingPlan.set(null);
+      return;
+    }
     const plan = this.planName().trim();
     if (!plan) {
       this.error.set('Plan name is required.');
+      this.sidebarRefreshingPlan.set(null);
       return;
     }
 
@@ -743,12 +843,14 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'plan_query');
         this.planQueryLoading.set(false);
+        this.sidebarRefreshingPlan.set(null);
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.showErrorToast(this.formatError(`Plan query failed for ${plan}`, err));
         this.queryResult.set(null);
         this.planQueryLoading.set(false);
+        this.sidebarRefreshingPlan.set(null);
       },
     });
   }
@@ -799,6 +901,7 @@ export class CommanderComponent implements OnInit {
   protected sidebarRefreshPlan(planName: string, event: Event): void {
     event.stopPropagation();
     this.planName.set(planName);
+    this.sidebarRefreshingPlan.set(planName);
     this.runPlanQuery();
   }
 
@@ -806,14 +909,27 @@ export class CommanderComponent implements OnInit {
   protected sidebarRefreshPlanGroup(planGroup: string, event: Event): void {
     event.stopPropagation();
     this.planGroupName.set(planGroup);
+    this.sidebarRefreshingPlanGroup.set(planGroup);
     this.runPlanGroupQuery();
   }
 
+  /** Called from sidebar fixture reload button — sets the dropdown and fires the fixture query. */
+  protected sidebarRefreshFixture(fixtureName: string, event: Event): void {
+    event.stopPropagation();
+    this.fixtureName.set(fixtureName);
+    this.sidebarRefreshingFixture.set(fixtureName);
+    this.runFixtureQuery();
+  }
+
   protected runPlanGroupQuery(): void {
-    if (!this.checkApiReachable()) return;
+    if (!this.checkApiReachable()) {
+      this.sidebarRefreshingPlanGroup.set(null);
+      return;
+    }
     const planGroup = this.planGroupName().trim();
     if (!planGroup) {
       this.error.set('Plan group is required.');
+      this.sidebarRefreshingPlanGroup.set(null);
       return;
     }
 
@@ -824,12 +940,14 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'plan_group_query');
         this.planGroupQueryLoading.set(false);
+        this.sidebarRefreshingPlanGroup.set(null);
         this.showQueryResultToast(stats);
       },
       error: (err: unknown) => {
         this.showErrorToast(this.formatError(`Plan group query failed for ${planGroup}`, err));
         this.queryResult.set(null);
         this.planGroupQueryLoading.set(false);
+        this.sidebarRefreshingPlanGroup.set(null);
       },
     });
   }

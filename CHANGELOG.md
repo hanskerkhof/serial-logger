@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.1 - 2026-03-21
+
+### Changed
+- Fixture modal `Set volumes` now includes a `Master` slider when a grouped volume section has more than one slider.
+- Master slider uses proportional scaling against the group average (Sonos-style grouped volume behavior), so relative balance between player sliders is preserved.
+- While dragging `Master`, per-player sliders update live in the UI; on release, per-player `setVolume` commands are dispatched once through existing commander send logic.
+- Frontend patch release bump and Studio redeploy to `v0.5.1`.
+
 ## 0.5.0 - 2026-03-21
 
 ### Added

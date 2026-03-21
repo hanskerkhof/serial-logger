@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.0 - 2026-03-21
+
+### Changed
+- Fixture modal command feedback now clearly distinguishes transport semantics: `Dispatch accepted` (commander dispatch accepted) vs `Fixture ACK confirmed` (fixture-level ACK confirmation).
+- Added a fixture-modal `Require fixture ACK` toggle (default off) for modal command sends (manual command input, plan trigger/stop actions, and custom command controls), while reboot remains backend fire-and-forget.
+- Introduced reusable `app-fixture-custom-control` component for `custom_command_ui` rendering and grouping, including PALESP32 layout behavior (`Startup Sequence`, consolidated `Set volumes`, consolidated `Play Tracks`) with responsive desktop/mobile card layout.
+- Version bump and Studio redeploy to `v0.5.0`.
+
 ## 0.4.8 - 2026-03-21
 
 ### Changed

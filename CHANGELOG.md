@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.3 - 2026-03-21
+
+### Changed
+- Update dialog postpone flow now uses escalating grace windows: first `Later` delays by `2 min`, second by `30 min`, and third by `6h`.
+- After the third postpone, `Later` is no longer available and the modal becomes update-only (`Update Now`).
+- Update dialog copy now shows the actual next delay dynamically (`2 min`, `30 min`, `6h`) and displays a postpone-limit message when deferrals are exhausted.
+- Frontend patch release bump and Studio redeploy to `v0.5.3`.
+
 ## 0.5.2 - 2026-03-21
 
 ### Added

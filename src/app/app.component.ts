@@ -34,15 +34,26 @@ export class AppComponent {
   protected readonly showInstallBanner = signal(this.isIos && !this.isStandalone && !this.bannerDismissed);
 
   // --- Update notification state ---
-  // Adjust GRACE_PERIOD_MINUTES to change how long the user can defer an update.
-  protected readonly GRACE_PERIOD_MINUTES = 2;
-  private readonly MAX_LATER_COUNT = 3;
+  // Deferral schedule per "Later" press: 2m, then 30m, then 6h.
+  // After the third deferral, "Later" disappears and update is required.
+  private readonly LATER_REMINDER_MINUTES = [2, 30, 360] as const;
+  private readonly MAX_LATER_COUNT = this.LATER_REMINDER_MINUTES.length;
   protected readonly updateAvailable = signal(false);
   protected readonly showUpdateDialog = signal(false);
   protected readonly newVersion = signal<string | null>(null);
   private readonly laterCount = signal(0);
   /** How many times the user can still press "Later" before the update is forced. */
   protected readonly remainingLaters = computed(() => this.MAX_LATER_COUNT - this.laterCount());
+  protected readonly nextLaterDelayMinutes = computed<number | null>(() => {
+    const index = this.laterCount();
+    return index < this.LATER_REMINDER_MINUTES.length ? this.LATER_REMINDER_MINUTES[index] : null;
+  });
+  protected readonly nextLaterDelayLabel = computed(() => {
+    const minutes = this.nextLaterDelayMinutes();
+    if (minutes === null) return null;
+    if (minutes % 60 === 0) return `${minutes / 60}h`;
+    return `${minutes} min`;
+  });
   private reminderTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
@@ -87,6 +98,11 @@ export class AppComponent {
   }
 
   private onUpdateReady(version: string | null): void {
+    if (this.reminderTimer !== null) {
+      clearTimeout(this.reminderTimer);
+      this.reminderTimer = null;
+    }
+    this.laterCount.set(0);
     this.newVersion.set(version);
     this.updateAvailable.set(true);
     this.showUpdateDialog.set(true);
@@ -97,6 +113,12 @@ export class AppComponent {
   }
 
   protected onUpdateLater(): void {
+    const delayMinutes = this.nextLaterDelayMinutes();
+    if (delayMinutes === null) {
+      this.showUpdateDialog.set(true);
+      return;
+    }
+
     this.showUpdateDialog.set(false);
     this.laterCount.update((n) => n + 1);
 
@@ -106,7 +128,7 @@ export class AppComponent {
       // Always show the dialog again — if no laters remain the template
       // hides the Later button, leaving only "Update Now".
       this.showUpdateDialog.set(true);
-    }, this.GRACE_PERIOD_MINUTES * 60 * 1000);
+    }, delayMinutes * 60 * 1000);
   }
 
   private formatApiDate(isoDate: string): string {

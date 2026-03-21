@@ -53,9 +53,13 @@
     </p>
     @if (remainingLaters() > 0) {
       <p class="update-dialog__note">
-        Choosing Later will remind you again in <strong>{{ GRACE_PERIOD_MINUTES }}&nbsp;min</strong>.<br>
+        Choosing Later will remind you again in <strong>{{ nextLaterDelayLabel() }}</strong>.<br>
         You can postpone <strong>{{ remainingLaters() }}</strong>
         more {{ remainingLaters() === 1 ? 'time' : 'times' }}.
+      </p>
+    } @else {
+      <p class="update-dialog__note">
+        Postpone limit reached. Please update now to continue.
       </p>
     }
   </div>

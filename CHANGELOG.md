@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.6.0 - 2026-03-21
+
+### Fixed
+- Pasting a previously-shown success command (which contains an embedded `rid=`) into the footer command input no longer returns HTTP 502. Root cause (`CMDR_common.py`): `append_rid_to_cmd_payload()` was injecting a second `rid=` before the existing one; the commander's "inner rid wins" rule then used the stale embedded rid for ACK correlation, so the API waited for an ACK that never matched (12 s timeout → 502). Fix: strip any pre-existing `rid=` before injecting a fresh one.
+
+### Changed
+- Frontend minor release bump and Studio redeploy to `v0.6.0`.
+
 ## 0.5.4 - 2026-03-21
 
 ### Fixed

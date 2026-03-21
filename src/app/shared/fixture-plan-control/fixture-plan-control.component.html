@@ -1,0 +1,31 @@
+@if (displayedState() || planControls()?.trigger?.available || planControls()?.stop?.available) {
+  <div class="fixture-plan-control">
+    @if (displayedState(); as state) {
+      <span [class]="badgeClass()">{{ state }}</span>
+    }
+    @if (planControls()?.trigger?.available) {
+      <button
+        pButton
+        type="button"
+        label="Plan trigger"
+        severity="secondary"
+        size="small"
+        [loading]="loading()"
+        [disabled]="loading() || disabled()"
+        (click)="onTrigger()"
+      ></button>
+    }
+    @if (planControls()?.stop?.available) {
+      <button
+        pButton
+        type="button"
+        label="Plan stop"
+        severity="secondary"
+        size="small"
+        [loading]="loading()"
+        [disabled]="loading() || disabled()"
+        (click)="onStop()"
+      ></button>
+    }
+  </div>
+}

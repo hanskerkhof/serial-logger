@@ -458,6 +458,8 @@ export interface components {
         CustomCommandUiItem: {
             /** Args */
             args?: components["schemas"]["CustomCommandUiArg"][];
+            /** Group */
+            group?: string | null;
             /** Id */
             id: string;
             /** Label */

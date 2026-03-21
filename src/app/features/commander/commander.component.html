@@ -422,6 +422,16 @@
         <span class="commander__dialog-last-seen">Last seen: {{ lastSeen }}</span>
       }
       <div class="commander__dialog-header-actions">
+        <label class="commander__dialog-ack-toggle">
+          <input
+            type="checkbox"
+            [ngModel]="fixtureAckEnabled()"
+            (ngModelChange)="fixtureAckEnabled.set(!!$event)"
+            [disabled]="fixtureActionLoading() || commanderUnavailable()"
+          />
+          <span>Require fixture ACK</span>
+          <small>Slower but confirms fixture-level ACK.</small>
+        </label>
         <button
           pButton
           type="button"
@@ -469,9 +479,6 @@
             (click)="rebootConfirmPending.set(false)"
           ></button>
         }
-        @if (modalQueryError(); as modalError) {
-          <span class="commander__dialog-header-error">{{ modalError }}</span>
-        }
       </div>
       <button
         pButton
@@ -486,15 +493,44 @@
         aria-label="Close"
       ></button>
     </header>
-    @if (fixtureActionError(); as actionError) {
-      <p class="commander__dialog-error" role="alert">⚠ {{ actionError }}</p>
-    }
-    @if (fixtureActionMessage(); as actionMessage) {
-      <p class="commander__dialog-message">{{ actionMessage }}</p>
-    }
-    @if (fixtureActionDurationMs(); as durationMs) {
-      <p class="commander__dialog-message">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
-    }
+    <section
+      class="commander__dialog-feedback"
+      [class]="
+        modalQueryError()
+          ? 'commander__dialog-feedback commander__dialog-feedback--info commander__dialog-feedback--error'
+          : 'commander__dialog-feedback commander__dialog-feedback--' + fixtureActionTone()
+      "
+    >
+      @if (modalQueryError(); as modalError) {
+        <p class="commander__dialog-feedback-message">
+          <span class="commander__dialog-feedback-icon" aria-hidden="true">✖</span>
+          <span>{{ modalError }}</span>
+        </p>
+      } @else if (fixtureActionMessage(); as actionMessage) {
+        <p class="commander__dialog-feedback-message">
+          @if (fixtureActionTone() === 'success') {
+            <span class="commander__dialog-feedback-icon" aria-hidden="true">✔</span>
+          } @else if (fixtureActionTone() === 'error') {
+            <span class="commander__dialog-feedback-icon" aria-hidden="true">✖</span>
+          }
+          <span>{{ actionMessage }}</span>
+        </p>
+      } @else {
+        <p class="commander__dialog-feedback-message commander__dialog-feedback-message--placeholder">&nbsp;</p>
+      }
+      @if (!modalQueryError() && fixtureActionDurationMs(); as durationMs) {
+        <p class="commander__dialog-feedback-duration">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
+      } @else {
+        <p class="commander__dialog-feedback-duration commander__dialog-feedback-duration--placeholder">&nbsp;</p>
+      }
+    </section>
+    <app-fixture-plan-control
+      [planControls]="selectedFixturePlanControls()"
+      [planState]="selectedFixturePlanState()"
+      [loading]="fixtureActionLoading()"
+      [disabled]="commanderUnavailable()"
+      (actionRequested)="runModalPlanAction($event)"
+    />
     <app-fixture-player-controls [player]="selectedFixturePlayer()" />
     <section class="commander__rssi-session" aria-label="RSSI session">
       @if (selectedFixtureIsEsp8266()) {
@@ -575,72 +611,15 @@
         }
       </section>
     @if (selectedFixtureCustomCommands().length > 0) {
-      <section class="commander__custom-commands" aria-label="Custom commands">
-        <h4 class="commander__custom-commands-title">Custom Commands</h4>
-        @for (command of selectedFixtureCustomCommands(); track command.id) {
-          <div class="commander__custom-command-card">
-            <div class="commander__custom-command-header">
-              <strong>{{ command.label }}</strong>
-            </div>
-            @if ((command.args?.length ?? 0) > 0) {
-              <div class="commander__custom-command-args">
-                @for (arg of command.args ?? []; track arg.name) {
-                  <label class="commander__custom-arg-row">
-                    <span class="commander__custom-arg-label">{{ arg.label }}</span>
-                    @switch (arg.control) {
-                      @case ('slider') {
-                        <input
-                          class="commander__custom-arg-slider"
-                          type="range"
-                          [min]="arg.min ?? 0"
-                          [max]="arg.max ?? 100"
-                          [step]="arg.step ?? 1"
-                          [ngModel]="customCommandArgValue(command.id, arg)"
-                          (ngModelChange)="updateCustomCommandArg(command.id, arg, $event)"
-                          (change)="onCustomCommandSliderRelease(command)"
-                        />
-                        <span class="commander__custom-arg-value">{{ customCommandArgValue(command.id, arg) }}</span>
-                      }
-                      @case ('checkbox') {
-                        <input
-                          type="checkbox"
-                          [ngModel]="customCommandArgValue(command.id, arg)"
-                          (ngModelChange)="updateCustomCommandArg(command.id, arg, $event)"
-                        />
-                      }
-                      @default {
-                        <input
-                          class="commander__custom-arg-number"
-                          pInputText
-                          type="number"
-                          [min]="arg.min ?? 0"
-                          [max]="arg.max ?? null"
-                          [step]="arg.step ?? 1"
-                          [ngModel]="customCommandArgValue(command.id, arg)"
-                          (ngModelChange)="updateCustomCommandArg(command.id, arg, $event)"
-                        />
-                      }
-                    }
-                  </label>
-                }
-              </div>
-            }
-            @if (!commandSendOnRelease(command)) {
-              <div class="commander__custom-command-actions">
-                <button
-                  pButton
-                  type="button"
-                  label="Run"
-                  severity="secondary"
-                  size="small"
-                  (click)="runCustomCommand(command)"
-                  [disabled]="fixtureActionLoading() || commanderUnavailable()"
-                ></button>
-              </div>
-            }
-          </div>
-        }
-      </section>
+      <app-fixture-custom-control
+        [commands]="selectedFixtureCustomCommands()"
+        [values]="customCommandValues()"
+        [loading]="fixtureActionLoading()"
+        [disabled]="commanderUnavailable()"
+        (argChanged)="onFixtureCustomArgChanged($event)"
+        (commandRunRequested)="onFixtureCustomCommandRunRequested($event)"
+        (sliderReleased)="onFixtureCustomSliderReleased($event)"
+      />
     }
     <footer class="commander__dialog-footer">
       <input
@@ -660,33 +639,6 @@
         (click)="runManualCommand()"
         [disabled]="fixtureActionLoading() || commanderUnavailable() || !manualCommand().trim()"
       ></button>
-      @if (selectedFixturePlanState(); as planState) {
-        <span class="commander__plan-state-badge commander__plan-state-badge--{{ planState.toLowerCase() }}">
-          {{ planState }}
-        </span>
-      }
-      @if (selectedFixturePlanControls()?.trigger?.available) {
-        <button
-          pButton
-          type="button"
-          label="Plan trigger"
-          severity="secondary"
-          size="small"
-          (click)="runModalPlanAction('trigger')"
-          [disabled]="fixtureActionLoading() || commanderUnavailable()"
-        ></button>
-      }
-      @if (selectedFixturePlanControls()?.stop?.available) {
-        <button
-          pButton
-          type="button"
-          label="Plan stop"
-          severity="secondary"
-          size="small"
-          (click)="runModalPlanAction('stop')"
-          [disabled]="fixtureActionLoading() || commanderUnavailable()"
-        ></button>
-      }
       <button
         pButton
         type="button"

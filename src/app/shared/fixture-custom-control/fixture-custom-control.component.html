@@ -1,0 +1,79 @@
+@if (commands().length > 0) {
+  <section class="fixture-custom-control" aria-label="Custom commands">
+    <h4 class="fixture-custom-control__title">Custom Commands</h4>
+    @for (group of groupedCommands(); track group.key) {
+      <div
+        class="fixture-custom-control__card"
+        [class.fixture-custom-control__card--paired]="group.layout === 'paired'"
+        [class.fixture-custom-control__card--full]="group.layout === 'full'"
+      >
+        <div class="fixture-custom-control__card-header">
+          <strong>{{ group.label }}</strong>
+        </div>
+
+        @for (command of group.commands; track command.id) {
+          @if ((command.args?.length ?? 0) > 0) {
+            <div class="fixture-custom-control__args">
+              @for (arg of command.args ?? []; track arg.name) {
+                <label class="fixture-custom-control__arg-row">
+                  <span class="fixture-custom-control__arg-label">{{ arg.label }}</span>
+                  @switch (arg.control) {
+                    @case ('slider') {
+                      <input
+                        class="fixture-custom-control__arg-slider"
+                        type="range"
+                        [min]="arg.min ?? 0"
+                        [max]="arg.max ?? 100"
+                        [step]="arg.step ?? 1"
+                        [ngModel]="commandArgValue(command.id, arg)"
+                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                        (change)="onSliderRelease(command)"
+                        [disabled]="loading() || disabled()"
+                      />
+                      <span class="fixture-custom-control__arg-value">{{ commandArgValue(command.id, arg) }}</span>
+                    }
+                    @case ('checkbox') {
+                      <input
+                        type="checkbox"
+                        [ngModel]="commandArgValue(command.id, arg)"
+                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                        [disabled]="loading() || disabled()"
+                      />
+                    }
+                    @default {
+                      <input
+                        class="fixture-custom-control__arg-number"
+                        pInputText
+                        type="number"
+                        [min]="arg.min ?? 0"
+                        [max]="arg.max ?? null"
+                        [step]="arg.step ?? 1"
+                        [ngModel]="commandArgValue(command.id, arg)"
+                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                        [disabled]="loading() || disabled()"
+                      />
+                    }
+                  }
+                </label>
+              }
+            </div>
+          }
+
+          @if (!commandSendOnRelease(command)) {
+            <div class="fixture-custom-control__actions">
+              <button
+                pButton
+                type="button"
+                label="Run"
+                severity="secondary"
+                size="small"
+                (click)="onRunCommand(command)"
+                [disabled]="loading() || disabled()"
+              ></button>
+            </div>
+          }
+        }
+      </div>
+    }
+  </section>
+}

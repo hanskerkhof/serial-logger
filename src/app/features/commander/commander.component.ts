@@ -45,6 +45,11 @@ import {
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
 import { FixturePlayerControlsComponent } from '../../shared/fixture-player-controls/fixture-player-controls.component';
+import { FixturePlanControlComponent } from '../../shared/fixture-plan-control/fixture-plan-control.component';
+import {
+  FixtureCustomArgChangedEvent,
+  FixtureCustomControlComponent,
+} from '../../shared/fixture-custom-control/fixture-custom-control.component';
 
 interface SelectOption {
   label: string;
@@ -52,6 +57,8 @@ interface SelectOption {
 }
 
 type CustomCommandValue = string | number | boolean;
+type FixtureModalFeedbackTone = 'info' | 'success' | 'warn' | 'error';
+type SendCommandMode = 'default' | 'force_ack' | 'force_no_ack';
 
 function compareVersions(a: string, b: string): number {
   const seg = (s: string) => s.replace(/^v/, '').split('.').map(Number);
@@ -66,7 +73,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, CommanderConsoleComponent, FixturePlayerControlsComponent],
+  imports: [FormsModule, ButtonModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -92,11 +99,12 @@ export class CommanderComponent implements OnInit {
   protected readonly lanGroupListLoading = signal(false);
   protected readonly queryResult = signal<CommanderQueryResponse | null>(null);
   protected readonly fixtureActionLoading = signal(false);
-  protected readonly fixtureActionMessage = signal<string | null>(null);
-  protected readonly fixtureActionError = signal<string | null>(null);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
+  protected readonly fixtureActionMessage = signal<string | null>(null);
+  protected readonly fixtureActionTone = signal<FixtureModalFeedbackTone>('info');
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   protected readonly rebootConfirmPending = signal(false);
+  protected readonly fixtureAckEnabled = signal(false);
   protected readonly rssiSessionLoading = signal(false);
   protected readonly rssiSessionCountdown = signal<number | null>(null);
   private rssiSessionTimer: ReturnType<typeof setInterval> | null = null;
@@ -493,7 +501,7 @@ export class CommanderComponent implements OnInit {
       },
       error: (err: unknown) => {
         this.rssiSessionLoading.set(false);
-        this.fixtureActionError.set(this.formatError('RSSI session failed', err));
+        this.messageService.add({ key: 'app', severity: 'error', summary: 'RSSI session failed', detail: this.formatError('', err), life: 6000 });
       },
     });
   }
@@ -866,7 +874,9 @@ export class CommanderComponent implements OnInit {
     this.modalQueryLoading.set(false);
     this.modalQueryError.set(null);
     this.fixtureActionMessage.set(null);
-    this.fixtureActionError.set(null);
+    this.fixtureActionDurationMs.set(null);
+    this.fixtureActionTone.set('info');
+    this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
   }
 
@@ -878,8 +888,7 @@ export class CommanderComponent implements OnInit {
     this.rebootConfirmPending.set(false);
     const fixture = this.selectedFixture()?.fixture_name;
     if (!fixture) return;
-    // Full wire form with ACK — recommended for disruptive commands (COMMAND_PROTOCOL.md)
-    this.sendCommand(fixture, `ack;tcmd;${fixture};cmd;reboot;`);
+    this.sendCommand(fixture, 'cmd;reboot;', 'force_ack');
   }
 
   protected runModalFixtureQuery(onComplete?: (result: CmdrVersionsResponse) => void): void {
@@ -919,12 +928,11 @@ export class CommanderComponent implements OnInit {
     const selected = this.selectedFixture();
     const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
     if (!fixture) {
-      this.fixtureActionMessage.set('No fixture selected.');
+      this.setFixtureModalFeedback('No fixture selected. Select a fixture before running a plan action.', 'warn');
       return;
     }
 
     this.fixtureActionLoading.set(true);
-    this.fixtureActionMessage.set(null);
     this.fixtureActionResult.set(null);
 
     const command = `cmd;plan;action=${action};`;
@@ -957,23 +965,27 @@ export class CommanderComponent implements OnInit {
     const command = this.manualCommand().trim();
 
     if (!fixture) {
-      this.fixtureActionMessage.set('No fixture selected.');
+      this.setFixtureModalFeedback('No fixture selected. Select a fixture before sending a manual command.', 'warn');
       return;
     }
     if (!command) {
-      this.fixtureActionMessage.set('Command is required.');
+      this.setFixtureModalFeedback('Command required. Enter a command before pressing Send.', 'warn');
       return;
     }
 
     this.sendCommand(fixture, command);
   }
 
-  protected customCommandArgValue(commandId: string, arg: CmdrCustomCommandUiArg): CustomCommandValue {
-    const commandValues = this.customCommandValues()[commandId];
-    if (commandValues && arg.name in commandValues) {
-      return commandValues[arg.name];
-    }
-    return this.defaultValueForArg(arg);
+  protected onFixtureCustomArgChanged(event: FixtureCustomArgChangedEvent): void {
+    this.updateCustomCommandArg(event.commandId, event.arg, event.rawValue);
+  }
+
+  protected onFixtureCustomCommandRunRequested(command: CmdrCustomCommandUiItem): void {
+    this.runCustomCommand(command);
+  }
+
+  protected onFixtureCustomSliderReleased(command: CmdrCustomCommandUiItem): void {
+    this.onCustomCommandSliderRelease(command);
   }
 
   protected updateCustomCommandArg(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {
@@ -997,12 +1009,12 @@ export class CommanderComponent implements OnInit {
     const selected = this.selectedFixture();
     const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
     if (!fixture) {
-      this.fixtureActionMessage.set('No fixture selected.');
+      this.setFixtureModalFeedback('No fixture selected. Select a fixture before running a custom command.', 'warn');
       return;
     }
     const wireTemplate = (command.wire_template ?? '').trim();
     if (!wireTemplate) {
-      this.fixtureActionMessage.set('Command template is empty.');
+      this.setFixtureModalFeedback(`Command template missing for "${command.label}".`, 'warn');
       return;
     }
     const unknownPlaceholders = this.findUnknownTemplatePlaceholders(
@@ -1010,8 +1022,9 @@ export class CommanderComponent implements OnInit {
       command.args ?? [],
     );
     if (unknownPlaceholders.length > 0) {
-      this.fixtureActionMessage.set(
-        `Command template placeholders missing in args: ${unknownPlaceholders.join(', ')}`,
+      this.setFixtureModalFeedback(
+        `Template placeholders missing for "${command.label}": ${unknownPlaceholders.join(', ')}`,
+        'warn',
       );
       return;
     }
@@ -1039,6 +1052,7 @@ export class CommanderComponent implements OnInit {
     const dialog = this.fixtureDetailDialog?.nativeElement;
     if (!dialog) return;
     if (!dialog.open) {
+      this.fixtureAckEnabled.set(false);
       dialog.showModal();
     }
   }
@@ -1323,30 +1337,25 @@ export class CommanderComponent implements OnInit {
     }
   }
 
-  private sendCommand(fixture: string, command: string): void {
-    const trimmedCommand = command.trim();
-    const wireCommand =
-      trimmedCommand.startsWith('tcmd;') || trimmedCommand.startsWith('ack;tcmd;')
-        ? trimmedCommand
-        : `tcmd;${fixture};${trimmedCommand}`;
+  private sendCommand(fixture: string, command: string, mode: SendCommandMode = 'default'): void {
+    const wireCommand = this.buildModalWireCommand(fixture, command, mode);
 
     this.fixtureActionLoading.set(true);
-    this.fixtureActionMessage.set(null);
-    this.fixtureActionError.set(null);
     this.fixtureActionResult.set(null);
+    this.fixtureActionMessage.set(null);
     this.fixtureActionDurationMs.set(null);
+    this.fixtureActionTone.set('info');
     const startedAt = performance.now();
 
     this.commanderApi.runFixtureCommand(fixture, wireCommand).subscribe({
       next: (result) => {
         const durationMs = performance.now() - startedAt;
-        this.fixtureActionDurationMs.set(durationMs);
         this.fixtureActionResult.set(result);
-        this.fixtureActionError.set(null);
 
         const response = result as Record<string, unknown>;
         const routingMode =
           typeof response['routing_mode'] === 'string' ? (response['routing_mode'] as string) : 'direct';
+        const ackRequested = response['ack_requested'] === true;
         const commandResult =
           response['command_result'] && typeof response['command_result'] === 'object'
             ? (response['command_result'] as Record<string, unknown>)
@@ -1355,19 +1364,66 @@ export class CommanderComponent implements OnInit {
           commandResult && typeof commandResult['command'] === 'string'
             ? (commandResult['command'] as string)
             : wireCommand;
+        const acceptedLabel = ackRequested ? 'Fixture ACK confirmed' : 'Dispatch accepted';
 
-        this.fixtureActionMessage.set(`Command accepted for ${fixture} (${routingMode}): ${dispatchedWireCommand}`);
+        this.setFixtureModalFeedback(
+          `${acceptedLabel} (${routingMode}) for ${fixture}: ${dispatchedWireCommand}`,
+          'success',
+          durationMs,
+        );
         this.fixtureActionLoading.set(false);
       },
       error: (err: unknown) => {
         const durationMs = performance.now() - startedAt;
-        this.fixtureActionDurationMs.set(durationMs);
-        this.fixtureActionMessage.set(null);
-        this.fixtureActionError.set(this.formatError(`Command failed for ${fixture}`, err));
         this.fixtureActionResult.set(null);
+        this.setFixtureModalFeedback(
+          `Command failed for ${fixture}: ${this.formatError('', err)}`,
+          'error',
+          durationMs,
+        );
         this.fixtureActionLoading.set(false);
       },
     });
+  }
+
+  private buildModalWireCommand(fixture: string, command: string, mode: SendCommandMode): string {
+    const trimmedCommand = command.trim();
+    const normalized = this.normalizeToWireTcmd(fixture, trimmedCommand);
+    const shouldRequireAck =
+      mode === 'force_ack' ? true : mode === 'force_no_ack' ? false : this.fixtureAckEnabled();
+    if (shouldRequireAck) {
+      return normalized.startsWith('ack;tcmd;') ? normalized : `ack;${normalized}`;
+    }
+    return normalized.startsWith('ack;tcmd;') ? normalized.slice(4) : normalized;
+  }
+
+  private normalizeToWireTcmd(fixture: string, command: string): string {
+    let payload = command;
+    let hadAckPrefix = false;
+    if (payload.startsWith('ack;') && !payload.startsWith('ack;tcmd;')) {
+      payload = payload.slice(4);
+      hadAckPrefix = true;
+    }
+
+    const wire =
+      payload.startsWith('tcmd;') || payload.startsWith('ack;tcmd;')
+        ? payload
+        : `tcmd;${fixture};${payload}`;
+
+    if (hadAckPrefix && wire.startsWith('tcmd;')) {
+      return `ack;${wire}`;
+    }
+    return wire;
+  }
+
+  private setFixtureModalFeedback(
+    message: string,
+    tone: FixtureModalFeedbackTone,
+    durationMs: number | null = null,
+  ): void {
+    this.fixtureActionMessage.set(message);
+    this.fixtureActionTone.set(tone);
+    this.fixtureActionDurationMs.set(durationMs);
   }
 
   private buildInitialCustomCommandValues(

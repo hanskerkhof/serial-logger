@@ -1,0 +1,27 @@
+.fixture-plan-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.fixture-plan-control__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 1rem;
+  background: var(--p-surface-200);
+  color: var(--p-text-color);
+
+  // Active states
+  &--running  { background: #16a34a; color: #fff; }
+  &--stopped  { background: var(--p-surface-300); color: var(--p-text-muted-color); }
+
+  // Future states — styled but not yet triggered from the UI
+  &--error    { background: #dc2626; color: #fff; }
+  &--paused   { background: #ca8a04; color: #fff; }
+  &--ready    { background: #2563eb; color: #fff; }
+  &--prepare  { background: #7c3aed; color: #fff; }
+  &--idle     { background: var(--p-surface-200); color: var(--p-text-muted-color); }
+  &--off      { background: var(--p-surface-200); color: var(--p-text-muted-color); }
+}

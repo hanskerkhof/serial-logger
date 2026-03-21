@@ -1,0 +1,82 @@
+.fixture-custom-control {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.fixture-custom-control__title {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.fixture-custom-control__card {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fixture-custom-control__card--full {
+  grid-column: 1 / -1;
+}
+
+.fixture-custom-control__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fixture-custom-control__args {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.fixture-custom-control__arg-row {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr) 2rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fixture-custom-control__arg-label {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.fixture-custom-control__arg-number {
+  min-width: 0;
+  width: 100%;
+}
+
+.fixture-custom-control__arg-slider {
+  width: 100%;
+  height: 0.25rem;
+  accent-color: var(--p-primary-color);
+}
+
+.fixture-custom-control__arg-value {
+  min-width: 2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+
+.fixture-custom-control__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (min-width: 960px) {
+  .fixture-custom-control {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fixture-custom-control__card--paired {
+    grid-column: auto;
+  }
+}

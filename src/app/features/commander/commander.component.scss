@@ -183,6 +183,29 @@
   gap: 0.5rem;
 }
 
+.commander__dialog-ack-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color, #6b7280);
+
+  input[type='checkbox'] {
+    margin: 0;
+  }
+
+  span {
+    color: var(--p-text-color, #111827);
+    font-weight: 500;
+  }
+
+  small {
+    font-size: 0.67rem;
+    color: var(--p-text-muted-color, #6b7280);
+    white-space: nowrap;
+  }
+}
+
 .commander__query-panel {
   display: flex;
   flex-direction: column;
@@ -226,15 +249,6 @@
   word-break: break-word;
 }
 
-.commander__dialog-error {
-  font-size: 0.85rem;
-  color: var(--p-red-500);
-  margin: 0 0 0.25rem;
-  padding: 0.5rem 1rem;
-  background: rgba(239, 68, 68, 0.08);
-  border-left: 3px solid var(--p-red-500);
-}
-
 .commander__raw-section {
   display: flex;
   flex-direction: column;
@@ -271,6 +285,68 @@
 
 .commander__dialog-footer {
   margin-top: auto;
+}
+
+.commander__dialog-feedback {
+  min-height: 3.1rem;
+  margin: 0.25rem 0 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--p-content-border-color);
+  background: color-mix(in srgb, var(--p-surface-0) 92%, var(--p-surface-300));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+}
+
+.commander__dialog-feedback-message,
+.commander__dialog-feedback-duration {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.commander__dialog-feedback-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.commander__dialog-feedback-icon {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.commander__dialog-feedback-duration {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.commander__dialog-feedback-message--placeholder,
+.commander__dialog-feedback-duration--placeholder {
+  visibility: hidden;
+}
+
+.commander__dialog-feedback--success {
+  border-color: #16a34a55;
+  background: #16a34a14;
+}
+
+.commander__dialog-feedback--error {
+  border-color: #dc262655;
+  background: #dc262614;
+}
+
+.commander__dialog-feedback--warn {
+  border-color: #ca8a0455;
+  background: #ca8a0418;
+}
+
+/* Modal query errors are rendered in the fixed info strip, but highlighted in red. */
+.commander__dialog-feedback--info.commander__dialog-feedback--error {
+  border-color: #dc262655;
+  background: #dc262614;
 }
 
 .commander__rssi-session {
@@ -381,71 +457,6 @@
   font-family: monospace;
   font-size: 0.7rem;
   color: var(--p-text-muted-color, #888);
-}
-
-.commander__custom-commands {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.commander__custom-commands-title {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.commander__custom-command-card {
-  border: 1px solid var(--p-content-border-color);
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.commander__custom-command-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.commander__custom-command-args {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.commander__custom-arg-row {
-  display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.commander__custom-arg-label {
-  font-size: 0.8rem;
-  color: var(--p-text-muted-color);
-}
-
-.commander__custom-arg-number {
-  min-width: 0;
-  width: 100%;
-}
-
-.commander__custom-arg-slider {
-  width: 100%;
-}
-
-.commander__custom-arg-value {
-  min-width: 2.2rem;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-}
-
-.commander__custom-command-actions {
-  display: flex;
-  justify-content: flex-end;
 }
 
 @media (max-width: 960px) {

@@ -1,7 +1,10 @@
 @if (displayedState() || planControls()?.trigger?.available || planControls()?.stop?.available) {
   <div class="fixture-plan-control">
     @if (displayedState(); as state) {
-      <span [class]="badgeClass()">{{ state }}</span>
+      <span [class]="badgeClass()">
+        <i [class]="querying() ? 'fixture-plan-control__badge-icon pi pi-spinner pi-spin' : 'fixture-plan-control__badge-icon pi pi-circle'"></i>
+        {{ state }}
+      </span>
     }
     @if (planControls()?.trigger?.available) {
       <button

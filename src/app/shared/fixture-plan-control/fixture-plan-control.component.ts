@@ -24,12 +24,14 @@ export class FixturePlanControlComponent {
   readonly planState = input<PlanState | null>(null);
   readonly loading = input(false);
   readonly disabled = input(false);
+  /** True while a fixture state re-query is in flight; shows a spinner inside the badge. */
+  readonly querying = input(false);
 
   readonly actionRequested = output<PlanAction>();
 
   /**
-   * Optimistic plan state — set immediately when the user presses an action button so
-   * the badge updates before the next Run Query confirms the real state.
+   * Displayed plan state — driven by the confirmed `planState` input from the last API response.
+   * The badge updates only after the BE confirms the action via a re-query, not optimistically on click.
    * linkedSignal resets to the confirmed value whenever `planState` input changes.
    */
   protected readonly displayedState = linkedSignal<PlanState | null>(() => this.planState());
@@ -41,12 +43,10 @@ export class FixturePlanControlComponent {
   });
 
   protected onTrigger(): void {
-    this.displayedState.set('RUNNING');
     this.actionRequested.emit('trigger');
   }
 
   protected onStop(): void {
-    this.displayedState.set('STOPPED');
     this.actionRequested.emit('stop');
   }
 }

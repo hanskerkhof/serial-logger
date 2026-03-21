@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.5.4 - 2026-03-21
+
+### Fixed
+- `playTracks` (and other commands with ≥6 player params) silently dropped by fixture when "Require fixture ACK" was checked. Root cause: ACK headers (`ack:1;sid:N;rid:N;`) pushed the total param count past the `CommandParser` 10-param hard limit, causing `universe` to never be stored and the universe routing check to silently drop the command. Fixed in `CommandHandlers.h` by scanning the raw command buffer for `;universe:` and `;channel:` directly, bypassing the parsed-params limit.
+- Plan trigger / Plan stop no longer accidentally close the fixture modal when the user drags a volume slider quickly to the boundary and releases outside. Fix: `mousedown` origin is now tracked; the backdrop `click` handler only closes the modal when the press also started outside the dialog content box.
+- Volume sliders no longer reset to fixture-reported defaults after a plan trigger / plan stop re-query. Fix: the `customCommandValues` effect now tracks only fixture identity (`selectedFixtureName`) rather than full fixture content, so re-queries that update `raw` data do not re-initialise locally-edited slider values.
+
+### Changed
+- Plan state badge (`RUNNING` / `STOPPED`) now flips immediately when the BE returns 200 for a plan trigger or plan stop (either `Dispatch accepted` or `Fixture ACK confirmed`), rather than waiting for a follow-up fixture re-query. An optimistic `PlanState` signal overrides the store value until a different fixture is selected.
+- Frontend patch release bump and Studio redeploy to `v0.5.4`.
+
 ## 0.5.3 - 2026-03-21
 
 ### Changed

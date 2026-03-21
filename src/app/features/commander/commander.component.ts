@@ -9,6 +9,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
 import { FormsModule } from '@angular/forms';
@@ -45,7 +46,7 @@ import {
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
 import { FixturePlayerControlsComponent } from '../../shared/fixture-player-controls/fixture-player-controls.component';
-import { FixturePlanControlComponent } from '../../shared/fixture-plan-control/fixture-plan-control.component';
+import { FixturePlanControlComponent, PlanState } from '../../shared/fixture-plan-control/fixture-plan-control.component';
 import {
   FixtureCustomArgChangedEvent,
   FixtureCustomControlComponent,
@@ -258,8 +259,15 @@ export class CommanderComponent implements OnInit {
       localStorage.setItem('cmdr.discovery.timings', JSON.stringify(this.discoveryTimings())),
     );
     effect(() => {
-      const commands = this.selectedFixtureCustomCommands();
+      // Track only fixture identity so that re-queries (which update raw fixture data
+      // including state_path-resolved defaults) don't overwrite the user's locally
+      // edited slider values. Commands are read untracked so they don't create a
+      // reactive dependency here — they will be current at the time the fixture changes.
+      this.fixtureStore.selectedFixtureName();
+      const commands = untracked(() => this.selectedFixtureCustomCommands());
       this.customCommandValues.set(this.buildInitialCustomCommandValues(commands));
+      // Reset any optimistic plan state when switching fixtures.
+      untracked(() => this.optimisticPlanState.set(null));
     });
 
     effect(() => {
@@ -421,7 +429,12 @@ export class CommanderComponent implements OnInit {
     return caps?.plan_controls ?? null;
   });
 
-  protected readonly selectedFixturePlanState = computed<string | null>(() => {
+  /** Optimistic plan state set immediately on a successful plan trigger/stop BE call. */
+  private readonly optimisticPlanState = signal<PlanState | null>(null);
+
+  protected readonly selectedFixturePlanState = computed<PlanState | null>(() => {
+    const optimistic = this.optimisticPlanState();
+    if (optimistic !== null) return optimistic;
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     return (ps?.['plan_state'] as string) || null;
   });
@@ -1055,7 +1068,10 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionResult.set(null);
 
     const command = `cmd;plan;action=${action};`;
-    this.sendCommand(fixture, command);
+    const expectedState: PlanState = action === 'trigger' ? 'RUNNING' : 'STOPPED';
+    this.sendCommand(fixture, command, 'default', () => {
+      this.optimisticPlanState.set(expectedState);
+    });
   }
 
   protected runRawCommand(): void {
@@ -1168,9 +1184,27 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, wireCommand);
   }
 
+  /** True when the most recent mousedown inside the dialog originated within the dialog content box. */
+  private _dialogMousedownInsideContent = false;
+
+  protected onDialogMousedown(event: MouseEvent): void {
+    const dialog = this.fixtureDetailDialog?.nativeElement;
+    if (!dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    this._dialogMousedownInsideContent =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+  }
+
   protected onDialogBackdropClick(event: MouseEvent): void {
     const dialog = this.fixtureDetailDialog?.nativeElement;
     if (!dialog) return;
+    // Ignore clicks that started inside the dialog content (e.g. a slider drag
+    // that ended outside the modal boundary). Only close when both mousedown
+    // and click originated outside the content box.
+    if (this._dialogMousedownInsideContent) return;
     const rect = dialog.getBoundingClientRect();
     const isOutside =
       event.clientX < rect.left ||
@@ -1471,7 +1505,12 @@ export class CommanderComponent implements OnInit {
     }
   }
 
-  private sendCommand(fixture: string, command: string, mode: SendCommandMode = 'default'): void {
+  private sendCommand(
+    fixture: string,
+    command: string,
+    mode: SendCommandMode = 'default',
+    onSuccess?: () => void,
+  ): void {
     const wireCommand = this.buildModalWireCommand(fixture, command, mode);
 
     this.fixtureActionLoading.set(true);
@@ -1506,6 +1545,7 @@ export class CommanderComponent implements OnInit {
           durationMs,
         );
         this.fixtureActionLoading.set(false);
+        onSuccess?.();
       },
       error: (err: unknown) => {
         const durationMs = performance.now() - startedAt;

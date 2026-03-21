@@ -409,7 +409,7 @@
     <div class="commander__dropdown-backdrop"></div>
   }
 
-  <dialog #fixtureDetailDialog class="commander__dialog" (click)="onDialogBackdropClick($event)">
+  <dialog #fixtureDetailDialog class="commander__dialog" (mousedown)="onDialogMousedown($event)" (click)="onDialogBackdropClick($event)">
     <header class="commander__dialog-header">
       <h3>
         Fixture: {{ selectedFixture()?.fixture_name }}
@@ -557,6 +557,7 @@
       [planControls]="selectedFixturePlanControls()"
       [planState]="selectedFixturePlanState()"
       [loading]="fixtureActionLoading()"
+      [querying]="modalQueryLoading()"
       [disabled]="commanderUnavailable()"
       (actionRequested)="runModalPlanAction($event)"
     />

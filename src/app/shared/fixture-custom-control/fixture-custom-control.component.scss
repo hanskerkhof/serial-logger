@@ -43,6 +43,11 @@
   gap: 0.4rem;
 }
 
+.fixture-custom-control__arg-row--master {
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+
 .fixture-custom-control__arg-label {
   font-size: 0.75rem;
   color: var(--p-text-muted-color);

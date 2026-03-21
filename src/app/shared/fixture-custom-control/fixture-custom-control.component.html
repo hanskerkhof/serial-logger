@@ -11,6 +11,26 @@
           <strong>{{ group.label }}</strong>
         </div>
 
+        @if (canShowMasterSlider(group)) {
+          <div class="fixture-custom-control__args">
+            <label class="fixture-custom-control__arg-row fixture-custom-control__arg-row--master">
+              <span class="fixture-custom-control__arg-label">Master</span>
+              <input
+                class="fixture-custom-control__arg-slider"
+                type="range"
+                [min]="groupMasterMin(group)"
+                [max]="groupMasterMax(group)"
+                [step]="groupMasterStep(group)"
+                [ngModel]="groupMasterValue(group)"
+                (input)="onGroupMasterPreview(group, $any($event.target).value)"
+                (change)="onGroupMasterRelease(group, $any($event.target).value)"
+                [disabled]="loading() || disabled()"
+              />
+              <span class="fixture-custom-control__arg-value">{{ groupMasterValue(group) }}</span>
+            </label>
+          </div>
+        }
+
         @for (command of group.commands; track command.id) {
           @if ((command.args?.length ?? 0) > 0) {
             <div class="fixture-custom-control__args">

@@ -49,6 +49,7 @@ import { FixturePlanControlComponent } from '../../shared/fixture-plan-control/f
 import {
   FixtureCustomArgChangedEvent,
   FixtureCustomControlComponent,
+  FixtureCustomMasterReleasedEvent,
 } from '../../shared/fixture-custom-control/fixture-custom-control.component';
 
 interface SelectOption {
@@ -986,6 +987,21 @@ export class CommanderComponent implements OnInit {
 
   protected onFixtureCustomSliderReleased(command: CmdrCustomCommandUiItem): void {
     this.onCustomCommandSliderRelease(command);
+  }
+
+  protected onFixtureCustomMasterPreviewChanged(events: FixtureCustomArgChangedEvent[]): void {
+    for (const event of events) {
+      this.updateCustomCommandArg(event.commandId, event.arg, event.rawValue);
+    }
+  }
+
+  protected onFixtureCustomMasterReleased(event: FixtureCustomMasterReleasedEvent): void {
+    for (const change of event.changes) {
+      this.updateCustomCommandArg(change.commandId, change.arg, change.rawValue);
+    }
+    for (const command of event.commands) {
+      this.runCustomCommand(command);
+    }
   }
 
   protected updateCustomCommandArg(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {

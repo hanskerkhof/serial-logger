@@ -4,10 +4,16 @@
 
 ## 0.5.0 - 2026-03-21
 
+### Added
+- End-to-end BK_PLAN_STATE pipeline: firmware `writeStateJson()` → ESP-NOW → commander serial → API cache → `plan_state` field on fixture records.
+- `state_path` support on `custom_command_ui` args: API injects live values from `plan_state.state` into arg `default` fields at query time so sliders initialise from live fixture state.
+- `app-fixture-plan-control` component: plan state badge (RUNNING/STOPPED) + Plan trigger / Plan stop buttons, positioned below the fixture modal header. Badge updates optimistically on command accept.
+- Auto-query on fixture modal open: fires a version query the first time a fixture modal opens (per session), skipped on reopen when data already available. Uses a `Set<string>` guard so fixtures without `plan_state` (e.g. CLIGNOTEUR) do not re-query on every open.
+
 ### Changed
-- Fixture modal command feedback now clearly distinguishes transport semantics: `Dispatch accepted` (commander dispatch accepted) vs `Fixture ACK confirmed` (fixture-level ACK confirmation).
-- Added a fixture-modal `Require fixture ACK` toggle (default off) for modal command sends (manual command input, plan trigger/stop actions, and custom command controls), while reboot remains backend fire-and-forget.
-- Introduced reusable `app-fixture-custom-control` component for `custom_command_ui` rendering and grouping, including PALESP32 layout behavior (`Startup Sequence`, consolidated `Set volumes`, consolidated `Play Tracks`) with responsive desktop/mobile card layout.
+- Command feedback moved from inline modal messages to transient toast notifications: success (green, 4 s) and error (red, 6 s). Round-trip duration shown on a new line in bold (`Round trip: 47.9 ms`).
+- Volume sliders (PALESP32) grouped into a single card with one shared header instead of one card per player.
+- Protocol docs updated: `BK_PLAN_STATE` entry in `PROTOCOL.md`, `getState` command in `COMMAND_PROTOCOL.md`, `plan_state` and `state_path` fields in `CMDR_API_PROTOCOL.md`.
 - Version bump and Studio redeploy to `v0.5.0`.
 
 ## 0.4.8 - 2026-03-21

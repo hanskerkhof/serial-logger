@@ -12,6 +12,28 @@ export interface FixtureCustomArgChangedEvent {
   rawValue: unknown;
 }
 
+export interface FixtureCustomMasterReleasedEvent {
+  changes: FixtureCustomArgChangedEvent[];
+  commands: CmdrCustomCommandUiItem[];
+}
+
+interface GroupedCommandGroup {
+  key: string;
+  label: string;
+  layout: 'paired' | 'full';
+  commands: CmdrCustomCommandUiItem[];
+}
+
+interface VolumeSliderEntry {
+  commandId: string;
+  command: CmdrCustomCommandUiItem;
+  arg: CmdrCustomCommandUiArg;
+  min: number;
+  max: number;
+  step: number;
+  currentValue: number;
+}
+
 @Component({
   selector: 'app-fixture-custom-control',
   standalone: true,
@@ -29,9 +51,11 @@ export class FixtureCustomControlComponent {
   readonly argChanged = output<FixtureCustomArgChangedEvent>();
   readonly commandRunRequested = output<CmdrCustomCommandUiItem>();
   readonly sliderReleased = output<CmdrCustomCommandUiItem>();
+  readonly masterPreviewChanged = output<FixtureCustomArgChangedEvent[]>();
+  readonly masterReleased = output<FixtureCustomMasterReleasedEvent>();
 
   protected readonly groupedCommands = computed<
-    { key: string; label: string; layout: 'paired' | 'full'; commands: CmdrCustomCommandUiItem[] }[]
+    GroupedCommandGroup[]
   >(() => {
     const isVolumeCommand = (cmd: CmdrCustomCommandUiItem): boolean => {
       const id = (cmd.id ?? '').toLowerCase();
@@ -49,7 +73,7 @@ export class FixtureCustomControlComponent {
       return id === 'play_tracks' || id.startsWith('play_track') || wire.includes('cmd;playtrack;');
     };
 
-    const groups: { key: string; label: string; layout: 'paired' | 'full'; commands: CmdrCustomCommandUiItem[] }[] = [];
+    const groups: GroupedCommandGroup[] = [];
 
     for (const cmd of this.commands()) {
       const explicitGroup = (cmd.group ?? '').trim();
@@ -105,8 +129,118 @@ export class FixtureCustomControlComponent {
     this.commandRunRequested.emit(command);
   }
 
+  protected canShowMasterSlider(group: GroupedCommandGroup): boolean {
+    return this.volumeGroupEntries(group).length > 1;
+  }
+
+  protected groupMasterValue(group: GroupedCommandGroup): number {
+    const entries = this.volumeGroupEntries(group);
+    if (entries.length < 2) return 0;
+    const avg = entries.reduce((sum, entry) => sum + entry.currentValue, 0) / entries.length;
+    return Math.round(avg);
+  }
+
+  protected groupMasterMin(group: GroupedCommandGroup): number {
+    const entries = this.volumeGroupEntries(group);
+    if (!entries.length) return 0;
+    return entries.reduce((min, entry) => Math.min(min, entry.min), entries[0].min);
+  }
+
+  protected groupMasterMax(group: GroupedCommandGroup): number {
+    const entries = this.volumeGroupEntries(group);
+    if (!entries.length) return 100;
+    return entries.reduce((max, entry) => Math.max(max, entry.max), entries[0].max);
+  }
+
+  protected groupMasterStep(group: GroupedCommandGroup): number {
+    const entries = this.volumeGroupEntries(group);
+    if (!entries.length) return 1;
+    return entries.reduce((step, entry) => Math.min(step, entry.step), entries[0].step);
+  }
+
+  protected onGroupMasterPreview(group: GroupedCommandGroup, rawValue: unknown): void {
+    const changes = this.computeMasterChanges(group, rawValue);
+    if (changes.length === 0) return;
+    this.masterPreviewChanged.emit(changes);
+  }
+
+  protected onGroupMasterRelease(group: GroupedCommandGroup, rawValue: unknown): void {
+    const changes = this.computeMasterChanges(group, rawValue);
+    if (changes.length === 0) return;
+    const commandById = new Map(group.commands.map((command) => [command.id, command]));
+    const commands: CmdrCustomCommandUiItem[] = [];
+    for (const change of changes) {
+      const command = commandById.get(change.commandId);
+      if (!command || commands.some((candidate) => candidate.id === command.id)) continue;
+      commands.push(command);
+    }
+    this.masterReleased.emit({ changes, commands });
+  }
+
   protected commandSendOnRelease(command: CmdrCustomCommandUiItem): boolean {
     return command.send_on_release === true;
+  }
+
+  private volumeGroupEntries(group: GroupedCommandGroup): VolumeSliderEntry[] {
+    const entries: VolumeSliderEntry[] = [];
+    for (const command of group.commands) {
+      if (!this.isVolumeCommand(command)) continue;
+      for (const arg of command.args ?? []) {
+        if (!this.isVolumeSliderArg(arg)) continue;
+        const value = Number(this.commandArgValue(command.id, arg));
+        entries.push({
+          commandId: command.id,
+          command,
+          arg,
+          min: typeof arg.min === 'number' ? arg.min : 0,
+          max: typeof arg.max === 'number' ? arg.max : 100,
+          step: typeof arg.step === 'number' && arg.step > 0 ? arg.step : 1,
+          currentValue: Number.isFinite(value) ? value : 0,
+        });
+      }
+    }
+    return entries;
+  }
+
+  private isVolumeCommand(command: CmdrCustomCommandUiItem): boolean {
+    const id = (command.id ?? '').toLowerCase();
+    const wire = (command.wire_template ?? '').toLowerCase();
+    return (
+      id === 'set_volumes' ||
+      id.startsWith('set_volume') ||
+      (wire.includes('cmd;setvolume;') && wire.includes('player='))
+    );
+  }
+
+  private isVolumeSliderArg(arg: CmdrCustomCommandUiArg): boolean {
+    return (arg.control ?? 'number') === 'slider';
+  }
+
+  private computeMasterChanges(group: GroupedCommandGroup, rawValue: unknown): FixtureCustomArgChangedEvent[] {
+    const entries = this.volumeGroupEntries(group);
+    if (entries.length < 2) return [];
+    const target = Number(rawValue);
+    if (!Number.isFinite(target)) return [];
+    const currentAverage = entries.reduce((sum, entry) => sum + entry.currentValue, 0) / entries.length;
+    const nextValues =
+      currentAverage <= 0
+        ? entries.map((entry) => this.snapClamp(target, entry.min, entry.max, entry.step))
+        : entries.map((entry) =>
+            this.snapClamp(entry.currentValue * (target / currentAverage), entry.min, entry.max, entry.step),
+          );
+    return entries.map((entry, index) => ({
+      commandId: entry.commandId,
+      arg: entry.arg,
+      rawValue: nextValues[index],
+    }));
+  }
+
+  private snapClamp(value: number, min: number, max: number, step: number): number {
+    const bounded = Math.min(Math.max(value, min), max);
+    if (!Number.isFinite(step) || step <= 0) return Math.round(bounded);
+    const snapped = Math.round((bounded - min) / step) * step + min;
+    const fixed = Number(snapped.toFixed(6));
+    return Math.min(Math.max(fixed, min), max);
   }
 
   private defaultValueForArg(arg: CmdrCustomCommandUiArg): FixtureCustomControlValue {

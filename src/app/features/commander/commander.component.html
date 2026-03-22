@@ -525,12 +525,19 @@
     <section
       class="commander__dialog-feedback"
       [class]="
-        modalQueryError()
-          ? 'commander__dialog-feedback commander__dialog-feedback--info commander__dialog-feedback--error'
-          : 'commander__dialog-feedback commander__dialog-feedback--' + fixtureActionTone()
+        commanderUnavailable()
+          ? 'commander__dialog-feedback commander__dialog-feedback--warn'
+          : modalQueryError()
+            ? 'commander__dialog-feedback commander__dialog-feedback--info commander__dialog-feedback--error'
+            : 'commander__dialog-feedback commander__dialog-feedback--' + fixtureActionTone()
       "
     >
-      @if (modalQueryError(); as modalError) {
+      @if (commanderUnavailable()) {
+        <p class="commander__dialog-feedback-message">
+          <span class="commander__dialog-feedback-icon" aria-hidden="true">⚠</span>
+          <span>Fixture commands disabled@if (commanderUnavailableReason(); as reason) { — {{ reason }}}</span>
+        </p>
+      } @else if (modalQueryError(); as modalError) {
         <p class="commander__dialog-feedback-message">
           <span class="commander__dialog-feedback-icon" aria-hidden="true">✖</span>
           <span>{{ modalError }}</span>

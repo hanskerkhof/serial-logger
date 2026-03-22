@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.6.5 - 2026-03-22
+
+### Fixed
+- Commander self-query (`Run Query` on `BKLK_CMDR_2` while it is the active connected commander) now returns a proper version card instead of ❌ Error. Root cause: `Commander.run_fixture_select()` (and `run_fixture_select_on_session`) in `CMDR_common.py` never saw a `BK_FS` JSON response for self-target rejection — the firmware emits raw text only. Both functions now detect `"refusing self-target fixture"` in the serial output, synthesise `bk_fs = {"error": "self_target_not_allowed"}`, and break early, which triggers the existing `identify` fallback in `_run_versions_query_via_proxy`. Response time drops from 10 s timeout to ~1 s.
+- `BKLK_CMDR_2` was reporting `fqbn: ESP32_DEV_MODULE` and `player_type: DY_PLAYER` despite being an ESP32-C3 SuperMini with no player. Root cause: `fqbnEnumToken()` and `boardFamilyFromFqbn()` were plan-local static functions in `BAUKLANK_COMMANDER_SERIAL.plan.cpp` missing the `ESP32C3_SUPER_MINI` case, and the firmware was compiled against stale fixture_data. Both functions moved to `BauklankFixture.h` as `fqbnToToken()` and `fqbnToBoardFamily()` covering all 6 FQBN values. Both commanders recompiled and flashed.
+- Fixture modal feedback strip now clears stale error/action messages automatically when the commander comes back online, so the strip resets to neutral on recovery.
+
+### Added
+- Fixture modal feedback strip shows a yellow ⚠ warning with reason text when the commander is unavailable: `Fixture commands disabled — <reason>`. Reasons: `API unreachable` (health fetch failed), `Serial port held (<reason>)` (serial hold active), `Commander not detected`. Warning takes priority over any stale command result.
+
 ## 0.6.4 - 2026-03-22
 
 ### Changed

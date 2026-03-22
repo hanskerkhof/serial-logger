@@ -181,6 +181,20 @@ export class CommanderComponent implements OnInit {
   protected readonly commanderUnavailable = computed(
     () => this.loading() || !!this.healthError() || this.health()?.commander?.detected !== true,
   );
+  /** Human-readable reason shown in the fixture modal feedback strip when the commander is unavailable. */
+  protected readonly commanderUnavailableReason = computed<string | null>(() => {
+    if (!this.commanderUnavailable()) return null;
+    if (this.loading()) return null;
+    if (this.healthError()) return 'API unreachable';
+    const commander = this.health()?.commander;
+    if (!commander) return 'Commander not detected';
+    if (commander['serial_hold_active'] === true) {
+      const raw = String(commander['serial_hold_reason'] ?? '').trim();
+      const label = raw ? raw.replace(/_/g, ' ') : 'serial hold';
+      return `Serial port held (${label})`;
+    }
+    return 'Commander not detected';
+  });
   /** True only when the API reports it can compile firmware (macOS only). Gates the OTA Update button. */
   protected readonly compileSupported = computed(() => this.health()?.compile_supported === true);
   // Tracks whether we've been through at least one unavailable state this session
@@ -286,6 +300,10 @@ export class CommanderComponent implements OnInit {
         } else if (!unavailable && this._wasUnavailable) {
           // Recovery: only toast if we previously showed the unavailable warning.
           this._wasUnavailable = false;
+          // Clear stale modal errors from the outage so the feedback strip resets.
+          this.modalQueryError.set(null);
+          this.fixtureActionMessage.set(null);
+          this.fixtureActionResult.set(null);
           this.messageService.add({
             key: 'app',
             severity: 'success',

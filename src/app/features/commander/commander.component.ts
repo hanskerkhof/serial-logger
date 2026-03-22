@@ -23,6 +23,7 @@ import { SelectChangeEvent, SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
 import { MessageService } from 'primeng/api';
+import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import {
   CommanderApiService,
   CommanderExposedPlan,
@@ -82,6 +83,8 @@ function compareVersions(a: string, b: string): number {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommanderComponent implements OnInit {
+  protected readonly frontendVersion = APP_VERSION;
+  protected readonly frontendBuildDate = BUILD_DATE;
   protected readonly loading = signal(true);
   protected readonly healthRefreshing = signal(false);
   protected readonly healthError = signal<string | null>(null);

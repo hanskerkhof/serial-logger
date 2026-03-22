@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.6.8 - 2026-03-22
+
+### Added
+- New runtime release notice channel in `app.component` based on API `/health` release metadata (`health.api.release_version` fallback `health.release_version`), separate from SW `Update Available`.
+- Global header release-notice badge (`● release notice vX.Y.Z`) with acknowledge dialog for sticky-per-version visibility.
+
+### Changed
+- Runtime release notice acknowledgment now persists per browser in localStorage key `studio.releaseNotice.lastAcknowledgedVersion`.
+- Commander heartbeat details panel now includes frontend metadata lines: `fe_version` and `fe_build_date`.
+- Frontend patch release bump to `v0.6.8`.
+- Studio deploy refreshed generated build metadata (`src/app/build-info.ts`) and service worker app version payload (`ngsw-config.json` `appData.version`).
+
 ## 0.6.7 - 2026-03-22
 
 ### Changed

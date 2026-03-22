@@ -17,6 +17,7 @@ import { SerialService } from './serial.service';
 })
 export class AppComponent {
   @ViewChild('updateDialog') private updateDialogRef!: ElementRef<HTMLDialogElement>;
+  @ViewChild('releaseNoticeDialog') private releaseNoticeDialogRef!: ElementRef<HTMLDialogElement>;
 
   private readonly router = inject(Router);
   private readonly commanderApi = inject(CommanderApiService);
@@ -56,21 +57,40 @@ export class AppComponent {
   });
   private reminderTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // --- Runtime release notice state (FW/API release metadata from /health) ---
+  private static readonly RELEASE_NOTICE_ACK_KEY = 'studio.releaseNotice.lastAcknowledgedVersion';
+  private readonly acknowledgedReleaseVersion = signal<string | null>(
+    localStorage.getItem(AppComponent.RELEASE_NOTICE_ACK_KEY),
+  );
+  protected readonly releaseNoticeAvailable = signal(false);
+  protected readonly releaseNoticeVersion = signal<string | null>(null);
+  protected readonly releaseNoticeBuildDate = signal<string | null>(null);
+  protected readonly showReleaseNoticeDialog = signal(false);
+
   constructor() {
-    // Drive the native <dialog> via showModal/close so it enters the top layer
-    // and always renders above other showModal dialogs.
+    // Drive native <dialog> elements via showModal/close so they enter the top layer.
     effect(() => {
-      // Read the signal first so it is always tracked as a dependency,
-      // even on the initial run when @ViewChild may not be resolved yet.
       const show = this.showUpdateDialog();
       const el = this.updateDialogRef?.nativeElement;
       if (!el) return;
       if (show) {
         if (!el.open) el.showModal();
-      } else {
-        if (el.open) el.close();
+      } else if (el.open) {
+        el.close();
       }
     });
+
+    effect(() => {
+      const show = this.showReleaseNoticeDialog();
+      const el = this.releaseNoticeDialogRef?.nativeElement;
+      if (!el) return;
+      if (show) {
+        if (!el.open) el.showModal();
+      } else if (el.open) {
+        el.close();
+      }
+    });
+
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.activeMode.set(this.modeFromUrl(this.router.url));
     });
@@ -91,8 +111,11 @@ export class AppComponent {
 
     this.commanderApi.getHealth().subscribe({
       next: (health) => {
-        if (health.release_version) this.apiVersion.set(health.release_version);
-        if (health.build_date) this.apiBuildDate.set(this.formatApiDate(health.build_date));
+        const releaseVersion = health.api?.release_version ?? health.release_version ?? null;
+        const releaseBuildDate = health.api?.build_date ?? health.build_date ?? null;
+        if (releaseVersion) this.apiVersion.set(releaseVersion);
+        if (releaseBuildDate) this.apiBuildDate.set(this.formatApiDate(releaseBuildDate));
+        this.refreshReleaseNotice(releaseVersion, releaseBuildDate);
       },
     });
   }
@@ -129,6 +152,36 @@ export class AppComponent {
       // hides the Later button, leaving only "Update Now".
       this.showUpdateDialog.set(true);
     }, delayMinutes * 60 * 1000);
+  }
+
+  protected openReleaseNoticeDialog(): void {
+    if (!this.releaseNoticeAvailable()) return;
+    this.showReleaseNoticeDialog.set(true);
+  }
+
+  protected acknowledgeReleaseNotice(): void {
+    const version = this.releaseNoticeVersion();
+    if (version) {
+      localStorage.setItem(AppComponent.RELEASE_NOTICE_ACK_KEY, version);
+      this.acknowledgedReleaseVersion.set(version);
+    }
+    this.showReleaseNoticeDialog.set(false);
+    this.releaseNoticeAvailable.set(false);
+  }
+
+  private refreshReleaseNotice(releaseVersion: string | null, releaseBuildDate: string | null): void {
+    if (!releaseVersion) {
+      this.releaseNoticeAvailable.set(false);
+      return;
+    }
+
+    this.releaseNoticeVersion.set(releaseVersion);
+    this.releaseNoticeBuildDate.set(releaseBuildDate ? this.formatApiDate(releaseBuildDate) : null);
+
+    const acked = this.acknowledgedReleaseVersion();
+    const isNewRelease = acked !== releaseVersion;
+    this.releaseNoticeAvailable.set(isNewRelease);
+    if (!isNewRelease) this.showReleaseNoticeDialog.set(false);
   }
 
   private formatApiDate(isoDate: string): string {

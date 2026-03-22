@@ -9,7 +9,16 @@
           </span>
           @if (updateAvailable() && !showUpdateDialog()) {
             <button class="app-shell__update-btn" (click)="onUpdateNow()" title="Click to apply the update now">
-              ↑ update available@if (newVersion()) { v{{ newVersion() }}}
+              ↑ update available@if (newVersion()) { v{{ newVersion() }} }
+            </button>
+          }
+          @if (releaseNoticeAvailable() && !showReleaseNoticeDialog()) {
+            <button
+              class="app-shell__release-notice-btn"
+              (click)="openReleaseNoticeDialog()"
+              title="Open runtime release notice"
+            >
+              ● release notice@if (releaseNoticeVersion()) { v{{ releaseNoticeVersion() }} }
             </button>
           }
         </div>
@@ -70,5 +79,29 @@
         {{ remainingLaters() === 1 ? 'Later — last time' : 'Later' }}
       </button>
     }
+  </div>
+</dialog>
+
+<dialog #releaseNoticeDialog class="update-dialog release-notice-dialog" (cancel)="$event.preventDefault()">
+  <h2 class="update-dialog__header">Release Notice</h2>
+  <div class="update-dialog__body">
+    <p class="update-dialog__message">
+      @if (releaseNoticeVersion()) {
+        <strong>BAUKLANK runtime updated to v{{ releaseNoticeVersion() }}</strong>
+        @if (releaseNoticeBuildDate()) {
+          ({{ releaseNoticeBuildDate() }})
+        }.
+      } @else {
+        <strong>BAUKLANK runtime has been updated.</strong>
+      }
+    </p>
+    <p class="update-dialog__note">
+      This notice is based on API release metadata and will remain visible until acknowledged for this version.
+    </p>
+  </div>
+  <div class="update-dialog__footer">
+    <button class="update-dialog__btn update-dialog__btn--primary" (click)="acknowledgeReleaseNotice()">
+      Acknowledge
+    </button>
   </div>
 </dialog>

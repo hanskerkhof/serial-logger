@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.6.4 - 2026-03-22
+
+### Changed
+- Frontend patch release bump to `v0.6.4`.
+- Studio deploy refreshed generated build metadata (`src/app/build-info.ts`) and service worker app version payload (`ngsw-config.json` `appData.version`).
+- Deployed web bundle refreshed for the matching root release (`web/serial-logger-app`).
+
 ## 0.6.0 - 2026-03-21
 
 ### Fixed

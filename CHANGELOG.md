@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.6.16 - 2026-03-23
+
+### Changed
+- Fixture details modal migrated from native `<dialog>` to PrimeNG `p-dialog` for consistent overlay and focus behavior.
+- Fixture details dialog now uses PrimeNG default content spacing (removed custom `padding: 0` override) while keeping behavior-specific overflow handling.
+- Frontend patch release bump to `v0.6.16`.
+
 ### Fixed
 - Header heartbeat icon: colour no longer overridden to black on hover — healthy (red), degraded (grey), and offline (dark grey) states are now preserved on hover; only the background circle appears.
 - `CommanderComponent` health panel heartbeat icon: hover no longer overrides the status colour to black; explicit `:hover`/`:focus` rules keep each state colour stable.

@@ -414,7 +414,20 @@
     <div class="commander__dropdown-backdrop"></div>
   }
 
-  <dialog #fixtureDetailDialog class="commander__dialog" (mousedown)="onDialogMousedown($event)" (click)="onDialogBackdropClick($event)">
+  <p-dialog
+    [visible]="fixtureModalVisible()"
+    (visibleChange)="onFixtureDialogVisibleChange($event)"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closeOnEscape]="true"
+    [showHeader]="false"
+    styleClass="commander__fixture-dialog"
+    [style]="{ width: 'min(72rem, 96vw)' }"
+    [contentStyle]="{ overflow: 'visible' }"
+  >
+    <div class="commander__dialog">
     <header class="commander__dialog-header">
       <h3>
         Fixture: {{ selectedFixture()?.fixture_name }}
@@ -527,80 +540,81 @@
         aria-label="Close"
       ></button>
     </header>
-    <section
-      class="commander__dialog-feedback"
-      [class]="
-        commanderUnavailable()
-          ? 'commander__dialog-feedback commander__dialog-feedback--warn'
-          : modalQueryError()
-            ? 'commander__dialog-feedback commander__dialog-feedback--info commander__dialog-feedback--error'
-            : 'commander__dialog-feedback commander__dialog-feedback--' + fixtureActionTone()
-      "
-    >
-      @if (commanderUnavailable()) {
-        <p class="commander__dialog-feedback-message">
-          <span class="commander__dialog-feedback-icon" aria-hidden="true">⚠</span>
-          <span>Fixture commands disabled@if (commanderUnavailableReason(); as reason) { — {{ reason }}}</span>
-        </p>
-      } @else if (modalQueryError(); as modalError) {
-        <p class="commander__dialog-feedback-message">
-          <span class="commander__dialog-feedback-icon" aria-hidden="true">✖</span>
-          <span>{{ modalError }}</span>
-        </p>
-      } @else if (fixtureActionMessage(); as actionMessage) {
-        <p class="commander__dialog-feedback-message">
-          @if (fixtureActionTone() === 'success') {
-            <span class="commander__dialog-feedback-icon" aria-hidden="true">✔</span>
-          } @else if (fixtureActionTone() === 'error') {
+    <div class="commander__dialog-body">
+      <section
+        class="commander__dialog-feedback"
+        [class]="
+          commanderUnavailable()
+            ? 'commander__dialog-feedback commander__dialog-feedback--warn'
+            : modalQueryError()
+              ? 'commander__dialog-feedback commander__dialog-feedback--info commander__dialog-feedback--error'
+              : 'commander__dialog-feedback commander__dialog-feedback--' + fixtureActionTone()
+        "
+      >
+        @if (commanderUnavailable()) {
+          <p class="commander__dialog-feedback-message">
+            <span class="commander__dialog-feedback-icon" aria-hidden="true">⚠</span>
+            <span>Fixture commands disabled@if (commanderUnavailableReason(); as reason) { — {{ reason }}}</span>
+          </p>
+        } @else if (modalQueryError(); as modalError) {
+          <p class="commander__dialog-feedback-message">
             <span class="commander__dialog-feedback-icon" aria-hidden="true">✖</span>
-          }
-          <span>{{ actionMessage }}</span>
-        </p>
-      } @else {
-        <p class="commander__dialog-feedback-message commander__dialog-feedback-message--placeholder">&nbsp;</p>
-      }
-      @if (!modalQueryError() && fixtureActionDurationMs(); as durationMs) {
-        <p class="commander__dialog-feedback-duration">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
-      } @else {
-        <p class="commander__dialog-feedback-duration commander__dialog-feedback-duration--placeholder">&nbsp;</p>
-      }
-    </section>
-    <app-fixture-plan-control
-      [planControls]="selectedFixturePlanControls()"
-      [planState]="selectedFixturePlanState()"
-      [loading]="fixtureActionLoading()"
-      [querying]="modalQueryLoading()"
-      [disabled]="playerControlsDisabled()"
-      (actionRequested)="runModalPlanAction($event)"
-    />
-    <app-fixture-player-controls
-      [player]="selectedFixturePlayer()"
-      [playerType]="selectedFixturePlayerType()"
-      [playerState]="selectedFixturePlayerState()"
-      [disabled]="playerControlsDisabled()"
-      (commandRequested)="onPlayerCommand($event)"
-    />
-    <section class="commander__rssi-session" aria-label="RSSI session">
-      @if (selectedFixtureIsEsp8266()) {
-        <p class="commander__rssi-session-unsupported">
-          ⚠ RSSI sessions are not supported on ESP8266 boards (ESP-01, D1 Mini).
-        </p>
-      } @else {
-        <button
-          pButton
-          type="button"
-          [label]="rssiSessionCountdown() !== null ? ('Session active · ' + rssiSessionCountdown() + 's') : 'Start RSSI session'"
-          icon="pi pi-wifi"
-          iconPos="left"
-          severity="secondary"
-          size="small"
-          [loading]="rssiSessionLoading()"
-          [disabled]="rssiSessionLoading() || rssiSessionCountdown() !== null || commanderUnavailable()"
-          (click)="startRssiSession(20000)"
-        ></button>
-      }
-    </section>
-    <section class="commander__rssi" aria-label="Link quality">
+            <span>{{ modalError }}</span>
+          </p>
+        } @else if (fixtureActionMessage(); as actionMessage) {
+          <p class="commander__dialog-feedback-message">
+            @if (fixtureActionTone() === 'success') {
+              <span class="commander__dialog-feedback-icon" aria-hidden="true">✔</span>
+            } @else if (fixtureActionTone() === 'error') {
+              <span class="commander__dialog-feedback-icon" aria-hidden="true">✖</span>
+            }
+            <span>{{ actionMessage }}</span>
+          </p>
+        } @else {
+          <p class="commander__dialog-feedback-message commander__dialog-feedback-message--placeholder">&nbsp;</p>
+        }
+        @if (!modalQueryError() && fixtureActionDurationMs(); as durationMs) {
+          <p class="commander__dialog-feedback-duration">Round-trip: {{ durationMs.toFixed(1) }} ms</p>
+        } @else {
+          <p class="commander__dialog-feedback-duration commander__dialog-feedback-duration--placeholder">&nbsp;</p>
+        }
+      </section>
+      <app-fixture-plan-control
+        [planControls]="selectedFixturePlanControls()"
+        [planState]="selectedFixturePlanState()"
+        [loading]="fixtureActionLoading()"
+        [querying]="modalQueryLoading()"
+        [disabled]="playerControlsDisabled()"
+        (actionRequested)="runModalPlanAction($event)"
+      />
+      <app-fixture-player-controls
+        [player]="selectedFixturePlayer()"
+        [playerType]="selectedFixturePlayerType()"
+        [playerState]="selectedFixturePlayerState()"
+        [disabled]="playerControlsDisabled()"
+        (commandRequested)="onPlayerCommand($event)"
+      />
+      <section class="commander__rssi-session" aria-label="RSSI session">
+        @if (selectedFixtureIsEsp8266()) {
+          <p class="commander__rssi-session-unsupported">
+            ⚠ RSSI sessions are not supported on ESP8266 boards (ESP-01, D1 Mini).
+          </p>
+        } @else {
+          <button
+            pButton
+            type="button"
+            [label]="rssiSessionCountdown() !== null ? ('Session active · ' + rssiSessionCountdown() + 's') : 'Start RSSI session'"
+            icon="pi pi-wifi"
+            iconPos="left"
+            severity="secondary"
+            size="small"
+            [loading]="rssiSessionLoading()"
+            [disabled]="rssiSessionLoading() || rssiSessionCountdown() !== null || commanderUnavailable()"
+            (click)="startRssiSession(20000)"
+          ></button>
+        }
+      </section>
+      <section class="commander__rssi" aria-label="Link quality">
         <h4 class="commander__rssi-title">
           Link Quality
           @if (selectedFixtureRssi()) {
@@ -658,19 +672,20 @@
           </table>
         }
       </section>
-    @if (selectedFixtureCustomCommands().length > 0) {
-      <app-fixture-custom-control
-        [commands]="selectedFixtureCustomCommands()"
-        [values]="customCommandValues()"
-        [loading]="fixtureActionLoading()"
-        [disabled]="commanderUnavailable()"
-        (argChanged)="onFixtureCustomArgChanged($event)"
-        (commandRunRequested)="onFixtureCustomCommandRunRequested($event)"
-        (sliderReleased)="onFixtureCustomSliderReleased($event)"
-        (masterPreviewChanged)="onFixtureCustomMasterPreviewChanged($event)"
-        (masterReleased)="onFixtureCustomMasterReleased($event)"
-      />
-    }
+      @if (selectedFixtureCustomCommands().length > 0) {
+        <app-fixture-custom-control
+          [commands]="selectedFixtureCustomCommands()"
+          [values]="customCommandValues()"
+          [loading]="fixtureActionLoading()"
+          [disabled]="commanderUnavailable()"
+          (argChanged)="onFixtureCustomArgChanged($event)"
+          (commandRunRequested)="onFixtureCustomCommandRunRequested($event)"
+          (sliderReleased)="onFixtureCustomSliderReleased($event)"
+          (masterPreviewChanged)="onFixtureCustomMasterPreviewChanged($event)"
+          (masterReleased)="onFixtureCustomMasterReleased($event)"
+        />
+      }
+    </div>
     <footer class="commander__dialog-footer">
       <input
         pInputText
@@ -698,5 +713,6 @@
         (click)="closeFixtureModal()"
       ></button>
     </footer>
-  </dialog>
+    </div>
+  </p-dialog>
 </section>

@@ -2,9 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  ElementRef,
   OnInit,
-  ViewChild,
   computed,
   effect,
   inject,
@@ -23,6 +21,7 @@ import { SelectChangeEvent, SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
 import { BadgeModule } from 'primeng/badge';
+import { DialogModule } from 'primeng/dialog';
 import { MessageService } from 'primeng/api';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import {
@@ -77,7 +76,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent],
+  imports: [FormsModule, ButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -172,6 +171,7 @@ export class CommanderComponent implements OnInit {
   protected readonly customCommandValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
+  protected readonly fixtureModalVisible = signal(false);
   private modalQuerySub: Subscription | null = null;
   /** Fixture names that have been auto-queried on first modal open this session. */
   private readonly autoQueriedFixtures = new Set<string>();
@@ -211,8 +211,6 @@ export class CommanderComponent implements OnInit {
 
   // Ensures auto-discovery on empty store fires at most once per session.
   private _autoDiscoveryTriggered = false;
-
-  @ViewChild('fixtureDetailDialog') fixtureDetailDialog!: ElementRef<HTMLDialogElement>;
 
   private readonly commanderApi = inject(CommanderApiService);
   private readonly fixtureStore = inject(FixtureStoreService);
@@ -1043,9 +1041,20 @@ export class CommanderComponent implements OnInit {
   }
 
   protected closeFixtureModal(): void {
+    this.fixtureModalVisible.set(false);
+    this.resetFixtureModalState();
+  }
+
+  protected onFixtureDialogVisibleChange(visible: boolean): void {
+    this.fixtureModalVisible.set(visible);
+    if (!visible) {
+      this.resetFixtureModalState();
+    }
+  }
+
+  private resetFixtureModalState(): void {
     this.modalQuerySub?.unsubscribe();
     this.modalQuerySub = null;
-    this.fixtureDetailDialog?.nativeElement?.close();
     this.modalQueryLoading.set(false);
     this.modalQueryError.set(null);
     this.fixtureActionMessage.set(null);
@@ -1233,44 +1242,10 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, wireCommand);
   }
 
-  /** True when the most recent mousedown inside the dialog originated within the dialog content box. */
-  private _dialogMousedownInsideContent = false;
-
-  protected onDialogMousedown(event: MouseEvent): void {
-    const dialog = this.fixtureDetailDialog?.nativeElement;
-    if (!dialog) return;
-    const rect = dialog.getBoundingClientRect();
-    this._dialogMousedownInsideContent =
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom;
-  }
-
-  protected onDialogBackdropClick(event: MouseEvent): void {
-    const dialog = this.fixtureDetailDialog?.nativeElement;
-    if (!dialog) return;
-    // Ignore clicks that started inside the dialog content (e.g. a slider drag
-    // that ended outside the modal boundary). Only close when both mousedown
-    // and click originated outside the content box.
-    if (this._dialogMousedownInsideContent) return;
-    const rect = dialog.getBoundingClientRect();
-    const isOutside =
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom;
-    if (isOutside) {
-      this.closeFixtureModal();
-    }
-  }
-
   private openFixtureModal(): void {
-    const dialog = this.fixtureDetailDialog?.nativeElement;
-    if (!dialog) return;
-    if (!dialog.open) {
+    if (!this.fixtureModalVisible()) {
       this.fixtureAckEnabled.set(false);
-      dialog.showModal();
+      this.fixtureModalVisible.set(true);
     }
   }
 

@@ -290,17 +290,16 @@
 }
 
 .commander__dialog {
-  width: min(72rem, 96vw);
+  width: 100%;
+  min-height: 20rem; // header + 8 lines of body text + footer
+  display: flex;
+  flex-direction: column;
+}
 
-  &::backdrop {
-    cursor: pointer; // makes backdrop tappable on Safari iOS
-  }
-
-  &[open] {
-    min-height: 20rem; // header + 8 lines of body text + footer
-    display: flex;
-    flex-direction: column;
-  }
+.commander__dialog-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0; // required so the body can shrink within the modal flex column
 }
 
 .commander__dialog-footer {

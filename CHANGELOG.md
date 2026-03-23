@@ -9,6 +9,8 @@
 - `app-fixture-player-controls`: `[disabled]` binding applied to all three native inputs (track number, vol range, fade range) in addition to buttons and EQ select.
 - `app-fixture-plan-control` (Plan trigger / Plan stop): now also driven by `playerControlsDisabled` — consistent disable behaviour with the player controls.
 - `app-fixture-player-controls`: New `playerType` input (`string | null`). EQ dropdown now adapts to the player hardware: DY / XY players show 5 presets (Normal / Pop / Rock / Jazz / Classic, 0–4 — no Bass); MD / DF players (YX5300-based) show 6 presets (0–5, +Bass). AK player shows 5 (EQ is a no-op in firmware). Unknown player types default to 6. A clamping effect resets a stale EQ value when switching between fixture types. `CommanderComponent` passes `raw['player_type']` as `selectedFixturePlayerType` to the component.
+- `app-fixture-player-controls`: Player type displayed in small dimmed font next to the PLAYER section header.
+- `app-fixture-player-controls`: Separate `fadeInDurationMs` signal and duration input (between Stop and Fade In buttons) for Fade In — independent of the Fade To / Fade Out duration field.
 
 ### Fixed
 - `app-fixture-player-controls`: `fadeToVolume` default raised from `0` → `30` to prevent Fade In silently fading to silence when the user has not moved the fade slider.

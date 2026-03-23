@@ -60,6 +60,7 @@ export class FixturePlayerControlsComponent {
   readonly trackNumber = signal<number | null>(null);
   readonly volumeLevel = signal<number>(50);
   readonly fadeToVolume = signal<number>(30);
+  readonly fadeInVolume = signal<number>(30);
   readonly fadeInDurationMs = signal<number>(3000);
   readonly fadeDurationMs = signal<number>(3000);
   readonly eqPreset = signal<number>(0);
@@ -89,7 +90,7 @@ export class FixturePlayerControlsComponent {
   fadeIn(): void {
     const track = this.trackNumber();
     if (track === null) return;
-    this.commandRequested.emit(`cmd;fadeIn;track=${track};volume=${this.fadeToVolume()};duration=${this.fadeInDurationMs()};`);
+    this.commandRequested.emit(`cmd;fadeIn;track=${track};volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`);
   }
 
   fadeTo(): void {
@@ -119,6 +120,10 @@ export class FixturePlayerControlsComponent {
 
   onFadeToVolumeInput(event: Event): void {
     this.fadeToVolume.set(+(event.target as HTMLInputElement).value);
+  }
+
+  onFadeInVolumeInput(event: Event): void {
+    this.fadeInVolume.set(+(event.target as HTMLInputElement).value);
   }
 
   onFadeInDurationInput(event: Event): void {

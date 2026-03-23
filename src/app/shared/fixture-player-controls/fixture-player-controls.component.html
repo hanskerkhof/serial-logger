@@ -36,6 +36,16 @@
           <input
             class="fixture-player-controls__duration-input"
             type="number"
+            min="0"
+            max="100"
+            [value]="fadeInVolume()"
+            [disabled]="disabled()"
+            (input)="onFadeInVolumeInput($event)"
+          />
+          <span class="fixture-player-controls__row-unit">vol</span>
+          <input
+            class="fixture-player-controls__duration-input"
+            type="number"
             min="100"
             step="100"
             [value]="fadeInDurationMs()"

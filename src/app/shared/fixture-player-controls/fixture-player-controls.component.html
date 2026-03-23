@@ -104,7 +104,7 @@
       <div class="fixture-player-controls__row">
         <span class="fixture-player-controls__row-label">EQ</span>
         <p-select
-          [options]="eqPresets"
+          [options]="eqPresets()"
           [ngModel]="eqPreset()"
           (ngModelChange)="eqPreset.set($event); setEqualizer()"
           optionLabel="label"

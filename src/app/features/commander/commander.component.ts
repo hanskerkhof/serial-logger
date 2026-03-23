@@ -465,6 +465,10 @@ export class CommanderComponent implements OnInit {
     return caps?.player ?? null;
   });
 
+  protected readonly selectedFixturePlayerType = computed<string | null>(
+    () => (this.selectedFixture()?.raw['player_type'] as string | null | undefined) ?? null,
+  );
+
   protected readonly playerControlsDisabled = computed(
     () => this.fixtureActionLoading() || this.modalQueryLoading() || this.commanderUnavailable(),
   );

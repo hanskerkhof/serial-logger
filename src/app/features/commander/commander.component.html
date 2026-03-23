@@ -572,6 +572,7 @@
     />
     <app-fixture-player-controls
       [player]="selectedFixturePlayer()"
+      [playerType]="selectedFixturePlayerType()"
       [playerState]="selectedFixturePlayerState()"
       [disabled]="playerControlsDisabled()"
       (commandRequested)="onPlayerCommand($event)"

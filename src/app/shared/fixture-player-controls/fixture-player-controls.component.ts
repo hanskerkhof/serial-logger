@@ -1,10 +1,20 @@
-import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { CmdrPlayerCapabilities } from '../../api/cmdr-models';
 
-const EQ_PRESETS = [
+/** DY players (DY-HV20T, DY-SV5W): 5 presets, no Bass (EQ range 0x00–0x04). */
+const EQ_PRESETS_DY = [
+  { label: 'Normal', value: 0 },
+  { label: 'Pop', value: 1 },
+  { label: 'Rock', value: 2 },
+  { label: 'Jazz', value: 3 },
+  { label: 'Classic', value: 4 },
+];
+
+/** MD / DF players (YX5300-based): 6 presets including Bass (EQ range 0x00–0x05). */
+const EQ_PRESETS_ALL = [
   { label: 'Normal', value: 0 },
   { label: 'Pop', value: 1 },
   { label: 'Rock', value: 2 },
@@ -23,6 +33,7 @@ const EQ_PRESETS = [
 })
 export class FixturePlayerControlsComponent {
   readonly player = input<CmdrPlayerCapabilities | null>(null);
+  readonly playerType = input<string | null>(null);
   readonly playerState = input<{ volume?: number; eq?: number } | null>(null);
   readonly disabled = input<boolean>(false);
 
@@ -31,11 +42,19 @@ export class FixturePlayerControlsComponent {
   readonly analogOverride = signal(false);
 
   constructor() {
+    // Sync live fixture state into controls when plan_state arrives.
     effect(() => {
       const ps = this.playerState();
       if (!ps) return;
       if (ps.volume !== undefined) this.volumeLevel.set(ps.volume);
       if (ps.eq !== undefined) this.eqPreset.set(ps.eq);
+    });
+
+    // Clamp eqPreset to the highest valid index when player type changes.
+    effect(() => {
+      const presets = this.eqPresets();
+      const maxVal = presets[presets.length - 1].value;
+      if (this.eqPreset() > maxVal) this.eqPreset.set(maxVal);
     });
   }
   readonly trackNumber = signal<number | null>(null);
@@ -44,7 +63,10 @@ export class FixturePlayerControlsComponent {
   readonly fadeDurationMs = signal<number>(3000);
   readonly eqPreset = signal<number>(0);
 
-  readonly eqPresets = EQ_PRESETS;
+  /** EQ preset list is narrowed to 5 entries for DY players (no Bass); full 6 for all others. */
+  readonly eqPresets = computed(() =>
+    this.playerType()?.toUpperCase().includes('DY') ? EQ_PRESETS_DY : EQ_PRESETS_ALL,
+  );
 
   playSound(): void {
     const track = this.trackNumber();

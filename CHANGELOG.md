@@ -8,6 +8,7 @@
 - `CommanderComponent`: `playerControlsDisabled` computed signal (`fixtureActionLoading || modalQueryLoading || commanderUnavailable`) — single source of truth for disabling all interactive fixture controls.
 - `app-fixture-player-controls`: `[disabled]` binding applied to all three native inputs (track number, vol range, fade range) in addition to buttons and EQ select.
 - `app-fixture-plan-control` (Plan trigger / Plan stop): now also driven by `playerControlsDisabled` — consistent disable behaviour with the player controls.
+- `app-fixture-player-controls`: New `playerType` input (`string | null`). EQ dropdown now adapts to the player hardware: DY players (DY-HV20T / DY-SV5W) show 5 presets (Normal / Pop / Rock / Jazz / Classic, 0–4); MD and DF players (YX5300-based) show 6 presets (Normal / Pop / Rock / Jazz / Classic / Bass, 0–5). A clamping effect prevents an out-of-range EQ value from persisting when switching between fixture types. `CommanderComponent` passes `raw['player_type']` as `selectedFixturePlayerType` to the component.
 
 ### Fixed
 - `app-fixture-player-controls`: `fadeToVolume` default raised from `0` → `30` to prevent Fade In silently fading to silence when the user has not moved the fade slider.

@@ -6,11 +6,23 @@
   font-size: 0.8rem;
 }
 
+.fixture-player-controls__header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
 .fixture-player-controls__label {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.75;
+}
+
+.fixture-player-controls__player-type {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  letter-spacing: 0.03em;
 }
 
 .fixture-player-controls__row {

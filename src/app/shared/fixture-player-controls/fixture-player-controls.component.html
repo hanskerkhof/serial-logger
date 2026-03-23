@@ -1,7 +1,12 @@
 @if (player(); as p) {
   @if (p.attached) {
     <section class="fixture-player-controls">
-      <span class="fixture-player-controls__label">Player</span>
+      <div class="fixture-player-controls__header">
+        <span class="fixture-player-controls__label">Player</span>
+        @if (playerType(); as pt) {
+          <span class="fixture-player-controls__player-type">{{ pt }}</span>
+        }
+      </div>
 
       @if (p.play_track_available) {
         <div class="fixture-player-controls__row">

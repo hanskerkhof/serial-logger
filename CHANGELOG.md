@@ -10,10 +10,13 @@
 - `app-fixture-plan-control` (Plan trigger / Plan stop): now also driven by `playerControlsDisabled` — consistent disable behaviour with the player controls.
 - `app-fixture-player-controls`: New `playerType` input (`string | null`). EQ dropdown now adapts to the player hardware: DY / XY players show 5 presets (Normal / Pop / Rock / Jazz / Classic, 0–4 — no Bass); MD / DF players (YX5300-based) show 6 presets (0–5, +Bass). AK player shows 5 (EQ is a no-op in firmware). Unknown player types default to 6. A clamping effect resets a stale EQ value when switching between fixture types. `CommanderComponent` passes `raw['player_type']` as `selectedFixturePlayerType` to the component.
 - `app-fixture-player-controls`: Player type displayed in small dimmed font next to the PLAYER section header.
-- `app-fixture-player-controls`: Separate `fadeInDurationMs` signal and duration input (between Stop and Fade In buttons) for Fade In — independent of the Fade To / Fade Out duration field.
+- `app-fixture-player-controls`: Separate `fadeInDurationMs` and `fadeInVolume` signals with independent inputs for Fade In — both independent from the Fade To / Fade Out controls.
+- `app-fixture-player-controls`: Fade In volume input changed to a slider (matching the Fade row style).
+- `app-fixture-player-controls`: Directional fade progress animation on the duration input background. Fade In always fills left → right. Fade To fills left → right when target volume is higher than current, drains right → left when lower. Fade Out always drains right → left. After a drain (RTL) animation completes the overlay is removed immediately; after a fill (LTR) the overlay fades out over 2 s. No layout shift — the animation runs entirely as a `::before` overlay inside a wrapper span.
 
 ### Fixed
 - `app-fixture-player-controls`: `fadeToVolume` default raised from `0` → `30` to prevent Fade In silently fading to silence when the user has not moved the fade slider.
+- `app-fixture-player-controls`: Missing `[disabled]` binding on the Fade To / Fade Out duration input added; `ms` label given correct `row-unit` class.
 
 ### Changed
 - Feedback banner: Round-trip time repositioned to upper-right corner of the message box (absolutely positioned, message text padded to prevent overlap).

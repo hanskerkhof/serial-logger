@@ -47,6 +47,11 @@
   &--healthy  { color: #ef4444; animation: heartbeat 1.4s ease-in-out infinite; }
   &--degraded { color: #9ca3af; }
   &--offline  { color: #4b5563; }
+
+  // Prevent hover (e.g. inside p-panel header) from overriding status color
+  &--healthy:hover,  &--healthy:focus  { color: #ef4444; }
+  &--degraded:hover, &--degraded:focus { color: #9ca3af; }
+  &--offline:hover,  &--offline:focus  { color: #4b5563; }
 }
 
 .commander__health-degraded {

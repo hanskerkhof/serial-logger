@@ -39,6 +39,7 @@ export class AppComponent {
     apiBuildDate: string | null;
     fwVersion: string | null;
     port: string | null;
+    fixtureName: string | null;
     detected: boolean | null;
     degradedReason: string | null;
   } | null>(null);
@@ -220,6 +221,7 @@ export class AppComponent {
       apiBuildDate:  releaseBuildDate ? this.formatApiDate(releaseBuildDate) : null,
       fwVersion:     cmdr.fw_version ?? null,
       port:          cmdr.port ?? null,
+      fixtureName:   cmdr.detected_fixture_name ?? null,
       detected,
       degradedReason: detected === false
         ? (cmdr.last_transition_reason ?? 'Commander disconnected')

@@ -32,7 +32,7 @@
           >
             <i class="pi pi-heart-fill"></i>
           </button>
-          <p-popover #healthPopover>
+          <p-popover #healthPopover (onShow)="refreshHealth()">
             <div class="health-pop">
               <div class="health-pop__status">
                 <span

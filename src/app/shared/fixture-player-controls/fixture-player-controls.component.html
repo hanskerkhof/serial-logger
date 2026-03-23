@@ -126,6 +126,15 @@
         >Fade Out</button>
       </div>
 
+      @if (fadeAnimating()) {
+        <div class="fixture-player-controls__fade-track">
+          <div
+            class="fixture-player-controls__fade-bar"
+            [style.animation-duration.ms]="fadeAnimationDurationMs()"
+          ></div>
+        </div>
+      }
+
       <div class="fixture-player-controls__row">
         <span class="fixture-player-controls__row-label">EQ</span>
         <p-select

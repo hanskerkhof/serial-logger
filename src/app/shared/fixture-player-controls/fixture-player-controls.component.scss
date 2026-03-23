@@ -73,6 +73,26 @@
   opacity: 0.75;
 }
 
+.fixture-player-controls__fade-track {
+  height: 3px;
+  background: var(--p-surface-300, rgba(128, 128, 128, 0.25));
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fixture-player-controls__fade-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--p-primary-color, #6366f1);
+  border-radius: 2px;
+  animation: fixture-fade-progress linear forwards;
+}
+
+@keyframes fixture-fade-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
 .fixture-player-controls__analog-note {
   opacity: 0.5;
   font-style: italic;

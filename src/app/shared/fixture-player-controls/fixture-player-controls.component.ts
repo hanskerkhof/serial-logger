@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -40,8 +40,27 @@ export class FixturePlayerControlsComponent {
   readonly commandRequested = output<string>();
 
   readonly analogOverride = signal(false);
+  readonly fadeAnimating = signal(false);
+  readonly fadeAnimationDurationMs = signal(3000);
+
+  private readonly destroyRef = inject(DestroyRef);
+  private fadeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private startFadeAnimation(durationMs: number): void {
+    if (this.fadeTimer) clearTimeout(this.fadeTimer);
+    // Destroy the bar element first so the animation restarts cleanly.
+    this.fadeAnimating.set(false);
+    this.fadeAnimationDurationMs.set(durationMs);
+    setTimeout(() => {
+      this.fadeAnimating.set(true);
+      this.fadeTimer = setTimeout(() => this.fadeAnimating.set(false), durationMs);
+    }, 0);
+  }
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.fadeTimer) clearTimeout(this.fadeTimer);
+    });
     // Sync live fixture state into controls when plan_state arrives.
     effect(() => {
       const ps = this.playerState();
@@ -91,14 +110,17 @@ export class FixturePlayerControlsComponent {
     const track = this.trackNumber();
     if (track === null) return;
     this.commandRequested.emit(`cmd;fadeIn;track=${track};volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`);
+    this.startFadeAnimation(this.fadeInDurationMs());
   }
 
   fadeTo(): void {
     this.commandRequested.emit(`cmd;fadeTo;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};`);
+    this.startFadeAnimation(this.fadeDurationMs());
   }
 
   fadeOut(): void {
     this.commandRequested.emit(`cmd;fadeOut;duration=${this.fadeDurationMs()};`);
+    this.startFadeAnimation(this.fadeDurationMs());
   }
 
   setVolume(): void {

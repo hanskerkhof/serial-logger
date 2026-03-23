@@ -43,7 +43,12 @@
             (input)="onFadeInVolumeInput($event)"
           />
           <span class="fixture-player-controls__range-value">{{ fadeInVolume() }}</span>
-          <input
+          <span
+            class="fixture-player-controls__fill-wrap"
+            [class.fade-filling]="fadeInMsPhase() === 'filling'"
+            [class.fade-fading]="fadeInMsPhase() === 'fading'"
+            [style.--fill-ms]="fadeInDurationMs() + 'ms'"
+          ><input
             class="fixture-player-controls__duration-input"
             type="number"
             min="100"
@@ -51,7 +56,7 @@
             [value]="fadeInDurationMs()"
             [disabled]="disabled()"
             (input)="onFadeInDurationInput($event)"
-          />
+          /></span>
           <span class="fixture-player-controls__row-unit">ms</span>
           <button
             pButton
@@ -101,7 +106,12 @@
           (input)="onFadeToVolumeInput($event)"
         />
         <span class="fixture-player-controls__range-value">{{ fadeToVolume() }}</span>
-        <input
+        <span
+          class="fixture-player-controls__fill-wrap"
+          [class.fade-filling]="fadeMsPhase() === 'filling'"
+          [class.fade-fading]="fadeMsPhase() === 'fading'"
+          [style.--fill-ms]="fadeDurationMs() + 'ms'"
+        ><input
           class="fixture-player-controls__duration-input"
           type="number"
           min="100"
@@ -109,7 +119,7 @@
           [value]="fadeDurationMs()"
           [disabled]="disabled()"
           (input)="onFadeDurationInput($event)"
-        />
+        /></span>
         <span class="fixture-player-controls__row-unit">ms</span>
         <button
           pButton
@@ -126,15 +136,6 @@
           (click)="fadeOut()"
         >Fade Out</button>
       </div>
-
-      @if (fadeAnimating()) {
-        <div class="fixture-player-controls__fade-track">
-          <div
-            class="fixture-player-controls__fade-bar"
-            [style.animation-duration.ms]="fadeAnimationDurationMs()"
-          ></div>
-        </div>
-      }
 
       <div class="fixture-player-controls__row">
         <span class="fixture-player-controls__row-label">EQ</span>

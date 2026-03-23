@@ -73,24 +73,38 @@
   opacity: 0.75;
 }
 
-.fixture-player-controls__fade-track {
-  height: 3px;
-  background: var(--p-surface-300, rgba(128, 128, 128, 0.25));
-  border-radius: 2px;
+// Wraps a duration input and hosts the ::before fill overlay.
+.fixture-player-controls__fill-wrap {
+  position: relative;
+  display: inline-block;
+  border-radius: 4px;
   overflow: hidden;
+
+  &.fade-filling::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--p-primary-color, #6366f1);
+    opacity: 0.28;
+    transform-origin: left center;
+    transform: scaleX(0);
+    animation: fixture-input-fill var(--fill-ms, 3000ms) linear forwards;
+  }
+
+  &.fade-fading::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--p-primary-color, #6366f1);
+    opacity: 0;
+    transform: scaleX(1);
+    transition: opacity 2s ease;
+  }
 }
 
-.fixture-player-controls__fade-bar {
-  height: 100%;
-  width: 0%;
-  background: var(--p-primary-color, #6366f1);
-  border-radius: 2px;
-  animation: fixture-fade-progress linear forwards;
-}
-
-@keyframes fixture-fade-progress {
-  from { width: 0%; }
-  to   { width: 100%; }
+@keyframes fixture-input-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
 .fixture-player-controls__analog-note {

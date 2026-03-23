@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, WritableSignal, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -40,26 +40,35 @@ export class FixturePlayerControlsComponent {
   readonly commandRequested = output<string>();
 
   readonly analogOverride = signal(false);
-  readonly fadeAnimating = signal(false);
-  readonly fadeAnimationDurationMs = signal(3000);
+  /** Per-input animation phase: filling → fading → idle */
+  readonly fadeInMsPhase = signal<'idle' | 'filling' | 'fading'>('idle');
+  readonly fadeMsPhase   = signal<'idle' | 'filling' | 'fading'>('idle');
 
   private readonly destroyRef = inject(DestroyRef);
-  private fadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly fadeInTimers = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
+  private readonly fadeTimers   = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
 
-  private startFadeAnimation(durationMs: number): void {
-    if (this.fadeTimer) clearTimeout(this.fadeTimer);
-    // Destroy the bar element first so the animation restarts cleanly.
-    this.fadeAnimating.set(false);
-    this.fadeAnimationDurationMs.set(durationMs);
-    setTimeout(() => {
-      this.fadeAnimating.set(true);
-      this.fadeTimer = setTimeout(() => this.fadeAnimating.set(false), durationMs);
-    }, 0);
+  private startInputAnimation(
+    phase: WritableSignal<'idle' | 'filling' | 'fading'>,
+    durationMs: number,
+    timers: { t1: ReturnType<typeof setTimeout>; t2: ReturnType<typeof setTimeout> },
+  ): void {
+    clearTimeout(timers.t1);
+    clearTimeout(timers.t2);
+    phase.set('idle');                                           // reset so ::before is removed
+    timers.t1 = setTimeout(() => {
+      phase.set('filling');
+      timers.t2 = setTimeout(() => {
+        phase.set('fading');                                     // switch to fade-out transition
+        timers.t1 = setTimeout(() => phase.set('idle'), 2000);  // clean up after 2 s fade
+      }, durationMs);
+    }, 0);                                                       // next tick restarts CSS animation
   }
 
   constructor() {
     this.destroyRef.onDestroy(() => {
-      if (this.fadeTimer) clearTimeout(this.fadeTimer);
+      clearTimeout(this.fadeInTimers.t1); clearTimeout(this.fadeInTimers.t2);
+      clearTimeout(this.fadeTimers.t1);   clearTimeout(this.fadeTimers.t2);
     });
     // Sync live fixture state into controls when plan_state arrives.
     effect(() => {
@@ -110,17 +119,17 @@ export class FixturePlayerControlsComponent {
     const track = this.trackNumber();
     if (track === null) return;
     this.commandRequested.emit(`cmd;fadeIn;track=${track};volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`);
-    this.startFadeAnimation(this.fadeInDurationMs());
+    this.startInputAnimation(this.fadeInMsPhase, this.fadeInDurationMs(), this.fadeInTimers);
   }
 
   fadeTo(): void {
     this.commandRequested.emit(`cmd;fadeTo;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};`);
-    this.startFadeAnimation(this.fadeDurationMs());
+    this.startInputAnimation(this.fadeMsPhase, this.fadeDurationMs(), this.fadeTimers);
   }
 
   fadeOut(): void {
     this.commandRequested.emit(`cmd;fadeOut;duration=${this.fadeDurationMs()};`);
-    this.startFadeAnimation(this.fadeDurationMs());
+    this.startInputAnimation(this.fadeMsPhase, this.fadeDurationMs(), this.fadeTimers);
   }
 
   setVolume(): void {

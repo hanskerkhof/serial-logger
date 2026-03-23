@@ -205,7 +205,10 @@
       <p-panel [toggleable]="true" [collapsed]="true" toggler="header">
         <ng-template #header>
           <span class="commander__health-header">
-            <i class="pi pi-heart-fill" [style.color]="healthError() ? '#fb923c' : 'red'" style="margin-right: 0.4em;"></i>
+            <i class="pi pi-heart-fill commander__heartbeat-icon"
+               [class.commander__heartbeat-icon--healthy]="heartbeatState() === 'healthy'"
+               [class.commander__heartbeat-icon--degraded]="heartbeatState() === 'degraded'"
+               [class.commander__heartbeat-icon--offline]="heartbeatState() === 'offline'"></i>
             Heartbeat {{ heartbeatLabel() }}
             @if (healthError()) {
               <span class="commander__health-degraded">· ⚠ {{ healthError() }}</span>

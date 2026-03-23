@@ -201,6 +201,10 @@ export class CommanderComponent implements OnInit {
   });
   /** True only when the API reports it can compile firmware (macOS only). Gates the OTA Update button. */
   protected readonly compileSupported = computed(() => this.health()?.compile_supported === true);
+  protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {
+    if (this.healthError()) return 'offline';
+    return this.health()?.commander?.detected === true ? 'healthy' : 'degraded';
+  });
   // Tracks whether we've been through at least one unavailable state this session
   // so the "back online" toast only fires on recovery, never on initial load.
   private _wasUnavailable = false;

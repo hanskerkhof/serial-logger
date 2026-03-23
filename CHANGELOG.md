@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+- Header heartbeat icon: colour no longer overridden to black on hover — healthy (red), degraded (grey), and offline (dark grey) states are now preserved on hover; only the background circle appears.
+
+### Added
+- `CommanderComponent` health panel header: heartbeat icon now uses the same three-state colour coding as the app-shell header icon (red + pulse = healthy, grey = degraded, dark grey = offline) via `heartbeatState` computed signal.
+
 ## 0.6.10 - 2026-03-23
 
 ### Added

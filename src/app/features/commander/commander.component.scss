@@ -40,6 +40,15 @@
   gap: 0.3em;
 }
 
+.commander__heartbeat-icon {
+  margin-right: 0.4em;
+  color: #9ca3af; // default: degraded
+
+  &--healthy  { color: #ef4444; animation: heartbeat 1.4s ease-in-out infinite; }
+  &--degraded { color: #9ca3af; }
+  &--offline  { color: #4b5563; }
+}
+
 .commander__health-degraded {
   font-size: 0.8em;
   color: #fb923c;

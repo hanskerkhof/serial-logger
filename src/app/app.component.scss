@@ -114,13 +114,13 @@
     color: var(--p-text-color, #1f2937);
   }
 
-  // heartbeat states
-  &--healthy  { color: #ef4444; animation: heartbeat 1.4s ease-in-out infinite; }
-  &--degraded { color: #9ca3af; }
-  &--offline  { color: #4b5563; }
+  // heartbeat states — keep color on hover so the hover background doesn't turn the icon black
+  &--healthy  { color: #ef4444; animation: heartbeat 1.4s ease-in-out infinite; &:hover { color: #ef4444; } }
+  &--degraded { color: #9ca3af; &:hover { color: #9ca3af; } }
+  &--offline  { color: #4b5563; &:hover { color: #4b5563; } }
 
   // release notes: unread
-  &--unread { color: var(--p-primary-color, #6366f1); }
+  &--unread { color: var(--p-primary-color, #6366f1); &:hover { color: var(--p-primary-color, #6366f1); } }
 }
 
 @keyframes heartbeat {

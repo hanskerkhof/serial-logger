@@ -33,6 +33,16 @@
             [disabled]="disabled()"
             (click)="stopSound()"
           >&#x25A0; Stop</button>
+          <input
+            class="fixture-player-controls__duration-input"
+            type="number"
+            min="100"
+            step="100"
+            [value]="fadeInDurationMs()"
+            [disabled]="disabled()"
+            (input)="onFadeInDurationInput($event)"
+          />
+          <span class="fixture-player-controls__row-unit">ms</span>
           <button
             pButton
             severity="secondary"

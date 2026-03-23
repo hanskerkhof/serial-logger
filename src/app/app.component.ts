@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -40,7 +40,10 @@ export class AppComponent {
     fwVersion: string | null;
     port: string | null;
     detected: boolean | null;
+    degradedReason: string | null;
   } | null>(null);
+  protected readonly secondsSinceHealthCheck = signal<number | null>(null);
+  private healthTickTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {
     if (this.apiConnected() !== 'ok') return 'offline';
     return this.healthSummary()?.detected ? 'healthy' : 'degraded';
@@ -87,6 +90,10 @@ export class AppComponent {
   protected readonly releaseMessagesLoading = signal(false);
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      if (this.healthTickTimer !== null) clearInterval(this.healthTickTimer);
+    });
+
     // Drive native <dialog> elements via showModal/close so they enter the top layer.
     effect(() => {
       const show = this.showUpdateDialog();
@@ -207,13 +214,24 @@ export class AppComponent {
     this.refreshReleaseNotice(releaseVersion, releaseBuildDate);
     this.apiConnected.set('ok');
     const cmdr = (health as any).commander ?? {};
+    const detected: boolean | null = cmdr.detected ?? null;
     this.healthSummary.set({
-      apiVersion:   releaseVersion,
-      apiBuildDate: releaseBuildDate ? this.formatApiDate(releaseBuildDate) : null,
-      fwVersion:    cmdr.fw_version ?? null,
-      port:         cmdr.port ?? null,
-      detected:     cmdr.detected ?? null,
+      apiVersion:    releaseVersion,
+      apiBuildDate:  releaseBuildDate ? this.formatApiDate(releaseBuildDate) : null,
+      fwVersion:     cmdr.fw_version ?? null,
+      port:          cmdr.port ?? null,
+      detected,
+      degradedReason: detected === false
+        ? (cmdr.last_transition_reason ?? 'Commander disconnected')
+        : null,
     });
+    // Reset + restart the "X seconds ago" counter.
+    if (this.healthTickTimer !== null) clearInterval(this.healthTickTimer);
+    this.secondsSinceHealthCheck.set(0);
+    this.healthTickTimer = setInterval(
+      () => this.secondsSinceHealthCheck.update((s) => (s ?? 0) + 1),
+      1000,
+    );
   }
 
   private refreshReleaseNotice(releaseVersion: string | null, releaseBuildDate: string | null): void {

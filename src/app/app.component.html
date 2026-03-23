@@ -48,6 +48,9 @@
                 }
               </div>
               @if (healthSummary(); as s) {
+                @if (s.degradedReason) {
+                  <p class="health-pop__reason">{{ s.degradedReason }}</p>
+                }
                 <dl class="health-pop__dl">
                   @if (s.apiVersion) {
                     <dt>API</dt>
@@ -61,7 +64,12 @@
                   }
                 </dl>
               }
-              <button class="health-pop__refresh" (click)="refreshHealth()" type="button">Refresh</button>
+              <div class="health-pop__footer">
+                <button class="health-pop__refresh" (click)="refreshHealth()" type="button">Refresh</button>
+                @if (secondsSinceHealthCheck() !== null) {
+                  <span class="health-pop__age">{{ secondsSinceHealthCheck() }}s ago</span>
+                }
+              </div>
             </div>
           </p-popover>
 

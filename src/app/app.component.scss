@@ -194,9 +194,27 @@
   }
 }
 
-.health-pop__refresh {
-  align-self: flex-start;
+.health-pop__reason {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color, #9ca3af);
+  font-style: italic;
+}
+
+.health-pop__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   margin-top: 0.15rem;
+}
+
+.health-pop__age {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color, #9ca3af);
+  font-variant-numeric: tabular-nums;
+}
+
+.health-pop__refresh {
   background: none;
   border: 1px solid var(--p-surface-border, #e5e7eb);
   border-radius: 0.25rem;

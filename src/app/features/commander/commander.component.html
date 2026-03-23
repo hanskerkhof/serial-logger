@@ -18,13 +18,13 @@
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">
       <h3>Fixtures</h3>
-      <span>{{ fixtureCount() }}</span>
-    </header>
-
-    <div class="commander__sidebar-actions">
       @if (fixtureCount() > 0) {
         <button type="button" class="commander__clear-list-link" (click)="clearList()">empty list</button>
       }
+      <span class="commander__fixture-count">{{ fixtureCount() }}</span>
+    </header>
+
+    <div class="commander__sidebar-actions">
       <button
         pButton
         type="button"

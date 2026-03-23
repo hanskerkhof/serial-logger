@@ -298,6 +298,7 @@
   flex-direction: column;
   justify-content: center;
   gap: 0.1rem;
+  position: relative;
 }
 
 .commander__dialog-feedback-message,
@@ -311,6 +312,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  padding-right: 7rem;
 }
 
 .commander__dialog-feedback-icon {
@@ -319,6 +321,9 @@
 }
 
 .commander__dialog-feedback-duration {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.65rem;
   opacity: 0.75;
   font-variant-numeric: tabular-nums;
 }

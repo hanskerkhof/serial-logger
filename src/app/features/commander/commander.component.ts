@@ -465,6 +465,19 @@ export class CommanderComponent implements OnInit {
     return caps?.player ?? null;
   });
 
+  protected readonly playerControlsDisabled = computed(
+    () => this.fixtureActionLoading() || this.modalQueryLoading() || this.commanderUnavailable(),
+  );
+
+  protected readonly selectedFixturePlayerState = computed<{ volume?: number; eq?: number } | null>(() => {
+    const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
+    const s = ps?.['state'] as Record<string, unknown> | null | undefined;
+    if (!s) return null;
+    const volume = typeof s['volume'] === 'number' ? (s['volume'] as number) : undefined;
+    const eq = typeof s['eq'] === 'number' ? (s['eq'] as number) : undefined;
+    return volume !== undefined || eq !== undefined ? { volume, eq } : null;
+  });
+
   protected readonly selectedFixtureCustomCommands = computed<CmdrCustomCommandUiItem[]>(() => {
     const raw = this.selectedFixture()?.raw['custom_command_ui'];
     if (!Array.isArray(raw)) return [];
@@ -1093,6 +1106,12 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, command, 'default', () => {
       this.optimisticPlanState.set(expectedState);
     });
+  }
+
+  protected onPlayerCommand(command: string): void {
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) return;
+    this.sendCommand(fixture, command);
   }
 
   protected runRawCommand(): void {

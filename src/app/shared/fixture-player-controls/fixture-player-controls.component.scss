@@ -1,14 +1,71 @@
 .fixture-player-controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 0.5rem 1rem;
   font-size: 0.8rem;
-  opacity: 0.75;
 }
 
 .fixture-player-controls__label {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.fixture-player-controls__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.fixture-player-controls__row-label {
+  min-width: 2.5rem;
+  opacity: 0.75;
+}
+
+.fixture-player-controls__track-input {
+  width: 5rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--p-surface-400, #888);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+
+.fixture-player-controls__duration-input {
+  width: 5rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--p-surface-400, #888);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+
+.fixture-player-controls__range {
+  width: 7rem;
+  accent-color: var(--p-primary-color, #6366f1);
+}
+
+.fixture-player-controls__range-value {
+  min-width: 1.8rem;
+  text-align: right;
+  opacity: 0.75;
+}
+
+.fixture-player-controls__analog-note {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.fixture-player-controls__override-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.5;
+  cursor: pointer;
+  font-style: italic;
 }

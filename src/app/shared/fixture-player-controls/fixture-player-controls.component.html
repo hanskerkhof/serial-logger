@@ -2,9 +2,118 @@
   @if (p.attached) {
     <section class="fixture-player-controls">
       <span class="fixture-player-controls__label">Player</span>
-      <span>play track: {{ p.play_track_available ? 'yes' : 'no' }}</span>
-      <span>volume control: {{ p.volume_control_available ? 'yes' : 'no' }}</span>
-      <span>Analog volume: {{ p.analog_volume_active ? 'yes' : 'no' }}</span>
+
+      @if (p.play_track_available) {
+        <div class="fixture-player-controls__row">
+          <input
+            class="fixture-player-controls__track-input"
+            type="number"
+            placeholder="track #"
+            min="1"
+            [value]="trackNumber() ?? ''"
+            [disabled]="disabled()"
+            (input)="onTrackInput($event)"
+          />
+          <button
+            pButton
+            severity="secondary"
+            size="small"
+            [disabled]="trackNumber() === null || disabled()"
+            (click)="playSound()"
+          >&#x25B6; Play</button>
+          <button
+            pButton
+            severity="secondary"
+            size="small"
+            [disabled]="disabled()"
+            (click)="stopSound()"
+          >&#x25A0; Stop</button>
+          <button
+            pButton
+            severity="secondary"
+            size="small"
+            [disabled]="trackNumber() === null || disabled()"
+            (click)="fadeIn()"
+          >Fade In</button>
+        </div>
+      }
+
+      <div class="fixture-player-controls__row">
+        <span class="fixture-player-controls__row-label">Vol</span>
+        @if (p.analog_volume_active && !analogOverride()) {
+          <span class="fixture-player-controls__analog-note">not available (analog)</span>
+        }
+        @if (!p.analog_volume_active || analogOverride()) {
+          <input
+            class="fixture-player-controls__range"
+            type="range"
+            min="0"
+            max="100"
+            [value]="volumeLevel()"
+            [disabled]="disabled()"
+            (input)="onVolumeInput($event)"
+            (change)="setVolume()"
+          />
+          <span class="fixture-player-controls__range-value">{{ volumeLevel() }}</span>
+        }
+        @if (p.analog_volume_active) {
+          <label class="fixture-player-controls__override-label">
+            <input type="checkbox" [checked]="analogOverride()" (change)="analogOverride.set(!analogOverride())" />
+            override
+          </label>
+        }
+      </div>
+
+      <div class="fixture-player-controls__row">
+        <span class="fixture-player-controls__row-label">Fade</span>
+        <input
+          class="fixture-player-controls__range"
+          type="range"
+          min="0"
+          max="100"
+          [value]="fadeToVolume()"
+          [disabled]="disabled()"
+          (input)="onFadeToVolumeInput($event)"
+        />
+        <span class="fixture-player-controls__range-value">{{ fadeToVolume() }}</span>
+        <input
+          class="fixture-player-controls__duration-input"
+          type="number"
+          min="100"
+          step="500"
+          [value]="fadeDurationMs()"
+          (input)="onFadeDurationInput($event)"
+        />
+        <span>ms</span>
+        <button
+          pButton
+          severity="secondary"
+          size="small"
+          [disabled]="disabled()"
+          (click)="fadeTo()"
+        >Fade To</button>
+        <button
+          pButton
+          severity="secondary"
+          size="small"
+          [disabled]="disabled()"
+          (click)="fadeOut()"
+        >Fade Out</button>
+      </div>
+
+      <div class="fixture-player-controls__row">
+        <span class="fixture-player-controls__row-label">EQ</span>
+        <p-select
+          [options]="eqPresets"
+          [ngModel]="eqPreset()"
+          (ngModelChange)="eqPreset.set($event); setEqualizer()"
+          optionLabel="label"
+          optionValue="value"
+          size="small"
+          scrollHeight="300px"
+          [disabled]="disabled()"
+        />
+      </div>
     </section>
   } @else {
     <section class="fixture-player-controls">

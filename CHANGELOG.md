@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Added
+- `app-fixture-player-controls`: New `playerState` input (`{ volume?, eq? } | null`) with an `effect()` that syncs the vol slider and EQ dropdown to live hardware values whenever a Run Query returns `plan_state.state` data.
+- `CommanderComponent`: New `selectedFixturePlayerState` computed signal extracts `{ volume, eq }` from `raw['plan_state']['state']` and passes it to `<app-fixture-player-controls>`.
+- `CommanderComponent`: `playerControlsDisabled` computed signal (`fixtureActionLoading || modalQueryLoading || commanderUnavailable`) — single source of truth for disabling all interactive fixture controls.
+- `app-fixture-player-controls`: `[disabled]` binding applied to all three native inputs (track number, vol range, fade range) in addition to buttons and EQ select.
+- `app-fixture-plan-control` (Plan trigger / Plan stop): now also driven by `playerControlsDisabled` — consistent disable behaviour with the player controls.
+
+### Fixed
+- `app-fixture-player-controls`: `fadeToVolume` default raised from `0` → `30` to prevent Fade In silently fading to silence when the user has not moved the fade slider.
+
+### Changed
+- Feedback banner: Round-trip time repositioned to upper-right corner of the message box (absolutely positioned, message text padded to prevent overlap).
+
+## 0.6.9 - 2026-03-23
+
+### Added
+- `app-fixture-player-controls`: full interactive player control panel — Play (track number input + button), Stop, Fade In, Fade To, Fade Out, Set Volume (slider, with analog-override checkbox for testing), Set EQ (dropdown, auto-sends on selection).
+- Player command feedback reuses the existing fixture-action banner — shows dispatch confirmation and round-trip time for all player commands.
+
+### Changed
+- Frontend patch release bump to `v0.6.9`.
+
 ## 0.6.8 - 2026-03-22
 
 ### Added

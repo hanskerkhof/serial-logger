@@ -567,10 +567,15 @@
       [planState]="selectedFixturePlanState()"
       [loading]="fixtureActionLoading()"
       [querying]="modalQueryLoading()"
-      [disabled]="commanderUnavailable()"
+      [disabled]="playerControlsDisabled()"
       (actionRequested)="runModalPlanAction($event)"
     />
-    <app-fixture-player-controls [player]="selectedFixturePlayer()" />
+    <app-fixture-player-controls
+      [player]="selectedFixturePlayer()"
+      [playerState]="selectedFixturePlayerState()"
+      [disabled]="playerControlsDisabled()"
+      (commandRequested)="onPlayerCommand($event)"
+    />
     <section class="commander__rssi-session" aria-label="RSSI session">
       @if (selectedFixtureIsEsp8266()) {
         <p class="commander__rssi-session-unsupported">

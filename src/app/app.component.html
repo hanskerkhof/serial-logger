@@ -52,15 +52,15 @@
                   <p class="health-pop__reason">{{ s.degradedReason }}</p>
                 }
                 <dl class="health-pop__dl">
-                  @if (s.fixtureName) {
-                    <dt>Commander</dt><dd>{{ s.fixtureName }}</dd>
-                  }
                   @if (s.apiVersion) {
                     <dt>API</dt>
                     <dd>v{{ s.apiVersion }}@if (s.apiBuildDate) { · {{ s.apiBuildDate }}}</dd>
                   }
                   @if (s.fwVersion) {
                     <dt>FW</dt><dd>v{{ s.fwVersion }}</dd>
+                  }
+                  @if (s.fixtureName) {
+                    <dt>Commander</dt><dd>{{ s.fixtureName }}</dd>
                   }
                   @if (s.port) {
                     <dt>Port</dt><dd>{{ s.port }}</dd>

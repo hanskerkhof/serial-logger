@@ -21,7 +21,7 @@
       @if (fixtureCount() > 0) {
         <button type="button" class="commander__clear-list-link" (click)="clearList()">empty list</button>
       }
-      <span class="commander__fixture-count">{{ fixtureCount() }}</span>
+      <p-badge class="commander__fixture-count" [value]="fixtureCount()" severity="secondary" />
     </header>
 
     <div class="commander__sidebar-actions">

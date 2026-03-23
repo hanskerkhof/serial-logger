@@ -1,5 +1,15 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.release-notes__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
 }
 
 .release-notes__meta {
@@ -50,10 +60,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 0.9rem;
+  margin-top: 0;
   padding-top: 0.65rem;
+  padding-bottom: 0.1rem;
   border-top: 1px solid var(--p-surface-border, #e5e7eb);
   gap: 0.5rem;
+  position: sticky;
+  bottom: 0;
+  background: var(--p-surface-0, #ffffff);
+  flex-shrink: 0;
 }
 
 .release-notes__nav-btn {

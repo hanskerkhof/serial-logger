@@ -59,6 +59,8 @@ pre {
 
   &.release-notice-dialog {
     width: min(42rem, 96vw);
+    height: 80vh;
+    max-height: 80vh;
   }
   border: 1px solid var(--p-surface-border, #e5e7eb);
   border-radius: 0.5rem;
@@ -93,11 +95,13 @@ pre {
 
   &__body {
     padding: 1rem 1.5rem;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
 
     &.release-notice-dialog__body {
-      max-height: 65vh;
-      overflow-y: auto;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
     }
   }
 

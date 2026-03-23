@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.6.17 - 2026-03-23
+
+### Added
+- Release notes dialog now uses API-backed pagination across all release notes (`total`-aware), so the pager reflects global position (for example `1 of 99`) instead of the first 10-item batch only.
+
+### Changed
+- Release notes dialog layout now uses a fixed tall viewport (`~80vh`) with a scrollable notes body and sticky bottom paginator bar.
+- Frontend patch release bump to `v0.6.17`.
+
 ## 0.6.16 - 2026-03-23
 
 ### Changed

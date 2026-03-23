@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
 import { CmdrMessage } from '../../api/cmdr-models';
 
 @Component({
@@ -10,30 +10,60 @@ import { CmdrMessage } from '../../api/cmdr-models';
 })
 export class ReleaseNotesComponent {
   readonly messages = input<CmdrMessage[]>([]);
-  readonly loading  = input<boolean>(false);
+  readonly loading = input<boolean>(false);
+  readonly total = input<number | null>(null);
+  readonly offset = input<number>(0);
 
-  readonly index   = signal(0);
+  readonly olderPageRequested = output<void>();
+  readonly newerPageRequested = output<void>();
+
+  readonly index = signal(0);
   readonly current = computed(() => this.messages()[this.index()] ?? null);
-  readonly hasPrev = computed(() => this.index() < this.messages().length - 1);
-  readonly hasNext = computed(() => this.index() > 0);
+  readonly position = computed(() => this.offset() + this.index() + 1);
+  readonly effectiveTotal = computed(() => this.total() ?? this.messages().length);
+  readonly hasPrev = computed(() => this.position() < this.effectiveTotal());
+  readonly hasNext = computed(() => this.position() > 1);
   readonly pageLabel = computed(() => {
-    const total = this.messages().length;
-    return total > 1 ? `${this.index() + 1} of ${total}` : null;
+    const total = this.effectiveTotal();
+    return total > 1 ? `${this.position()} of ${total}` : null;
   });
 
+  private pendingBoundaryNav: 'older' | 'newer' | null = null;
+
   constructor() {
-    // Reset to latest entry whenever a new batch of messages arrives.
+    // Keep cursor intuitive when a new API page is loaded from boundary navigation.
     effect(() => {
       this.messages(); // track dependency
-      this.index.set(0);
+      const pending = this.pendingBoundaryNav;
+      this.pendingBoundaryNav = null;
+      if (pending === 'newer') {
+        const lastIndex = Math.max(0, this.messages().length - 1);
+        this.index.set(lastIndex);
+      } else {
+        this.index.set(0);
+      }
     });
   }
 
   goNewer(): void {
-    if (this.hasNext()) this.index.update((i) => i - 1);
+    if (this.index() > 0) {
+      this.index.update((i) => i - 1);
+      return;
+    }
+    if (this.hasNext()) {
+      this.pendingBoundaryNav = 'newer';
+      this.newerPageRequested.emit();
+    }
   }
 
   goOlder(): void {
-    if (this.hasPrev()) this.index.update((i) => i + 1);
+    if (this.index() < this.messages().length - 1) {
+      this.index.update((i) => i + 1);
+      return;
+    }
+    if (this.hasPrev()) {
+      this.pendingBoundaryNav = 'older';
+      this.olderPageRequested.emit();
+    }
   }
 }

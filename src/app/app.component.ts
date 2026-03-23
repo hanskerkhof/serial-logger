@@ -20,6 +20,8 @@ import { ReleaseNotesComponent } from './shared/release-notes/release-notes.comp
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {
+  private static readonly RELEASE_NOTES_PAGE_SIZE = 10;
+
   @ViewChild('updateDialog') private updateDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('releaseNoticeDialog') private releaseNoticeDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('healthPopover') protected healthPopoverRef!: Popover;
@@ -89,6 +91,8 @@ export class AppComponent {
   protected readonly showReleaseNoticeDialog = signal(false);
   protected readonly releaseMessages = signal<CmdrMessage[]>([]);
   protected readonly releaseMessagesLoading = signal(false);
+  protected readonly releaseMessagesOffset = signal(0);
+  protected readonly releaseMessagesTotal = signal(0);
 
   constructor() {
     inject(DestroyRef).onDestroy(() => {
@@ -185,16 +189,19 @@ export class AppComponent {
 
   protected openReleaseNoticeDialog(): void {
     this.showReleaseNoticeDialog.set(true);
-    this.releaseMessagesLoading.set(true);
-    this.commanderApi.getReleaseNotes(10, 0).subscribe({
-      next: (resp) => {
-        this.releaseMessages.set(resp.messages ?? []);
-        this.releaseMessagesLoading.set(false);
-      },
-      error: () => {
-        this.releaseMessagesLoading.set(false);
-      },
-    });
+    this.loadReleaseNotesPage(0);
+  }
+
+  protected loadOlderReleaseNotesPage(): void {
+    const nextOffset = this.releaseMessagesOffset() + AppComponent.RELEASE_NOTES_PAGE_SIZE;
+    if (nextOffset >= this.releaseMessagesTotal()) return;
+    this.loadReleaseNotesPage(nextOffset);
+  }
+
+  protected loadNewerReleaseNotesPage(): void {
+    const nextOffset = Math.max(0, this.releaseMessagesOffset() - AppComponent.RELEASE_NOTES_PAGE_SIZE);
+    if (nextOffset === this.releaseMessagesOffset()) return;
+    this.loadReleaseNotesPage(nextOffset);
   }
 
   protected acknowledgeReleaseNotice(): void {
@@ -249,6 +256,22 @@ export class AppComponent {
     const isNewRelease = acked !== releaseVersion;
     this.releaseNoticeAvailable.set(isNewRelease);
     if (!isNewRelease) this.showReleaseNoticeDialog.set(false);
+  }
+
+  private loadReleaseNotesPage(offset: number): void {
+    const normalizedOffset = Math.max(0, offset);
+    this.releaseMessagesLoading.set(true);
+    this.commanderApi.getReleaseNotes(AppComponent.RELEASE_NOTES_PAGE_SIZE, normalizedOffset).subscribe({
+      next: (resp) => {
+        this.releaseMessages.set(resp.messages ?? []);
+        this.releaseMessagesTotal.set(Math.max(0, resp.total ?? 0));
+        this.releaseMessagesOffset.set(normalizedOffset);
+        this.releaseMessagesLoading.set(false);
+      },
+      error: () => {
+        this.releaseMessagesLoading.set(false);
+      },
+    });
   }
 
   private formatApiDate(isoDate: string): string {

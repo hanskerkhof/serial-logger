@@ -162,6 +162,10 @@
     <app-release-notes
       [messages]="releaseMessages()"
       [loading]="releaseMessagesLoading()"
+      [total]="releaseMessagesTotal()"
+      [offset]="releaseMessagesOffset()"
+      (olderPageRequested)="loadOlderReleaseNotesPage()"
+      (newerPageRequested)="loadNewerReleaseNotesPage()"
     />
   </div>
   <div class="update-dialog__footer">

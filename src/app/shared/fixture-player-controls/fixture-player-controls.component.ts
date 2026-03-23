@@ -41,8 +41,10 @@ export class FixturePlayerControlsComponent {
 
   readonly analogOverride = signal(false);
   /** Per-input animation phase: filling → fading → idle */
-  readonly fadeInMsPhase = signal<'idle' | 'filling' | 'fading'>('idle');
-  readonly fadeMsPhase   = signal<'idle' | 'filling' | 'fading'>('idle');
+  readonly fadeInMsPhase     = signal<'idle' | 'filling' | 'fading'>('idle');
+  readonly fadeMsPhase       = signal<'idle' | 'filling' | 'fading'>('idle');
+  readonly fadeInMsDirection = signal<'ltr' | 'rtl'>('ltr');
+  readonly fadeMsDirection   = signal<'ltr' | 'rtl'>('ltr');
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly fadeInTimers = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
@@ -50,9 +52,12 @@ export class FixturePlayerControlsComponent {
 
   private startInputAnimation(
     phase: WritableSignal<'idle' | 'filling' | 'fading'>,
+    direction: WritableSignal<'ltr' | 'rtl'>,
+    dir: 'ltr' | 'rtl',
     durationMs: number,
     timers: { t1: ReturnType<typeof setTimeout>; t2: ReturnType<typeof setTimeout> },
   ): void {
+    direction.set(dir);
     clearTimeout(timers.t1);
     clearTimeout(timers.t2);
     phase.set('idle');                                           // reset so ::before is removed
@@ -119,17 +124,18 @@ export class FixturePlayerControlsComponent {
     const track = this.trackNumber();
     if (track === null) return;
     this.commandRequested.emit(`cmd;fadeIn;track=${track};volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`);
-    this.startInputAnimation(this.fadeInMsPhase, this.fadeInDurationMs(), this.fadeInTimers);
+    this.startInputAnimation(this.fadeInMsPhase, this.fadeInMsDirection, 'ltr', this.fadeInDurationMs(), this.fadeInTimers);
   }
 
   fadeTo(): void {
     this.commandRequested.emit(`cmd;fadeTo;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};`);
-    this.startInputAnimation(this.fadeMsPhase, this.fadeDurationMs(), this.fadeTimers);
+    const dir = this.fadeToVolume() >= this.volumeLevel() ? 'ltr' : 'rtl';
+    this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, dir, this.fadeDurationMs(), this.fadeTimers);
   }
 
   fadeOut(): void {
     this.commandRequested.emit(`cmd;fadeOut;duration=${this.fadeDurationMs()};`);
-    this.startInputAnimation(this.fadeMsPhase, this.fadeDurationMs(), this.fadeTimers);
+    this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, 'rtl', this.fadeDurationMs(), this.fadeTimers);
   }
 
   setVolume(): void {

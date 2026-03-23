@@ -88,7 +88,13 @@
     opacity: 0.28;
     transform-origin: left center;
     transform: scaleX(0);
-    animation: fixture-input-fill var(--fill-ms, 3000ms) linear forwards;
+    animation: fixture-input-fill-ltr var(--fill-ms, 3000ms) linear forwards;
+  }
+
+  // RTL: bar starts full and drains away from the right
+  &.fade-filling.fade-rtl::before {
+    transform: scaleX(1);
+    animation: fixture-input-fill-rtl var(--fill-ms, 3000ms) linear forwards;
   }
 
   &.fade-fading::before {
@@ -100,11 +106,22 @@
     transform: scaleX(1);
     transition: opacity 2s ease;
   }
+
+  // After RTL drain the bar ended empty — no visible fade-out needed
+  &.fade-fading.fade-rtl::before {
+    transform: scaleX(0);
+    transition: none;
+  }
 }
 
-@keyframes fixture-input-fill {
+@keyframes fixture-input-fill-ltr {
   from { transform: scaleX(0); }
   to   { transform: scaleX(1); }
+}
+
+@keyframes fixture-input-fill-rtl {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
 }
 
 .fixture-player-controls__analog-note {

@@ -47,6 +47,7 @@
             class="fixture-player-controls__fill-wrap"
             [class.fade-filling]="fadeInMsPhase() === 'filling'"
             [class.fade-fading]="fadeInMsPhase() === 'fading'"
+            [class.fade-rtl]="fadeInMsDirection() === 'rtl'"
             [style.--fill-ms]="fadeInDurationMs() + 'ms'"
           ><input
             class="fixture-player-controls__duration-input"
@@ -110,6 +111,7 @@
           class="fixture-player-controls__fill-wrap"
           [class.fade-filling]="fadeMsPhase() === 'filling'"
           [class.fade-fading]="fadeMsPhase() === 'fading'"
+          [class.fade-rtl]="fadeMsDirection() === 'rtl'"
           [style.--fill-ms]="fadeDurationMs() + 'ms'"
         ><input
           class="fixture-player-controls__duration-input"

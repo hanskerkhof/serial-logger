@@ -34,15 +34,15 @@
             (click)="stopSound()"
           >&#x25A0; Stop</button>
           <input
-            class="fixture-player-controls__duration-input"
-            type="number"
+            class="fixture-player-controls__range"
+            type="range"
             min="0"
             max="100"
             [value]="fadeInVolume()"
             [disabled]="disabled()"
             (input)="onFadeInVolumeInput($event)"
           />
-          <span class="fixture-player-controls__row-unit">vol</span>
+          <span class="fixture-player-controls__range-value">{{ fadeInVolume() }}</span>
           <input
             class="fixture-player-controls__duration-input"
             type="number"
@@ -107,9 +107,10 @@
           min="100"
           step="500"
           [value]="fadeDurationMs()"
+          [disabled]="disabled()"
           (input)="onFadeDurationInput($event)"
         />
-        <span>ms</span>
+        <span class="fixture-player-controls__row-unit">ms</span>
         <button
           pButton
           severity="secondary"

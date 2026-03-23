@@ -169,7 +169,6 @@ export class AppComponent {
   }
 
   protected refreshHealth(): void {
-    this.apiConnected.set('unknown');
     this.commanderApi.getHealth().subscribe({
       next:  (h) => this.processHealth(h),
       error: () => this.apiConnected.set('error'),

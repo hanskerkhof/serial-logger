@@ -8,7 +8,7 @@
 
 ### Added
 - `CommanderComponent` health panel header: heartbeat icon now uses the same three-state colour coding as the app-shell header icon (red + pulse = healthy, grey = degraded, dark grey = offline) via `heartbeatState` computed signal.
-- Health popover: **Commander** row (fixture name, e.g. `BKLK_CMDR_2`) shown first in the detail list when the commander is detected.
+- Health popover: **Commander** row (fixture name, e.g. `BKLK_CMDR_2`) and **Port** row added to the detail list; order is API → FW → Commander → Port.
 
 ## 0.6.10 - 2026-03-23
 

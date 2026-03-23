@@ -63,10 +63,17 @@ export class FixturePlayerControlsComponent {
   readonly fadeDurationMs = signal<number>(3000);
   readonly eqPreset = signal<number>(0);
 
-  /** EQ preset list is narrowed to 5 entries for DY players (no Bass); full 6 for all others. */
-  readonly eqPresets = computed(() =>
-    this.playerType()?.toUpperCase().includes('DY') ? EQ_PRESETS_DY : EQ_PRESETS_ALL,
-  );
+  /**
+   * EQ preset list keyed on player type:
+   *   DY_PLAYER / XY_PLAYER → 5 presets (Normal–Classic, 0–4; no Bass)
+   *   MD_PLAYER / DF_PLAYER → 6 presets (Normal–Bass, 0–5)
+   *   AK_PLAYER             → 5 presets (firmware no-ops the command)
+   *   unknown               → 6 presets (safe default)
+   */
+  readonly eqPresets = computed(() => {
+    const t = this.playerType()?.toUpperCase() ?? '';
+    return t.includes('DY') || t.includes('XY') ? EQ_PRESETS_DY : EQ_PRESETS_ALL;
+  });
 
   playSound(): void {
     const track = this.trackNumber();

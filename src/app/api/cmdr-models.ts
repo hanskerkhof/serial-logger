@@ -25,3 +25,25 @@ export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem
 export type CmdrCustomCommandUiArg  = components['schemas']['CustomCommandUiArg'];
 export type CmdrFixtureRssiReport   = components['schemas']['FixtureRssiReport'];
 export type CmdrRssiPeerEntry       = components['schemas']['RssiPeerEntry'];
+
+// --- Messages API (not in OpenAPI schema — handwritten) ---
+export interface CmdrMessageSection {
+  heading: string;
+  bullets: string[];
+}
+
+export interface CmdrMessage {
+  id: string;
+  type: string;
+  version: string | null;
+  fe_version: string | null;
+  date: string | null;
+  title: string;
+  sections: CmdrMessageSection[];
+}
+
+export interface CmdrMessagesResponse {
+  ok: boolean;
+  messages: CmdrMessage[];
+  total: number;
+}

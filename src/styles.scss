@@ -56,6 +56,10 @@ pre {
 .update-dialog {
   width: 22rem;
   max-width: 96vw;
+
+  &.release-notice-dialog {
+    width: min(42rem, 96vw);
+  }
   border: 1px solid var(--p-surface-border, #e5e7eb);
   border-radius: 0.5rem;
   background: var(--p-surface-0, #ffffff);
@@ -90,6 +94,11 @@ pre {
   &__body {
     padding: 1rem 1.5rem;
     flex: 1;
+
+    &.release-notice-dialog__body {
+      max-height: 65vh;
+      overflow-y: auto;
+    }
   }
 
   &__message {

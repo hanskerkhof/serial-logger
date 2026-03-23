@@ -12,25 +12,83 @@
               ↑ update available@if (newVersion()) { v{{ newVersion() }} }
             </button>
           }
-          @if (releaseNoticeAvailable() && !showReleaseNoticeDialog()) {
-            <button
-              class="app-shell__release-notice-btn"
-              (click)="openReleaseNoticeDialog()"
-              title="Open runtime release notice"
-            >
-              ● release notice@if (releaseNoticeVersion()) { v{{ releaseNoticeVersion() }} }
-            </button>
-          }
         </div>
       </div>
     </ng-template>
     <ng-template #end>
-      <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">
-        <p-tablist>
-          @if (isSerialSupported) {<p-tab value="direct">Direct</p-tab>}
-          <p-tab value="commander">Commander</p-tab>
-        </p-tablist>
-      </p-tabs>
+      <div class="app-shell__end">
+
+        <div class="app-shell__icon-bar">
+
+          <!-- Heartbeat -->
+          <button
+            class="app-shell__icon-btn"
+            [class.app-shell__icon-btn--healthy]="heartbeatState() === 'healthy'"
+            [class.app-shell__icon-btn--degraded]="heartbeatState() === 'degraded'"
+            [class.app-shell__icon-btn--offline]="heartbeatState() === 'offline'"
+            (click)="healthPopoverRef.toggle($event)"
+            title="API health"
+            type="button"
+          >
+            <i class="pi pi-heart-fill"></i>
+          </button>
+          <p-popover #healthPopover>
+            <div class="health-pop">
+              <div class="health-pop__status">
+                <span
+                  class="health-pop__dot"
+                  [class.health-pop__dot--healthy]="heartbeatState() === 'healthy'"
+                  [class.health-pop__dot--degraded]="heartbeatState() === 'degraded'"
+                  [class.health-pop__dot--offline]="heartbeatState() === 'offline'"
+                ></span>
+                @switch (heartbeatState()) {
+                  @case ('healthy')  { Healthy }
+                  @case ('degraded') { Degraded }
+                  @default           { Offline }
+                }
+              </div>
+              @if (healthSummary(); as s) {
+                <dl class="health-pop__dl">
+                  @if (s.apiVersion) {
+                    <dt>API</dt>
+                    <dd>v{{ s.apiVersion }}@if (s.apiBuildDate) { · {{ s.apiBuildDate }}}</dd>
+                  }
+                  @if (s.fwVersion) {
+                    <dt>FW</dt><dd>v{{ s.fwVersion }}</dd>
+                  }
+                  @if (s.port) {
+                    <dt>Port</dt><dd>{{ s.port }}</dd>
+                  }
+                </dl>
+              }
+              <button class="health-pop__refresh" (click)="refreshHealth()" type="button">Refresh</button>
+            </div>
+          </p-popover>
+
+          <!-- Release notes -->
+          <button
+            class="app-shell__icon-btn"
+            [class.app-shell__icon-btn--unread]="releaseNoticeAvailable()"
+            (click)="openReleaseNoticeDialog()"
+            title="Release notes"
+            type="button"
+          >
+            <i class="pi pi-book"></i>
+            @if (releaseNoticeAvailable()) {
+              <span class="app-shell__icon-badge" aria-hidden="true"></span>
+            }
+          </button>
+
+        </div>
+
+        <p-tabs class="app-shell__mode-tabs" [value]="activeMode()" (valueChange)="onModeChange($event)">
+          <p-tablist>
+            @if (isSerialSupported) {<p-tab value="direct">Direct</p-tab>}
+            <p-tab value="commander">Commander</p-tab>
+          </p-tablist>
+        </p-tabs>
+
+      </div>
     </ng-template>
   </p-toolbar>
 
@@ -83,21 +141,17 @@
 </dialog>
 
 <dialog #releaseNoticeDialog class="update-dialog release-notice-dialog" (cancel)="$event.preventDefault()">
-  <h2 class="update-dialog__header">Release Notice</h2>
-  <div class="update-dialog__body">
-    <p class="update-dialog__message">
-      @if (releaseNoticeVersion()) {
-        <strong>BAUKLANK runtime updated to v{{ releaseNoticeVersion() }}</strong>
-        @if (releaseNoticeBuildDate()) {
-          ({{ releaseNoticeBuildDate() }})
-        }.
-      } @else {
-        <strong>BAUKLANK runtime has been updated.</strong>
-      }
-    </p>
-    <p class="update-dialog__note">
-      This notice is based on API release metadata and will remain visible until acknowledged for this version.
-    </p>
+  <h2 class="update-dialog__header">
+    Release Notice
+    @if (releaseNoticeVersion()) {
+      <span class="release-notice-dialog__header-version">v{{ releaseNoticeVersion() }}</span>
+    }
+  </h2>
+  <div class="update-dialog__body release-notice-dialog__body">
+    <app-release-notes
+      [messages]="releaseMessages()"
+      [loading]="releaseMessagesLoading()"
+    />
   </div>
   <div class="update-dialog__footer">
     <button class="update-dialog__btn update-dialog__btn--primary" (click)="acknowledgeReleaseNotice()">

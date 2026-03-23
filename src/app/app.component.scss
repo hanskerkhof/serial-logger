@@ -81,6 +81,134 @@
   margin-left: auto;
 }
 
+// Icon toolbar
+.app-shell__end {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-shell__icon-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.app-shell__icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--p-text-muted-color, #9ca3af);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--p-surface-100, #f3f4f6);
+    color: var(--p-text-color, #1f2937);
+  }
+
+  // heartbeat states
+  &--healthy  { color: #ef4444; animation: heartbeat 1.4s ease-in-out infinite; }
+  &--degraded { color: #9ca3af; }
+  &--offline  { color: #4b5563; }
+
+  // release notes: unread
+  &--unread { color: var(--p-primary-color, #6366f1); }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.25); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.15); }
+  70%       { transform: scale(1); }
+}
+
+.app-shell__icon-badge {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--p-primary-color, #6366f1);
+}
+
+// Health popover content
+.health-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 12rem;
+  font-size: 0.8rem;
+}
+
+.health-pop__status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--p-text-color, #1f2937);
+}
+
+.health-pop__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #4b5563;
+  flex-shrink: 0;
+
+  &--healthy  { background: #ef4444; }
+  &--degraded { background: #9ca3af; }
+  &--offline  { background: #4b5563; }
+}
+
+.health-pop__dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.1rem 0.6rem;
+  margin: 0;
+  color: var(--p-text-color, #1f2937);
+
+  dt {
+    color: var(--p-text-muted-color, #9ca3af);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  dd {
+    margin: 0;
+    font-family: monospace;
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.health-pop__refresh {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  background: none;
+  border: 1px solid var(--p-surface-border, #e5e7eb);
+  border-radius: 0.25rem;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--p-text-color, #1f2937);
+  transition: background 0.15s;
+
+  &:hover { background: var(--p-surface-100, #f3f4f6); }
+}
+
 .install-banner {
   position: fixed;
   bottom: 0;
@@ -116,6 +244,13 @@
 
     &:hover { color: #fff; }
   }
+}
+
+.release-notice-dialog__header-version {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.55;
+  margin-left: 0.35rem;
 }
 
 // Update dialog styles live in global styles.scss (avoids Angular encapsulation

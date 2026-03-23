@@ -1,0 +1,119 @@
+:host {
+  display: block;
+}
+
+.release-notes__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+}
+
+.release-notes__version {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--p-text-color, #1f2937);
+}
+
+.release-notes__date {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color, #6b7280);
+}
+
+.release-notes__section-heading {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted-color, #6b7280);
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+}
+
+.release-notes__bullets {
+  margin: 0 0 0.25rem;
+  padding-left: 1.15rem;
+  list-style: disc;
+
+  li {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--p-text-color, #1f2937);
+    margin-bottom: 0.15rem;
+  }
+}
+
+.release-notes__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.9rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--p-surface-border, #e5e7eb);
+  gap: 0.5rem;
+}
+
+.release-notes__nav-btn {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+  color: var(--p-primary-color, #6366f1);
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    opacity: 0.75;
+    text-decoration: underline;
+  }
+}
+
+.release-notes__nav-label {
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color, #6b7280);
+}
+
+.release-notes__empty {
+  font-size: 0.82rem;
+  color: var(--p-text-muted-color, #6b7280);
+  margin: 0;
+  font-style: italic;
+}
+
+// Loading skeleton
+.release-notes__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.release-notes__skeleton-line {
+  height: 0.75rem;
+  border-radius: 0.25rem;
+  background: var(--p-surface-200, #e5e7eb);
+  animation: release-notes-shimmer 1.4s ease-in-out infinite;
+
+  &--title {
+    height: 0.9rem;
+    width: 55%;
+    margin-bottom: 0.15rem;
+  }
+
+  &--short {
+    width: 70%;
+  }
+}
+
+@keyframes release-notes-shimmer {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}

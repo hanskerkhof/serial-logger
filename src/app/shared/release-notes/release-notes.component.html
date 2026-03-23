@@ -1,0 +1,45 @@
+@if (loading()) {
+  <div class="release-notes__skeleton">
+    <div class="release-notes__skeleton-line release-notes__skeleton-line--title"></div>
+    <div class="release-notes__skeleton-line"></div>
+    <div class="release-notes__skeleton-line release-notes__skeleton-line--short"></div>
+    <div class="release-notes__skeleton-line"></div>
+    <div class="release-notes__skeleton-line release-notes__skeleton-line--short"></div>
+  </div>
+} @else if (current(); as note) {
+  <div class="release-notes__meta">
+    <strong class="release-notes__version">{{ note.title }}</strong>
+    @if (note.date) {
+      <span class="release-notes__date">{{ note.date }}</span>
+    }
+  </div>
+
+  @for (section of note.sections; track section.heading) {
+    <h4 class="release-notes__section-heading">{{ section.heading }}</h4>
+    <ul class="release-notes__bullets">
+      @for (bullet of section.bullets; track $index) {
+        <li>{{ bullet }}</li>
+      }
+    </ul>
+  }
+
+  @if (pageLabel()) {
+    <div class="release-notes__nav">
+      <button
+        class="release-notes__nav-btn"
+        [disabled]="!hasPrev()"
+        (click)="goOlder()"
+        title="Older release"
+      >‹ older</button>
+      <span class="release-notes__nav-label">{{ pageLabel() }}</span>
+      <button
+        class="release-notes__nav-btn"
+        [disabled]="!hasNext()"
+        (click)="goNewer()"
+        title="Newer release"
+      >newer ›</button>
+    </div>
+  }
+} @else {
+  <p class="release-notes__empty">No release notes available.</p>
+}

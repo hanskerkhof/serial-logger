@@ -12,6 +12,7 @@ import type {
   CmdrVersionsResponse,
   CmdrDiscoveryResponse,
   CmdrQueryResponse,
+  CmdrMessagesResponse,
 } from './api/cmdr-models';
 
 // Re-export generated-type aliases under legacy names so existing component imports are unchanged.
@@ -145,6 +146,12 @@ export class CommanderApiService {
       command,
       listen_seconds: listenSeconds,
     });
+  }
+
+  getReleaseNotes(limit = 10, offset = 0): Observable<CmdrMessagesResponse> {
+    return this.http.get<CmdrMessagesResponse>(
+      `${this.apiBaseUrl()}/messages/release-notes?limit=${limit}&offset=${offset}`,
+    );
   }
 
   openCommanderStream(

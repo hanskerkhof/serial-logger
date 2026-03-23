@@ -2,22 +2,27 @@ import { Component, ElementRef, ViewChild, computed, effect, inject, signal } fr
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
+import { PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
 import { filter } from 'rxjs';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { APP_VERSION, BUILD_DATE } from './build-info';
 import { CommanderApiService } from './commander-api.service';
 import { SerialService } from './serial.service';
+import { CmdrMessage, CmdrHealthResponse } from './api/cmdr-models';
+import { ReleaseNotesComponent } from './shared/release-notes/release-notes.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TabsModule, ToolbarModule],
+  imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ReleaseNotesComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {
   @ViewChild('updateDialog') private updateDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('releaseNoticeDialog') private releaseNoticeDialogRef!: ElementRef<HTMLDialogElement>;
+  @ViewChild('healthPopover') protected healthPopoverRef!: Popover;
 
   private readonly router = inject(Router);
   private readonly commanderApi = inject(CommanderApiService);
@@ -28,6 +33,18 @@ export class AppComponent {
   protected readonly apiVersion = signal<string | null>(null);
   protected readonly apiBuildDate = signal<string | null>(null);
   protected readonly isSerialSupported = this.serialService.isSupported;
+  protected readonly apiConnected = signal<'unknown' | 'ok' | 'error'>('unknown');
+  protected readonly healthSummary = signal<{
+    apiVersion: string | null;
+    apiBuildDate: string | null;
+    fwVersion: string | null;
+    port: string | null;
+    detected: boolean | null;
+  } | null>(null);
+  protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {
+    if (this.apiConnected() !== 'ok') return 'offline';
+    return this.healthSummary()?.detected ? 'healthy' : 'degraded';
+  });
 
   private readonly isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   private readonly isStandalone = ('standalone' in navigator) && !!(navigator as any).standalone;
@@ -66,6 +83,8 @@ export class AppComponent {
   protected readonly releaseNoticeVersion = signal<string | null>(null);
   protected readonly releaseNoticeBuildDate = signal<string | null>(null);
   protected readonly showReleaseNoticeDialog = signal(false);
+  protected readonly releaseMessages = signal<CmdrMessage[]>([]);
+  protected readonly releaseMessagesLoading = signal(false);
 
   constructor() {
     // Drive native <dialog> elements via showModal/close so they enter the top layer.
@@ -110,13 +129,8 @@ export class AppComponent {
     }
 
     this.commanderApi.getHealth().subscribe({
-      next: (health) => {
-        const releaseVersion = health.api?.release_version ?? health.release_version ?? null;
-        const releaseBuildDate = health.api?.build_date ?? health.build_date ?? null;
-        if (releaseVersion) this.apiVersion.set(releaseVersion);
-        if (releaseBuildDate) this.apiBuildDate.set(this.formatApiDate(releaseBuildDate));
-        this.refreshReleaseNotice(releaseVersion, releaseBuildDate);
-      },
+      next:  (h) => this.processHealth(h),
+      error: () => this.apiConnected.set('error'),
     });
   }
 
@@ -154,9 +168,26 @@ export class AppComponent {
     }, delayMinutes * 60 * 1000);
   }
 
+  protected refreshHealth(): void {
+    this.apiConnected.set('unknown');
+    this.commanderApi.getHealth().subscribe({
+      next:  (h) => this.processHealth(h),
+      error: () => this.apiConnected.set('error'),
+    });
+  }
+
   protected openReleaseNoticeDialog(): void {
-    if (!this.releaseNoticeAvailable()) return;
     this.showReleaseNoticeDialog.set(true);
+    this.releaseMessagesLoading.set(true);
+    this.commanderApi.getReleaseNotes(10, 0).subscribe({
+      next: (resp) => {
+        this.releaseMessages.set(resp.messages ?? []);
+        this.releaseMessagesLoading.set(false);
+      },
+      error: () => {
+        this.releaseMessagesLoading.set(false);
+      },
+    });
   }
 
   protected acknowledgeReleaseNotice(): void {
@@ -167,6 +198,23 @@ export class AppComponent {
     }
     this.showReleaseNoticeDialog.set(false);
     this.releaseNoticeAvailable.set(false);
+  }
+
+  private processHealth(health: CmdrHealthResponse): void {
+    const releaseVersion   = health.api?.release_version ?? health.release_version ?? null;
+    const releaseBuildDate = health.api?.build_date ?? health.build_date ?? null;
+    if (releaseVersion)    this.apiVersion.set(releaseVersion);
+    if (releaseBuildDate)  this.apiBuildDate.set(this.formatApiDate(releaseBuildDate));
+    this.refreshReleaseNotice(releaseVersion, releaseBuildDate);
+    this.apiConnected.set('ok');
+    const cmdr = (health as any).commander ?? {};
+    this.healthSummary.set({
+      apiVersion:   releaseVersion,
+      apiBuildDate: releaseBuildDate ? this.formatApiDate(releaseBuildDate) : null,
+      fwVersion:    cmdr.fw_version ?? null,
+      port:         cmdr.port ?? null,
+      detected:     cmdr.detected ?? null,
+    });
   }
 
   private refreshReleaseNotice(releaseVersion: string | null, releaseBuildDate: string | null): void {

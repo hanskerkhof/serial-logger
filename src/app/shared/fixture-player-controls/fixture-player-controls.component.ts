@@ -164,10 +164,10 @@ export class FixturePlayerControlsComponent {
   }
 
   onFadeInDurationInput(event: Event): void {
-    this.fadeInDurationMs.set(+(event.target as HTMLInputElement).value);
+    this.fadeInDurationMs.set(Math.min(15000, Math.max(1000, +(event.target as HTMLInputElement).value)));
   }
 
   onFadeDurationInput(event: Event): void {
-    this.fadeDurationMs.set(+(event.target as HTMLInputElement).value);
+    this.fadeDurationMs.set(Math.min(15000, Math.max(1000, +(event.target as HTMLInputElement).value)));
   }
 }

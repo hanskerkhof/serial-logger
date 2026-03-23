@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.10 - 2026-03-23
+
 ### Added
 - `app-fixture-player-controls`: New `playerState` input (`{ volume?, eq? } | null`) with an `effect()` that syncs the vol slider and EQ dropdown to live hardware values whenever a Run Query returns `plan_state.state` data.
 - `CommanderComponent`: New `selectedFixturePlayerState` computed signal extracts `{ volume, eq }` from `raw['plan_state']['state']` and passes it to `<app-fixture-player-controls>`.
@@ -20,6 +22,7 @@
 
 ### Changed
 - Feedback banner: Round-trip time repositioned to upper-right corner of the message box (absolutely positioned, message text padded to prevent overlap).
+- Frontend patch release bump to `v0.6.10`.
 
 ## 0.6.9 - 2026-03-23
 

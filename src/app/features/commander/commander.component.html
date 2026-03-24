@@ -677,7 +677,7 @@
           [commands]="selectedFixtureCustomCommands()"
           [values]="customCommandValues()"
           [loading]="fixtureActionLoading()"
-          [disabled]="commanderUnavailable()"
+          [disabled]="playerControlsDisabled()"
           (argChanged)="onFixtureCustomArgChanged($event)"
           (commandRunRequested)="onFixtureCustomCommandRunRequested($event)"
           (sliderReleased)="onFixtureCustomSliderReleased($event)"

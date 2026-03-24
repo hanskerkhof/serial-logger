@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
+import { SelectModule } from 'primeng/select';
 import { CmdrCustomCommandUiArg, CmdrCustomCommandUiItem } from '../../api/cmdr-models';
 
 export type FixtureCustomControlValue = string | number | boolean;
@@ -42,7 +43,7 @@ interface SelectOption {
 @Component({
   selector: 'app-fixture-custom-control',
   standalone: true,
-  imports: [FormsModule, InputTextModule, ButtonModule],
+  imports: [FormsModule, InputTextModule, ButtonModule, SelectModule],
   templateUrl: './fixture-custom-control.component.html',
   styleUrl: './fixture-custom-control.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,6 +53,7 @@ export class FixtureCustomControlComponent {
   readonly values = input<Record<string, Record<string, FixtureCustomControlValue>>>({});
   readonly loading = input(false);
   readonly disabled = input(false);
+  protected readonly controlsDisabled = computed(() => this.loading() || this.disabled());
 
   readonly argChanged = output<FixtureCustomArgChangedEvent>();
   readonly commandRunRequested = output<CmdrCustomCommandUiItem>();

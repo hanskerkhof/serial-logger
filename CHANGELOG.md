@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.6.19 - 2026-03-24
+
+### Changed
+- Custom command controls now use a shared disable-state path (`loading || disabled`) aligned with plan/player control behavior.
+- Commander fixture modal now passes the same disable policy to custom commands as to plan/player controls (`playerControlsDisabled`).
+- `RENOO_TIMER` `timeIndex` custom command uses PrimeNG `p-select` with default PrimeNG sizing (matching EQ style), and label/select row layout fixes prevent overlap.
+- Frontend patch release bump to `v0.6.19`.
+
 ## 0.6.18 - 2026-03-24
 
 ### Added

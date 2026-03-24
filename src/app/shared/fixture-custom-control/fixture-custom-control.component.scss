@@ -38,9 +38,13 @@
 
 .fixture-custom-control__arg-row {
   display: grid;
-  grid-template-columns: 2.2rem minmax(0, 1fr) 2rem;
+  grid-template-columns: minmax(5.5rem, max-content) minmax(0, 1fr) 2rem;
   align-items: center;
   gap: 0.4rem;
+}
+
+.fixture-custom-control__arg-row--no-value {
+  grid-template-columns: minmax(5.5rem, max-content) minmax(0, 1fr);
 }
 
 .fixture-custom-control__arg-row--master {
@@ -51,11 +55,16 @@
 .fixture-custom-control__arg-label {
   font-size: 0.75rem;
   color: var(--p-text-muted-color);
+  white-space: nowrap;
 }
 
 .fixture-custom-control__arg-number {
   min-width: 0;
   width: 100%;
+}
+
+.fixture-custom-control__arg-select {
+  justify-self: start;
 }
 
 .fixture-custom-control__arg-slider {

@@ -23,6 +23,8 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 - Use signals for UI state when practical.
 - Avoid `any`; prefer explicit types or `unknown`.
 - Use native Angular control flow (`@if`, `@for`, `@switch`) where appropriate.
+- Default to PrimeNG standard styling and behavior; override PrimeNG defaults only when absolutely necessary.
+- When overrides are required, keep them minimal and local to the component.
 
 ## App Priorities
 

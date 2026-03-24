@@ -24,7 +24,7 @@
                 [ngModel]="groupMasterValue(group)"
                 (input)="onGroupMasterPreview(group, $any($event.target).value)"
                 (change)="onGroupMasterRelease(group, $any($event.target).value)"
-                [disabled]="loading() || disabled()"
+                [disabled]="controlsDisabled()"
               />
               <span class="fixture-custom-control__arg-value">{{ groupMasterValue(group) }}</span>
             </label>
@@ -35,7 +35,10 @@
           @if ((command.args?.length ?? 0) > 0) {
             <div class="fixture-custom-control__args">
               @for (arg of command.args ?? []; track arg.name) {
-                <label class="fixture-custom-control__arg-row">
+                <label
+                  class="fixture-custom-control__arg-row"
+                  [class.fixture-custom-control__arg-row--no-value]="arg.control !== 'slider'"
+                >
                   <span class="fixture-custom-control__arg-label">{{ arg.label }}</span>
                   @switch (arg.control) {
                     @case ('slider') {
@@ -48,7 +51,7 @@
                         [ngModel]="commandArgValue(command.id, arg)"
                         (ngModelChange)="onArgChanged(command.id, arg, $event)"
                         (change)="onSliderRelease(command)"
-                        [disabled]="loading() || disabled()"
+                        [disabled]="controlsDisabled()"
                       />
                       <span class="fixture-custom-control__arg-value">{{ commandArgValue(command.id, arg) }}</span>
                     }
@@ -57,20 +60,20 @@
                         type="checkbox"
                         [ngModel]="commandArgValue(command.id, arg)"
                         (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        [disabled]="loading() || disabled()"
+                        [disabled]="controlsDisabled()"
                       />
                     }
                     @case ('select') {
-                      <select
-                        class="fixture-custom-control__arg-number"
+                      <p-select
+                        class="fixture-custom-control__arg-number fixture-custom-control__arg-select"
+                        [options]="selectOptions(arg)"
+                        optionLabel="label"
+                        optionValue="value"
+                        appendTo="body"
                         [ngModel]="commandArgValue(command.id, arg)"
                         (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        [disabled]="loading() || disabled()"
-                      >
-                        @for (option of selectOptions(arg); track option.label) {
-                          <option [ngValue]="option.value">{{ option.label }}</option>
-                        }
-                      </select>
+                        [disabled]="controlsDisabled()"
+                      ></p-select>
                     }
                     @default {
                       <input
@@ -82,7 +85,7 @@
                         [step]="arg.step ?? 1"
                         [ngModel]="commandArgValue(command.id, arg)"
                         (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        [disabled]="loading() || disabled()"
+                        [disabled]="controlsDisabled()"
                       />
                     }
                   }
@@ -100,7 +103,7 @@
                 severity="secondary"
                 size="small"
                 (click)="onRunCommand(command)"
-                [disabled]="loading() || disabled()"
+                [disabled]="controlsDisabled()"
               ></button>
             </div>
           }

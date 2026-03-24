@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.6.18 - 2026-03-24
+
+### Added
+- Custom command UI now supports `select` controls with typed options from commander metadata (`control: "select"`, `options: [{label, value}]`).
+
+### Changed
+- `RENOO_TIMER` `timerIndex` custom command control switched from numeric input to option selector (OFF..INF stepped entries).
+- Frontend patch release bump to `v0.6.18`.
+
 ## 0.6.17 - 2026-03-23
 
 ### Added

@@ -34,6 +34,11 @@ interface VolumeSliderEntry {
   currentValue: number;
 }
 
+interface SelectOption {
+  label: string;
+  value: FixtureCustomControlValue;
+}
+
 @Component({
   selector: 'app-fixture-custom-control',
   standalone: true,
@@ -114,6 +119,22 @@ export class FixtureCustomControlComponent {
       return commandValues[arg.name];
     }
     return this.defaultValueForArg(arg);
+  }
+
+  protected selectOptions(arg: CmdrCustomCommandUiArg): SelectOption[] {
+    const maybeOptions = (arg as unknown as { options?: unknown }).options;
+    if (!Array.isArray(maybeOptions)) return [];
+
+    const options: SelectOption[] = [];
+    for (const option of maybeOptions) {
+      if (!option || typeof option !== 'object') continue;
+      const label = String((option as { label?: unknown }).label ?? '').trim();
+      const value = (option as { value?: unknown }).value;
+      if (!label) continue;
+      if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') continue;
+      options.push({ label, value });
+    }
+    return options;
   }
 
   protected onArgChanged(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {

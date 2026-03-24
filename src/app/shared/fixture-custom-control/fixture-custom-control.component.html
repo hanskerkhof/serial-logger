@@ -60,6 +60,18 @@
                         [disabled]="loading() || disabled()"
                       />
                     }
+                    @case ('select') {
+                      <select
+                        class="fixture-custom-control__arg-number"
+                        [ngModel]="commandArgValue(command.id, arg)"
+                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                        [disabled]="loading() || disabled()"
+                      >
+                        @for (option of selectOptions(arg); track option.label) {
+                          <option [ngValue]="option.value">{{ option.label }}</option>
+                        }
+                      </select>
+                    }
                     @default {
                       <input
                         class="fixture-custom-control__arg-number"

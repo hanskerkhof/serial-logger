@@ -1676,6 +1676,14 @@ export class CommanderComponent implements OnInit {
     if (arg.control === 'checkbox') {
       return this.toBoolean(arg.default ?? false);
     }
+    if (arg.control === 'select') {
+      const options = this.readSelectOptions(arg);
+      if (options.length > 0 && arg.default == null) {
+        return options[0].value;
+      }
+      const fallback = options.length > 0 ? options[0].value : '';
+      return this.normalizeSelectValue(arg, arg.default, fallback);
+    }
     if (arg.control === 'slider' || arg.control === 'number') {
       const fallback = typeof arg.min === 'number' ? arg.min : 0;
       return this.toNumber(arg.default, fallback);
@@ -1688,11 +1696,53 @@ export class CommanderComponent implements OnInit {
     if (arg.control === 'checkbox') {
       return this.toBoolean(rawValue);
     }
+    if (arg.control === 'select') {
+      const options = this.readSelectOptions(arg);
+      const fallback = options.length > 0 ? options[0].value : '';
+      return this.normalizeSelectValue(arg, rawValue, fallback);
+    }
     if (arg.control === 'slider' || arg.control === 'number') {
       const fallback = typeof arg.min === 'number' ? arg.min : 0;
       return this.toNumber(rawValue, fallback);
     }
     return typeof rawValue === 'string' ? rawValue : `${rawValue ?? ''}`;
+  }
+
+  private normalizeSelectValue(
+    arg: CmdrCustomCommandUiArg,
+    rawValue: unknown,
+    fallback: CustomCommandValue,
+  ): CustomCommandValue {
+    const options = this.readSelectOptions(arg);
+    if (typeof rawValue === 'number' || typeof rawValue === 'string' || typeof rawValue === 'boolean') {
+      const matched = options.find((option) => option.value === rawValue);
+      if (matched) return matched.value;
+    }
+    if (typeof rawValue === 'string') {
+      const asNumber = Number(rawValue);
+      if (Number.isFinite(asNumber)) {
+        const matched = options.find((option) => option.value === asNumber);
+        if (matched) return matched.value;
+      }
+    }
+    return fallback;
+  }
+
+  private readSelectOptions(
+    arg: CmdrCustomCommandUiArg,
+  ): Array<{ label: string; value: CustomCommandValue }> {
+    const rawOptions = (arg as unknown as { options?: unknown }).options;
+    if (!Array.isArray(rawOptions)) return [];
+    const options: Array<{ label: string; value: CustomCommandValue }> = [];
+    for (const option of rawOptions) {
+      if (!option || typeof option !== 'object') continue;
+      const label = String((option as { label?: unknown }).label ?? '').trim();
+      const value = (option as { value?: unknown }).value;
+      if (!label) continue;
+      if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') continue;
+      options.push({ label, value });
+    }
+    return options;
   }
 
   private toNumber(rawValue: unknown, fallback: number): number {

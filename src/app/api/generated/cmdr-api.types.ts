@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runtime/reload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Api Runtime Reload */
+        post: operations["api_runtime_reload_api_runtime_reload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/commander/raw": {
         parameters: {
             query?: never;
@@ -32,6 +49,57 @@ export interface paths {
         put?: never;
         /** Commander Raw Command */
         post: operations["commander_raw_command_commander_raw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/commander/serial/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commander Serial Reconnect */
+        post: operations["commander_serial_reconnect_commander_serial_reconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/commander/serial/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commander Serial Release */
+        post: operations["commander_serial_release_commander_serial_release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/commander/serial/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Commander Serial Status */
+        get: operations["commander_serial_status_commander_serial_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -205,6 +273,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/messages/release-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Release Notes
+         * @description Return parsed release-note entries from messages/release-notes.json.
+         *
+         *     The JSON file is generated at release time by scripts/generate_messages.py.
+         *     Returns an empty list gracefully when the file has not yet been generated.
+         */
+        get: operations["get_release_notes_messages_release_notes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/plan-groups": {
         parameters: {
             query?: never;
@@ -366,6 +457,16 @@ export interface components {
             proxy: components["schemas"]["CommanderProxyStatus"] | null;
             /** Resolver Source */
             resolver_source: string | null;
+            /** Serial Hold Active */
+            serial_hold_active: boolean | null;
+            /** Serial Hold Metadata */
+            serial_hold_metadata: {
+                [key: string]: unknown;
+            } | null;
+            /** Serial Hold Reason */
+            serial_hold_reason: string | null;
+            /** Serial Hold Since Utc */
+            serial_hold_since_utc: string | null;
             /** Uptime Seconds */
             uptime_seconds: number | null;
         } & {
@@ -435,6 +536,68 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** CommanderSerialReconnectRequest */
+        CommanderSerialReconnectRequest: {
+            /** Action Source */
+            action_source?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Operator */
+            operator?: string | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** CommanderSerialReleaseRequest */
+        CommanderSerialReleaseRequest: {
+            /** Action Source */
+            action_source?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Operator */
+            operator?: string | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** CommanderSerialStatus */
+        CommanderSerialStatus: {
+            /** Commander Baud */
+            commander_baud: number | null;
+            /** Commander Fixture Name */
+            commander_fixture_name: string | null;
+            /** Commander Port */
+            commander_port: string | null;
+            /** Hold Active */
+            hold_active: boolean;
+            /** Hold Metadata */
+            hold_metadata: {
+                [key: string]: unknown;
+            };
+            /** Hold Reason */
+            hold_reason: string | null;
+            /** Hold Since Utc */
+            hold_since_utc: string | null;
+            proxy: components["schemas"]["CommanderProxyStatus"];
+        } & {
+            [key: string]: unknown;
+        };
+        /** CommanderSerialStatusResponse */
+        CommanderSerialStatusResponse: {
+            /** Action */
+            action: string | null;
+            /** Ok */
+            ok: boolean;
+            /** Service */
+            service: string;
+            status: components["schemas"]["CommanderSerialStatus"];
+            /** Utc */
+            utc: string;
+        } & {
+            [key: string]: unknown;
+        };
         /** CustomCommandUiArg */
         CustomCommandUiArg: {
             /** Control */
@@ -449,6 +612,8 @@ export interface components {
             min?: number | null;
             /** Name */
             name: string;
+            /** Options */
+            options?: components["schemas"]["OptionItem"][] | null;
             /** State Path */
             state_path?: string | null;
             /** Step */
@@ -669,6 +834,48 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** Message */
+        Message: {
+            /** Date */
+            date: string | null;
+            /** Fe Version */
+            fe_version: string | null;
+            /** Id */
+            id: string;
+            /** Sections */
+            sections: components["schemas"]["MessageSection"][];
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /** Version */
+            version: string | null;
+        };
+        /** MessageSection */
+        MessageSection: {
+            /** Bullets */
+            bullets: string[];
+            /** Heading */
+            heading: string;
+        };
+        /** MessagesResponse */
+        MessagesResponse: {
+            /** Messages */
+            messages: components["schemas"]["Message"][];
+            /** Ok */
+            ok: boolean;
+            /** Total */
+            total: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** OptionItem */
+        OptionItem: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: unknown;
+        };
         /** PlanControlAction */
         PlanControlAction: {
             /** Available */
@@ -736,6 +943,77 @@ export interface components {
             trend: number;
             /** Trend Label */
             trend_label: string;
+        };
+        /** RuntimeReloadRequest */
+        RuntimeReloadRequest: {
+            /** Action Source */
+            action_source?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Operator */
+            operator?: string | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** RuntimeReloadResponse */
+        RuntimeReloadResponse: {
+            /** Action */
+            action: string;
+            after: components["schemas"]["RuntimeReloadSnapshot"];
+            before: components["schemas"]["RuntimeReloadSnapshot"];
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Ok */
+            ok: boolean;
+            /** Reason */
+            reason: string;
+            /** Service */
+            service: string;
+            /** Utc */
+            utc: string;
+            /** Warnings */
+            warnings?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /** RuntimeReloadSnapshot */
+        RuntimeReloadSnapshot: {
+            /** Build Date */
+            build_date: string | null;
+            /** Build Time */
+            build_time: string | null;
+            /** Commander Primary Cached */
+            commander_primary_cached: boolean;
+            /** Fixture Capabilities Cache Size */
+            fixture_capabilities_cache_size: number;
+            /** Fixture Plan State Cache Size */
+            fixture_plan_state_cache_size: number;
+            /** Fixture Rssi Cache Size */
+            fixture_rssi_cache_size: number;
+            /** Git Commit */
+            git_commit: string | null;
+            /** Proxy Active */
+            proxy_active: boolean;
+            /** Proxy State */
+            proxy_state: string | null;
+            /** Release Version */
+            release_version: string | null;
+            /** Serial Hold Active */
+            serial_hold_active: boolean;
+            /** Serial Hold Metadata */
+            serial_hold_metadata: {
+                [key: string]: unknown;
+            };
+            /** Serial Hold Reason */
+            serial_hold_reason: string | null;
+            /** Serial Hold Since Utc */
+            serial_hold_since_utc: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** ValidationError */
         ValidationError: {
@@ -816,6 +1094,39 @@ export interface operations {
             };
         };
     };
+    api_runtime_reload_api_runtime_reload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RuntimeReloadRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeReloadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     commander_raw_command_commander_raw_post: {
         parameters: {
             query?: never;
@@ -845,6 +1156,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commander_serial_reconnect_commander_serial_reconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CommanderSerialReconnectRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommanderSerialStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commander_serial_release_commander_serial_release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CommanderSerialReleaseRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommanderSerialStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commander_serial_status_commander_serial_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommanderSerialStatusResponse"];
                 };
             };
         };
@@ -1116,6 +1513,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HelloResponse"];
+                };
+            };
+        };
+    };
+    get_release_notes_messages_release_notes_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

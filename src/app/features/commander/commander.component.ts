@@ -1281,10 +1281,7 @@ export class CommanderComponent implements OnInit {
 
     const commandValues = this.hydrateCommandValues(command, this.customCommandValues()[command.id] ?? {});
     const wireCommand = this.buildCommandFromTemplate(wireTemplate, commandValues);
-    const mode: SendCommandMode = this.commandShouldForceNoAck(command)
-      ? 'force_no_ack'
-      : 'default';
-    this.sendCommand(fixture, wireCommand, mode);
+    this.sendCommand(fixture, wireCommand);
   }
 
   private openFixtureModal(): void {
@@ -1694,12 +1691,6 @@ export class CommanderComponent implements OnInit {
       }
     }
     return hydrated;
-  }
-
-  private commandShouldForceNoAck(command: CmdrCustomCommandUiItem): boolean {
-    const wireTemplate = (command.wire_template ?? '').trim().toLowerCase();
-    // Relay pulses execute correctly but do not provide fixture-level ACK confirmation.
-    return wireTemplate.startsWith('cmd;relay;');
   }
 
   private buildCommandFromTemplate(

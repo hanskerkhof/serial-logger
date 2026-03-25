@@ -12,6 +12,7 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 
 - Reusable BAUKLANK frontend guidance for this repo lives in the separate skills repo: `/Users/hanskerkhof/bauklank-agent-skills`
 - Relevant skill for this repo: `bauklank-frontend-studio`
+- For PrimeNG component work: read `/Users/hanskerkhof/bauklank-agent-skills/primeng/SKILL.md` and call `mcp__primeng__get_component_props` before writing any new PrimeNG component template.
 - Repo-local `AGENTS.md` remains authoritative for repo-specific rules and overrides reusable skill guidance when they differ.
 
 ## Coding Style
@@ -25,6 +26,7 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 - Use native Angular control flow (`@if`, `@for`, `@switch`) where appropriate.
 - Default to PrimeNG standard styling and behavior; override PrimeNG defaults only when absolutely necessary.
 - When overrides are required, keep them minimal and local to the component.
+- Notable prop gaps: `SplitButton` has no `loading` prop — use `[disabled]` to reflect loading state instead.
 
 ## App Priorities
 

@@ -22,7 +22,8 @@ import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
 import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
-import { MessageService } from 'primeng/api';
+import { MessageService, MenuItem } from 'primeng/api';
+import { SplitButtonModule } from 'primeng/splitbutton';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import {
   CommanderApiService,
@@ -76,7 +77,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -395,6 +396,25 @@ export class CommanderComponent implements OnInit {
     }
     return map;
   });
+
+  private readonly outdatedFixtureNames = computed(() =>
+    Array.from(this.fixtureFwStatusMap().entries())
+      .filter(([, status]) => status.outdated)
+      .map(([name]) => name),
+  );
+
+  protected readonly discoverFixturesMenuItems = computed<MenuItem[]>(() => {
+    const outdatedCount = this.outdatedFixtureNames().length;
+    return [
+      {
+        label: outdatedCount > 0 ? `Discover outdated (${outdatedCount})` : 'Discover outdated',
+        icon: 'pi pi-exclamation-triangle',
+        disabled: this.backendBusy() || this.commanderUnavailable() || outdatedCount === 0,
+        command: () => this.runSidebarFixtureDiscoveryOutdated(),
+      },
+    ];
+  });
+
   protected readonly exposedPlansByGroup = computed(() => {
     const grouped = new Map<string, CommanderExposedPlan[]>();
     for (const plan of this.exposedPlans()) {
@@ -823,6 +843,28 @@ export class CommanderComponent implements OnInit {
         key: 'app',
         severity: 'info',
         summary: 'No fixtures in the local list to query',
+        life: 3000,
+      });
+      return;
+    }
+
+    this.error.set(null);
+    this.discoverFixturesLoading.set(true);
+    this.discoverFixturesCurrentFixture.set(null);
+    this.discoverFixturesElapsedS.set(0);
+    void this.runSidebarFixtureDiscoverySequential(fixtureNames);
+  }
+
+  protected runSidebarFixtureDiscoveryOutdated(): void {
+    if (!this.checkApiReachable() || this.discoverFixturesLoading()) return;
+
+    const fixtureNames = this.outdatedFixtureNames();
+
+    if (!fixtureNames.length) {
+      this.messageService.add({
+        key: 'app',
+        severity: 'info',
+        summary: 'No outdated fixtures found',
         life: 3000,
       });
       return;

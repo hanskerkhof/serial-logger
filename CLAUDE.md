@@ -110,6 +110,12 @@ Compare `raw['fw_version']` (string) against `health().api.release_version` to d
 
 - `src/app/shared/fixture-player-controls/` — `FixturePlayerControlsComponent`. Input: `player: CmdrPlayerCapabilities | null`. Renders capability detail when `attached`, "No player attached" when player exists but `attached === false`, nothing when `null`.
 
+## PrimeNG component work
+
+- Always read `/Users/hanskerkhof/bauklank-agent-skills/primeng/SKILL.md` before working with PrimeNG components.
+- Call `mcp__primeng__get_component_props` before writing any new PrimeNG component template — the MCP docs are authoritative; do not guess props from memory.
+- Notable: `SplitButton` has **no `loading` prop** — use `[disabled]` to reflect loading state instead.
+
 ## Conventions
 
 - All new components should be **standalone** with **SCSS** styles and **OnPush** change detection (configured as Angular CLI defaults in `angular.json`).

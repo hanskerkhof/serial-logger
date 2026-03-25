@@ -123,6 +123,14 @@
   flex-direction: column;
   gap: 0.75rem;
   margin-top: 0.5rem;
+
+  p-splitbutton {
+    width: 100%;
+
+    ::ng-deep .p-splitbutton-button {
+      flex: 1;
+    }
+  }
 }
 
 .commander__fixture-count {

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.6.20 - 2026-03-25
+
+### Added
+- "Discover fixtures" button is now a PrimeNG `SplitButton`. The primary action discovers all fixtures (unchanged). The dropdown item "Discover outdated (N)" discovers only fixtures whose `fw_version` is behind the current `release_version`, with the count shown in the label. The item is disabled when no outdated fixtures are present.
+
+### Changed
+- "Discover fixtures" split button now spans full width, matching the Full Discovery button.
+- Refresh icon in the "Discover fixtures" button spins while discovery is running (covers both "Discover all" and "Discover outdated" flows).
+- Frontend patch release bump to `v0.6.20`.
+
 ## 0.6.19 - 2026-03-24
 
 ### Changed

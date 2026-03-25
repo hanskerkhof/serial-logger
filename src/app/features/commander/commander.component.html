@@ -37,18 +37,16 @@
         (click)="runFullDiscovery()"
         [disabled]="backendBusy() || commanderUnavailable()"
       ></button>
-      <button
-        pButton
-        type="button"
+      <p-splitbutton
         [label]="discoverFixturesButtonLabel()"
-        icon="pi pi-refresh"
+        [icon]="discoverFixturesLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"
         iconPos="right"
         severity="secondary"
         size="small"
-        [loading]="discoverFixturesLoading()"
-        (click)="runSidebarFixtureDiscovery()"
-        [disabled]="backendBusy() || commanderUnavailable()"
-      ></button>
+        [model]="discoverFixturesMenuItems()"
+        (onClick)="runSidebarFixtureDiscovery()"
+        [disabled]="backendBusy() || commanderUnavailable() || discoverFixturesLoading()"
+      ></p-splitbutton>
     </div>
 
     @if (storageWarning(); as warning) {

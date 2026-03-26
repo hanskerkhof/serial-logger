@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { SliderModule } from 'primeng/slider';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ColorPickerModule } from 'primeng/colorpicker';
 import { CmdrCustomCommandUiArg, CmdrCustomCommandUiItem } from '../../api/cmdr-models';
 
 export type FixtureCustomControlValue = string | number | boolean;
@@ -42,10 +43,24 @@ interface SelectOption {
   value: FixtureCustomControlValue;
 }
 
+interface SharedRgbArgRef {
+  commandId: string;
+  arg: CmdrCustomCommandUiArg;
+  channel: 'r' | 'g' | 'b';
+}
+
 @Component({
   selector: 'app-fixture-custom-control',
   standalone: true,
-  imports: [FormsModule, InputTextModule, ButtonModule, SelectModule, SliderModule, CheckboxModule],
+  imports: [
+    FormsModule,
+    InputTextModule,
+    ButtonModule,
+    SelectModule,
+    SliderModule,
+    CheckboxModule,
+    ColorPickerModule,
+  ],
   templateUrl: './fixture-custom-control.component.html',
   styleUrl: './fixture-custom-control.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,6 +77,48 @@ export class FixtureCustomControlComponent {
   readonly sliderReleased = output<CmdrCustomCommandUiItem>();
   readonly masterPreviewChanged = output<FixtureCustomArgChangedEvent[]>();
   readonly masterReleased = output<FixtureCustomMasterReleasedEvent>();
+  readonly sharedRgbChanged = output<FixtureCustomArgChangedEvent[]>();
+
+  protected readonly sharedRgbArgRefs = computed<SharedRgbArgRef[]>(() => {
+    const refs: SharedRgbArgRef[] = [];
+    for (const command of this.commands()) {
+      for (const arg of command.args ?? []) {
+        const channel = this.toRgbChannel(arg.name);
+        if (!channel) continue;
+        refs.push({ commandId: command.id, arg, channel });
+      }
+    }
+    return refs;
+  });
+
+  protected readonly hasSharedRgb = computed(() => this.sharedRgbArgRefs().length > 0);
+  protected readonly sharedRgbRunCommand = computed<CmdrCustomCommandUiItem | null>(() => {
+    const commands = this.commands();
+    const byId = commands.find((command) => command.id === 'licht_set_rgb');
+    if (byId) return byId;
+
+    const byPreset = commands.find((command) =>
+      (command.wire_template ?? '').toLowerCase().includes('preset=setrgb'),
+    );
+    return byPreset ?? null;
+  });
+
+  protected readonly sharedRgbRange = computed(() => {
+    const refs = this.sharedRgbArgRefs();
+    if (!refs.length) {
+      return { min: 0, max: 255, step: 1 };
+    }
+    const mins = refs.map((ref) => (typeof ref.arg.min === 'number' ? ref.arg.min : 0));
+    const maxs = refs.map((ref) => (typeof ref.arg.max === 'number' ? ref.arg.max : 255));
+    const steps = refs
+      .map((ref) => (typeof ref.arg.step === 'number' && ref.arg.step > 0 ? ref.arg.step : 1))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    return {
+      min: Math.min(...mins),
+      max: Math.max(...maxs),
+      step: steps.length > 0 ? Math.min(...steps) : 1,
+    };
+  });
 
   protected readonly groupedCommands = computed<
     GroupedCommandGroup[]
@@ -143,6 +200,44 @@ export class FixtureCustomControlComponent {
 
   protected onArgChanged(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {
     this.argChanged.emit({ commandId, arg, rawValue });
+  }
+
+  protected isSharedRgbArg(arg: CmdrCustomCommandUiArg): boolean {
+    return this.toRgbChannel(arg.name) !== null;
+  }
+
+  protected sharedRgbChannelValue(channel: 'r' | 'g' | 'b'): number {
+    const ref = this.sharedRgbArgRefs().find((candidate) => candidate.channel === channel);
+    if (!ref) return 0;
+    const raw = Number(this.commandArgValue(ref.commandId, ref.arg));
+    if (!Number.isFinite(raw)) return 0;
+    return this.clampToRange(raw);
+  }
+
+  protected sharedRgbHexValue(): string {
+    const r = this.sharedRgbChannelValue('r');
+    const g = this.sharedRgbChannelValue('g');
+    const b = this.sharedRgbChannelValue('b');
+    return `${this.toHexByte(r)}${this.toHexByte(g)}${this.toHexByte(b)}`;
+  }
+
+  protected onSharedRgbHexChanged(rawValue: unknown): void {
+    if (typeof rawValue !== 'string') return;
+    const parsed = this.parseHexColor(rawValue);
+    if (!parsed) return;
+    this.emitSharedRgbChannel('r', parsed.r);
+    this.emitSharedRgbChannel('g', parsed.g);
+    this.emitSharedRgbChannel('b', parsed.b);
+  }
+
+  protected onSharedRgbChannelChanged(channel: 'r' | 'g' | 'b', rawValue: unknown): void {
+    this.emitSharedRgbChannel(channel, Number(rawValue));
+  }
+
+  protected onRunSharedRgb(): void {
+    const command = this.sharedRgbRunCommand();
+    if (!command) return;
+    this.commandRunRequested.emit(command);
   }
 
   protected onSliderRelease(command: CmdrCustomCommandUiItem): void {
@@ -294,5 +389,52 @@ export class FixtureCustomControlComponent {
     if (control === 'checkbox') return false;
     if (typeof arg.min === 'number') return arg.min;
     return 0;
+  }
+
+  private toRgbChannel(name: string): 'r' | 'g' | 'b' | null {
+    const normalized = name.trim().toLowerCase();
+    if (normalized === 'r' || normalized === 'g' || normalized === 'b') {
+      return normalized;
+    }
+    return null;
+  }
+
+  private emitSharedRgbChannel(channel: 'r' | 'g' | 'b', value: number): void {
+    if (!Number.isFinite(value)) return;
+    const normalized = this.clampToRange(value);
+    const changes = this.sharedRgbArgRefs()
+      .filter((ref) => ref.channel === channel)
+      .map((ref) => ({
+        commandId: ref.commandId,
+        arg: ref.arg,
+        rawValue: normalized,
+      }));
+    if (!changes.length) return;
+    this.sharedRgbChanged.emit(changes);
+  }
+
+  private clampToRange(value: number): number {
+    const range = this.sharedRgbRange();
+    const bounded = Math.min(Math.max(value, range.min), range.max);
+    if (!Number.isFinite(range.step) || range.step <= 0) {
+      return Math.round(bounded);
+    }
+    const snapped = Math.round((bounded - range.min) / range.step) * range.step + range.min;
+    const fixed = Number(snapped.toFixed(6));
+    return Math.min(Math.max(fixed, range.min), range.max);
+  }
+
+  private toHexByte(value: number): string {
+    const bounded = Math.min(Math.max(Math.round(value), 0), 255);
+    return bounded.toString(16).padStart(2, '0');
+  }
+
+  private parseHexColor(raw: string): { r: number; g: number; b: number } | null {
+    const trimmed = raw.trim().replace(/^#/, '');
+    if (!/^[0-9a-fA-F]{6}$/.test(trimmed)) return null;
+    const r = parseInt(trimmed.slice(0, 2), 16);
+    const g = parseInt(trimmed.slice(2, 4), 16);
+    const b = parseInt(trimmed.slice(4, 6), 16);
+    return { r, g, b };
   }
 }

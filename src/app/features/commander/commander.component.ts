@@ -292,6 +292,14 @@ export class CommanderComponent implements OnInit {
     });
 
     effect(() => {
+      // On re-query updates for the selected fixture, sync only args that are backed
+      // by plan_state via state_path. This keeps local edits for non-state-backed args.
+      this.selectedFixture();
+      const commands = this.selectedFixtureCustomCommands();
+      this.syncStateBackedCustomCommandValues(commands);
+    });
+
+    effect(() => {
       const unavailable = this.commanderUnavailable();
       // Read loading() explicitly so this effect re-runs when loading changes.
       // We suppress the toast while the initial health fetch is still in flight
@@ -1281,6 +1289,12 @@ export class CommanderComponent implements OnInit {
     }
   }
 
+  protected onFixtureSharedRgbChanged(events: FixtureCustomArgChangedEvent[]): void {
+    for (const event of events) {
+      this.updateCustomCommandArg(event.commandId, event.arg, event.rawValue);
+    }
+  }
+
   protected updateCustomCommandArg(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {
     const nextValue = this.normalizeArgValue(arg, rawValue);
     this.customCommandValues.update((current) => {
@@ -1720,7 +1734,67 @@ export class CommanderComponent implements OnInit {
       }
       initial[command.id] = commandValues;
     }
+    this.syncSharedRgbDefaults(initial, commands);
     return initial;
+  }
+
+  private syncSharedRgbDefaults(
+    initial: Record<string, Record<string, CustomCommandValue>>,
+    commands: CmdrCustomCommandUiItem[],
+  ): void {
+    for (const channel of ['r', 'g', 'b'] as const) {
+      let shared: CustomCommandValue | null = null;
+      for (const command of commands) {
+        const hasChannel = (command.args ?? []).some(
+          (arg) => arg.name.trim().toLowerCase() === channel,
+        );
+        if (!hasChannel) continue;
+        const value = initial[command.id]?.[channel];
+        if (value !== undefined) {
+          shared = value;
+          break;
+        }
+      }
+      if (shared === null) continue;
+      for (const command of commands) {
+        const hasChannel = (command.args ?? []).some(
+          (arg) => arg.name.trim().toLowerCase() === channel,
+        );
+        if (!hasChannel) continue;
+        if (!initial[command.id]) initial[command.id] = {};
+        initial[command.id][channel] = shared;
+      }
+    }
+  }
+
+  private syncStateBackedCustomCommandValues(commands: CmdrCustomCommandUiItem[]): void {
+    this.customCommandValues.update((current) => {
+      let changed = false;
+      const next: Record<string, Record<string, CustomCommandValue>> = { ...current };
+
+      for (const command of commands) {
+        let commandValues = next[command.id] ?? {};
+        let commandChanged = false;
+
+        for (const arg of command.args ?? []) {
+          if (!this.hasStatePath(arg)) continue;
+          const desired = this.defaultValueForArg(arg);
+          if (commandValues[arg.name] === desired) continue;
+          if (!commandChanged) {
+            commandValues = { ...commandValues };
+            commandChanged = true;
+          }
+          commandValues[arg.name] = desired;
+        }
+
+        if (commandChanged) {
+          next[command.id] = commandValues;
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
   }
 
   private hydrateCommandValues(
@@ -1824,6 +1898,11 @@ export class CommanderComponent implements OnInit {
       }
     }
     return fallback;
+  }
+
+  private hasStatePath(arg: CmdrCustomCommandUiArg): boolean {
+    const statePath = (arg as { state_path?: unknown }).state_path;
+    return typeof statePath === 'string' && statePath.trim().length > 0;
   }
 
   private readSelectOptions(

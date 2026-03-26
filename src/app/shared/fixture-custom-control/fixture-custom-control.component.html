@@ -1,6 +1,74 @@
 @if (commands().length > 0) {
   <section class="fixture-custom-control" aria-label="Custom commands">
     <h4 class="fixture-custom-control__title">Custom Commands</h4>
+    @if (hasSharedRgb()) {
+      <div class="fixture-custom-control__card fixture-custom-control__card--full">
+        <div class="fixture-custom-control__command-row">
+          <strong class="fixture-custom-control__command-title">Shared Color</strong>
+          <p-colorpicker
+            class="fixture-custom-control__colorpicker"
+            format="hex"
+            appendTo="body"
+            [ngModel]="sharedRgbHexValue()"
+            (ngModelChange)="onSharedRgbHexChanged($event)"
+            [disabled]="controlsDisabled()"
+          ></p-colorpicker>
+          <label class="fixture-custom-control__arg-inline">
+            <span class="fixture-custom-control__arg-inline-label">R</span>
+            <input
+              class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+              pInputText
+              type="number"
+              [min]="sharedRgbRange().min"
+              [max]="sharedRgbRange().max"
+              [step]="sharedRgbRange().step"
+              [ngModel]="sharedRgbChannelValue('r')"
+              (ngModelChange)="onSharedRgbChannelChanged('r', $event)"
+              [disabled]="controlsDisabled()"
+            />
+          </label>
+          <label class="fixture-custom-control__arg-inline">
+            <span class="fixture-custom-control__arg-inline-label">G</span>
+            <input
+              class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+              pInputText
+              type="number"
+              [min]="sharedRgbRange().min"
+              [max]="sharedRgbRange().max"
+              [step]="sharedRgbRange().step"
+              [ngModel]="sharedRgbChannelValue('g')"
+              (ngModelChange)="onSharedRgbChannelChanged('g', $event)"
+              [disabled]="controlsDisabled()"
+            />
+          </label>
+          <label class="fixture-custom-control__arg-inline">
+            <span class="fixture-custom-control__arg-inline-label">B</span>
+            <input
+              class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+              pInputText
+              type="number"
+              [min]="sharedRgbRange().min"
+              [max]="sharedRgbRange().max"
+              [step]="sharedRgbRange().step"
+              [ngModel]="sharedRgbChannelValue('b')"
+              (ngModelChange)="onSharedRgbChannelChanged('b', $event)"
+              [disabled]="controlsDisabled()"
+            />
+          </label>
+          <div class="fixture-custom-control__actions fixture-custom-control__actions--shared-rgb">
+            <button
+              pButton
+              type="button"
+              label="Run"
+              severity="secondary"
+              size="small"
+              (click)="onRunSharedRgb()"
+              [disabled]="controlsDisabled() || !sharedRgbRunCommand()"
+            ></button>
+          </div>
+        </div>
+      </div>
+    }
     @for (group of groupedCommands(); track group.key) {
       <div
         class="fixture-custom-control__card"
@@ -36,58 +104,60 @@
               <strong class="fixture-custom-control__command-title">{{ command.label }}</strong>
 
               @for (arg of command.args ?? []; track arg.name) {
-                <label class="fixture-custom-control__arg-inline">
-                  <span class="fixture-custom-control__arg-inline-label">{{ arg.label }}</span>
-                  @switch (arg.control) {
-                    @case ('slider') {
-                      <p-slider
-                        class="fixture-custom-control__arg-slider fixture-custom-control__arg-slider--inline"
-                        [min]="arg.min ?? 0"
-                        [max]="arg.max ?? 100"
-                        [step]="arg.step ?? 1"
-                        [ngModel]="commandArgValue(command.id, arg)"
-                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        (onSlideEnd)="onSliderRelease(command)"
-                        [disabled]="controlsDisabled()"
-                      ></p-slider>
-                      <span class="fixture-custom-control__arg-value">{{ commandArgValue(command.id, arg) }}</span>
+                @if (!isSharedRgbArg(arg)) {
+                  <label class="fixture-custom-control__arg-inline">
+                    <span class="fixture-custom-control__arg-inline-label">{{ arg.label }}</span>
+                    @switch (arg.control) {
+                      @case ('slider') {
+                        <p-slider
+                          class="fixture-custom-control__arg-slider fixture-custom-control__arg-slider--inline"
+                          [min]="arg.min ?? 0"
+                          [max]="arg.max ?? 100"
+                          [step]="arg.step ?? 1"
+                          [ngModel]="commandArgValue(command.id, arg)"
+                          (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                          (onSlideEnd)="onSliderRelease(command)"
+                          [disabled]="controlsDisabled()"
+                        ></p-slider>
+                        <span class="fixture-custom-control__arg-value">{{ commandArgValue(command.id, arg) }}</span>
+                      }
+                      @case ('checkbox') {
+                        <p-checkbox
+                          [binary]="true"
+                          [ngModel]="commandArgValue(command.id, arg)"
+                          (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                          [disabled]="controlsDisabled()"
+                        ></p-checkbox>
+                      }
+                      @case ('select') {
+                        <p-select
+                          class="fixture-custom-control__arg-select fixture-custom-control__arg-select--inline"
+                          [options]="selectOptions(arg)"
+                          optionLabel="label"
+                          optionValue="value"
+                          appendTo="body"
+                          [ngModel]="commandArgValue(command.id, arg)"
+                          (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                          [disabled]="controlsDisabled()"
+                        ></p-select>
+                      }
+                      @default {
+                        <input
+                          class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+                          pInputText
+                          type="number"
+                          [style.width]="'calc(' + numberInputWidthCh(arg) + 'ch + 1.5rem)'"
+                          [min]="arg.min ?? 0"
+                          [max]="arg.max ?? null"
+                          [step]="arg.step ?? 1"
+                          [ngModel]="commandArgValue(command.id, arg)"
+                          (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                          [disabled]="controlsDisabled()"
+                        />
+                      }
                     }
-                    @case ('checkbox') {
-                      <p-checkbox
-                        [binary]="true"
-                        [ngModel]="commandArgValue(command.id, arg)"
-                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        [disabled]="controlsDisabled()"
-                      ></p-checkbox>
-                    }
-                    @case ('select') {
-                      <p-select
-                        class="fixture-custom-control__arg-select fixture-custom-control__arg-select--inline"
-                        [options]="selectOptions(arg)"
-                        optionLabel="label"
-                        optionValue="value"
-                        appendTo="body"
-                        [ngModel]="commandArgValue(command.id, arg)"
-                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        [disabled]="controlsDisabled()"
-                      ></p-select>
-                    }
-                    @default {
-                      <input
-                        class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
-                        pInputText
-                        type="number"
-                        [style.width]="'calc(' + numberInputWidthCh(arg) + 'ch + 1.5rem)'"
-                        [min]="arg.min ?? 0"
-                        [max]="arg.max ?? null"
-                        [step]="arg.step ?? 1"
-                        [ngModel]="commandArgValue(command.id, arg)"
-                        (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        [disabled]="controlsDisabled()"
-                      />
-                    }
-                  }
-                </label>
+                  </label>
+                }
               }
 
               @if (!commandSendOnRelease(command)) {

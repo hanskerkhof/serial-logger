@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Changed
+- Color picker trigger now has a 1 px outline using the PrimeNG `--p-content-border-color` semantic token, which adapts automatically to light and dark mode.
+
+## 0.6.26 - 2026-03-26
+
+### Changed
+- Frontend patch release bump to `v0.6.26`.
+- NER_B_DMX fixture custom-control number input alignment/spacing polish in the one-line layout (`src/app/shared/fixture-custom-control/fixture-custom-control.component.scss`):
+  - left-aligned numeric values,
+  - tuned width to fit max values with spinner rockers,
+  - reduced excess spacing for denser control rows.
+- Shared custom-color control now includes explicit `Set RGB` run action in the fixture modal flow.
+- Commander fixture dialog feedback strip remains anchored in the dialog header for persistent visibility while scrolling command controls.
+
 ## 0.6.23 - 2026-03-26
 
 ### Added

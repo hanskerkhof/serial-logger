@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
+import { SliderModule } from 'primeng/slider';
+import { CheckboxModule } from 'primeng/checkbox';
 import { CmdrCustomCommandUiArg, CmdrCustomCommandUiItem } from '../../api/cmdr-models';
 
 export type FixtureCustomControlValue = string | number | boolean;
@@ -43,7 +45,7 @@ interface SelectOption {
 @Component({
   selector: 'app-fixture-custom-control',
   standalone: true,
-  imports: [FormsModule, InputTextModule, ButtonModule, SelectModule],
+  imports: [FormsModule, InputTextModule, ButtonModule, SelectModule, SliderModule, CheckboxModule],
   templateUrl: './fixture-custom-control.component.html',
   styleUrl: './fixture-custom-control.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -150,6 +152,20 @@ export class FixtureCustomControlComponent {
 
   protected onRunCommand(command: CmdrCustomCommandUiItem): void {
     this.commandRunRequested.emit(command);
+  }
+
+  protected numberInputWidthCh(arg: CmdrCustomCommandUiArg): number {
+    const candidates: number[] = [];
+    const maybeValues = [arg.default, arg.min, arg.max, arg.step];
+    for (const value of maybeValues) {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        candidates.push(String(Math.trunc(value)).length);
+      } else if (typeof value === 'string' && value.trim()) {
+        candidates.push(value.trim().length);
+      }
+    }
+    const widest = candidates.length > 0 ? Math.max(...candidates) : 4;
+    return Math.min(Math.max(widest + 2, 5), 8);
   }
 
   protected canShowMasterSlider(group: GroupedCommandGroup): boolean {

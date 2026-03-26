@@ -85,6 +85,20 @@
                   <button
                     pButton
                     type="button"
+                    class="commander__pin-btn"
+                    [class.commander__pin-btn--pinned]="pinnedPlans().has(plan.plan_name)"
+                    [icon]="pinnedPlans().has(plan.plan_name) ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'"
+                    [text]="true"
+                    [rounded]="true"
+                    severity="secondary"
+                    size="small"
+                    [title]="pinnedPlans().has(plan.plan_name) ? 'Unpin plan' : 'Pin plan to top'"
+                    [attr.aria-label]="(pinnedPlans().has(plan.plan_name) ? 'Unpin' : 'Pin') + ' plan ' + plan.plan_name"
+                    (click)="togglePinPlan(plan.plan_name, $event)"
+                  ></button>
+                  <button
+                    pButton
+                    type="button"
                     class="commander__reload-btn"
                     icon="pi pi-refresh"
                     [text]="true"
@@ -422,8 +436,8 @@
     [closeOnEscape]="true"
     [showHeader]="false"
     styleClass="commander__fixture-dialog"
-    [style]="{ width: 'min(72rem, 96vw)' }"
-    [contentStyle]="{ overflow: 'visible' }"
+    [style]="{ width: 'min(72rem, 96vw)', maxHeight: '90vh' }"
+    [contentStyle]="{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }"
   >
     <div class="commander__dialog">
     <header class="commander__dialog-header">
@@ -537,16 +551,14 @@
         (click)="closeFixtureModal()"
         aria-label="Close"
       ></button>
-    </header>
-    <div class="commander__dialog-body">
       <section
-        class="commander__dialog-feedback"
+        class="commander__dialog-feedback commander__dialog-feedback--header"
         [class]="
           commanderUnavailable()
-            ? 'commander__dialog-feedback commander__dialog-feedback--warn'
+            ? 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--warn'
             : modalQueryError()
-              ? 'commander__dialog-feedback commander__dialog-feedback--info commander__dialog-feedback--error'
-              : 'commander__dialog-feedback commander__dialog-feedback--' + fixtureActionTone()
+              ? 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--info commander__dialog-feedback--error'
+              : 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--' + fixtureActionTone()
         "
       >
         @if (commanderUnavailable()) {
@@ -577,6 +589,8 @@
           <p class="commander__dialog-feedback-duration commander__dialog-feedback-duration--placeholder">&nbsp;</p>
         }
       </section>
+    </header>
+    <div class="commander__dialog-body">
       <app-fixture-plan-control
         [planControls]="selectedFixturePlanControls()"
         [planState]="selectedFixturePlanState()"

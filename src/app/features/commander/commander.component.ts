@@ -343,7 +343,37 @@ export class CommanderComponent implements OnInit {
   protected readonly activeApiUrl = this.commanderApi.apiBaseUrl;
   protected readonly groupedFixtures = this.fixtureStore.fixturesGroupedByPlanName;
 
-  /** Two-level sidebar tree: plan_group → [plan → [fixtures]] */
+  private readonly PINNED_PLANS_KEY = 'cmdr.pinnedPlans.v1';
+  protected readonly pinnedPlans = signal<ReadonlySet<string>>(this.loadPinnedPlans());
+
+  private loadPinnedPlans(): ReadonlySet<string> {
+    try {
+      const stored = localStorage.getItem(this.PINNED_PLANS_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      return new Set(Array.isArray(parsed) ? parsed.filter((v: unknown) => typeof v === 'string') : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  protected togglePinPlan(planName: string, event: Event): void {
+    event.stopPropagation();
+    const current = this.pinnedPlans();
+    const next = new Set(current);
+    if (next.has(planName)) {
+      next.delete(planName);
+    } else {
+      next.add(planName);
+    }
+    this.pinnedPlans.set(next);
+    try {
+      localStorage.setItem(this.PINNED_PLANS_KEY, JSON.stringify([...next]));
+    } catch {
+      // localStorage unavailable — pin state lives in memory only
+    }
+  }
+
+  /** Two-level sidebar tree: plan_group → [plan → [fixtures]], pinned plans/groups first */
   protected readonly groupedFixturesByPlanGroup = computed(() => {
     // Build plan_name → plan_group lookup from the exposed plans list
     const planToGroup = new Map<string, string>();
@@ -359,12 +389,25 @@ export class CommanderComponent implements OnInit {
       outerMap.set(pgName, list);
     }
 
+    const pinned = this.pinnedPlans();
+
     return Array.from(outerMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([plan_group, plans]) => ({
         plan_group,
-        plans: [...plans].sort((a, b) => a.plan_name.localeCompare(b.plan_name)),
-      }));
+        plans: [...plans].sort((a, b) => {
+          const aPinned = pinned.has(a.plan_name) ? 0 : 1;
+          const bPinned = pinned.has(b.plan_name) ? 0 : 1;
+          if (aPinned !== bPinned) return aPinned - bPinned;
+          return a.plan_name.localeCompare(b.plan_name);
+        }),
+      }))
+      .sort((a, b) => {
+        const aHasPinned = a.plans.some(p => pinned.has(p.plan_name)) ? 0 : 1;
+        const bHasPinned = b.plans.some(p => pinned.has(p.plan_name)) ? 0 : 1;
+        if (aHasPinned !== bHasPinned) return aHasPinned - bHasPinned;
+        return a.plan_group.localeCompare(b.plan_group);
+      });
   });
   protected readonly selectedFixtureName = this.fixtureStore.selectedFixtureName;
   protected readonly selectedFixture = this.fixtureStore.selectedFixture;

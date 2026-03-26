@@ -36,6 +36,46 @@
   gap: 0.05rem;
 }
 
+.fixture-custom-control__command {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fixture-custom-control__command-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.fixture-custom-control__command-title {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.fixture-custom-control__command + .fixture-custom-control__command {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--p-content-border-color);
+}
+
+.fixture-custom-control__command-header {
+  font-size: 0.8rem;
+}
+
+.fixture-custom-control__arg-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fixture-custom-control__arg-inline-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .fixture-custom-control__arg-row {
   display: grid;
   grid-template-columns: minmax(5.5rem, max-content) minmax(0, 1fr) 2rem;
@@ -73,6 +113,30 @@
   accent-color: var(--p-primary-color);
 }
 
+.fixture-custom-control__arg-slider--inline {
+  width: 300px;
+  max-width: min(300px, 48vw);
+}
+
+.fixture-custom-control__arg-number--inline {
+  min-width: 5.4rem;
+  width: auto;
+  box-sizing: border-box;
+  text-align: left;
+  appearance: auto;
+  -moz-appearance: number-input;
+}
+
+.fixture-custom-control__arg-number--inline::-webkit-outer-spin-button,
+.fixture-custom-control__arg-number--inline::-webkit-inner-spin-button {
+  -webkit-appearance: auto;
+  opacity: 1;
+}
+
+.fixture-custom-control__arg-select--inline {
+  min-width: 8rem;
+}
+
 .fixture-custom-control__arg-value {
   min-width: 2rem;
   text-align: right;
@@ -82,7 +146,7 @@
 
 .fixture-custom-control__actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 @media (min-width: 960px) {

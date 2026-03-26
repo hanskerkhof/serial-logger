@@ -15,57 +15,54 @@
           <div class="fixture-custom-control__args">
             <label class="fixture-custom-control__arg-row fixture-custom-control__arg-row--master">
               <span class="fixture-custom-control__arg-label">Master</span>
-              <input
+              <p-slider
                 class="fixture-custom-control__arg-slider"
-                type="range"
                 [min]="groupMasterMin(group)"
                 [max]="groupMasterMax(group)"
                 [step]="groupMasterStep(group)"
                 [ngModel]="groupMasterValue(group)"
-                (input)="onGroupMasterPreview(group, $any($event.target).value)"
-                (change)="onGroupMasterRelease(group, $any($event.target).value)"
+                (ngModelChange)="onGroupMasterPreview(group, $event)"
+                (onSlideEnd)="onGroupMasterRelease(group, $event.value)"
                 [disabled]="controlsDisabled()"
-              />
+              ></p-slider>
               <span class="fixture-custom-control__arg-value">{{ groupMasterValue(group) }}</span>
             </label>
           </div>
         }
 
         @for (command of group.commands; track command.id) {
-          @if ((command.args?.length ?? 0) > 0) {
-            <div class="fixture-custom-control__args">
+          <div class="fixture-custom-control__command">
+            <div class="fixture-custom-control__command-row">
+              <strong class="fixture-custom-control__command-title">{{ command.label }}</strong>
+
               @for (arg of command.args ?? []; track arg.name) {
-                <label
-                  class="fixture-custom-control__arg-row"
-                  [class.fixture-custom-control__arg-row--no-value]="arg.control !== 'slider'"
-                >
-                  <span class="fixture-custom-control__arg-label">{{ arg.label }}</span>
+                <label class="fixture-custom-control__arg-inline">
+                  <span class="fixture-custom-control__arg-inline-label">{{ arg.label }}</span>
                   @switch (arg.control) {
                     @case ('slider') {
-                      <input
-                        class="fixture-custom-control__arg-slider"
-                        type="range"
+                      <p-slider
+                        class="fixture-custom-control__arg-slider fixture-custom-control__arg-slider--inline"
                         [min]="arg.min ?? 0"
                         [max]="arg.max ?? 100"
                         [step]="arg.step ?? 1"
                         [ngModel]="commandArgValue(command.id, arg)"
                         (ngModelChange)="onArgChanged(command.id, arg, $event)"
-                        (change)="onSliderRelease(command)"
+                        (onSlideEnd)="onSliderRelease(command)"
                         [disabled]="controlsDisabled()"
-                      />
+                      ></p-slider>
                       <span class="fixture-custom-control__arg-value">{{ commandArgValue(command.id, arg) }}</span>
                     }
                     @case ('checkbox') {
-                      <input
-                        type="checkbox"
+                      <p-checkbox
+                        [binary]="true"
                         [ngModel]="commandArgValue(command.id, arg)"
                         (ngModelChange)="onArgChanged(command.id, arg, $event)"
                         [disabled]="controlsDisabled()"
-                      />
+                      ></p-checkbox>
                     }
                     @case ('select') {
                       <p-select
-                        class="fixture-custom-control__arg-number fixture-custom-control__arg-select"
+                        class="fixture-custom-control__arg-select fixture-custom-control__arg-select--inline"
                         [options]="selectOptions(arg)"
                         optionLabel="label"
                         optionValue="value"
@@ -77,9 +74,10 @@
                     }
                     @default {
                       <input
-                        class="fixture-custom-control__arg-number"
+                        class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
                         pInputText
                         type="number"
+                        [style.width]="'calc(' + numberInputWidthCh(arg) + 'ch + 1.5rem)'"
                         [min]="arg.min ?? 0"
                         [max]="arg.max ?? null"
                         [step]="arg.step ?? 1"
@@ -91,22 +89,22 @@
                   }
                 </label>
               }
-            </div>
-          }
 
-          @if (!commandSendOnRelease(command)) {
-            <div class="fixture-custom-control__actions">
-              <button
-                pButton
-                type="button"
-                label="Run"
-                severity="secondary"
-                size="small"
-                (click)="onRunCommand(command)"
-                [disabled]="controlsDisabled()"
-              ></button>
+              @if (!commandSendOnRelease(command)) {
+                <div class="fixture-custom-control__actions">
+                  <button
+                    pButton
+                    type="button"
+                    label="Run"
+                    severity="secondary"
+                    size="small"
+                    (click)="onRunCommand(command)"
+                    [disabled]="controlsDisabled()"
+                  ></button>
+                </div>
+              }
             </div>
-          }
+          </div>
         }
       </div>
     }

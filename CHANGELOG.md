@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.6.23 - 2026-03-26
+
+### Added
+- Fixture modal dialog content is now scrollable. The dialog is capped at 90 vh and the body area scrolls independently while the header and footer stay fixed, making all form elements reachable on short screens.
+- Plan pin/unpin in the fixture sidebar. A bookmark icon button next to each plan name pins it to the top of the fixture list. Pinned plans float their parent plan group to the top; within the group, pinned plans sort before unpinned ones. "Discover fixtures" respects the same order. Pins are stored in `localStorage` (`cmdr.pinnedPlans.v1`) and are non-fatal when a previously pinned plan no longer exists.
+
+### Changed
+- Commander fixture dialog feedback strip (`commander__dialog-feedback`) now renders in the dialog header area so status/success/error feedback remains visible while body content is scrolled.
+- Custom command controls now show one-row command labels and inline controls (`label -> control -> Run`) for grouped command cards.
+- Custom command sliders now use PrimeNG `p-slider`; number fields remain `type=number` with Prime styling and visible native spinner rockers.
+- NER_B_DMX custom-command ergonomics improved in Studio: command labels are visible, arg labels are cleaner (`Dimmer`, `Duration (ms)`, `Speed`), and number-input width tuning avoids clipping at max values.
+- Frontend patch release bump to `v0.6.23`.
+
 ## 0.6.20 - 2026-03-25
 
 ### Added

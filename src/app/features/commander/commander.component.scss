@@ -181,6 +181,24 @@
   gap: 0.5rem;
   padding-left: 0.75rem;
   border-left: 2px solid var(--p-surface-200, #e5e7eb);
+
+  &:has(.commander__pin-btn--pinned) {
+    border-left-color: var(--p-primary-color);
+  }
+}
+
+.commander__pin-btn {
+  opacity: 0.3;
+  transition: opacity 0.15s;
+
+  &--pinned {
+    opacity: 1;
+    color: var(--p-primary-color) !important;
+  }
+}
+
+.commander__group-header:hover .commander__pin-btn {
+  opacity: 1;
 }
 
 .commander__group-title {
@@ -299,9 +317,15 @@
 
 .commander__dialog {
   width: 100%;
+  height: 100%;
   min-height: 20rem; // header + 8 lines of body text + footer
   display: flex;
   flex-direction: column;
+}
+
+.commander__dialog-header {
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .commander__dialog-body {
@@ -326,6 +350,11 @@
   justify-content: center;
   gap: 0.1rem;
   position: relative;
+}
+
+.commander__dialog-feedback--header {
+  flex: 1 0 100%;
+  margin: 0.25rem 0 0;
 }
 
 .commander__dialog-feedback-message,

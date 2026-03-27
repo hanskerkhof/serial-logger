@@ -246,6 +246,7 @@
             <div><strong>ok:</strong> {{ currentHealth.ok }}</div>
             <div><strong>utc:</strong> {{ currentHealth.utc }}</div>
             <div><strong>service:</strong> {{ currentHealth.service }}</div>
+            <div><strong>api uptime:</strong> {{ formatDurationSeconds(currentHealth.api_uptime) || '-' }}</div>
             <div><strong>fe_version:</strong> {{ frontendVersion }}</div>
             <div><strong>fe_build_date:</strong> {{ frontendBuildDate }}</div>
             <div><strong>compile_supported:</strong> {{ currentHealth.compile_supported == null ? '—' : currentHealth.compile_supported }} {{ currentHealth.compile_supported === true ? '(darwin)' : currentHealth.compile_supported === false ? '(linux)' : '' }}</div>

@@ -17,6 +17,15 @@
 ### Changed
 - Color picker trigger now has a 1 px outline using the PrimeNG `--p-content-border-color` semantic token, which adapts automatically to light and dark mode.
 
+## 0.6.28 - 2026-03-27
+
+### Changed
+- Frontend patch release bump to `v0.6.28`.
+- Query toasts now include round-trip timing in completion message (`1 updated - 2.4s` style).
+- Query progress toast now includes fixture context (`Running query for <FIXTURE_NAME>...`).
+- Health Details panel now displays API uptime (`api_uptime`) from `/health`, making restart verification visible in UI.
+- OpenAPI-generated API types refreshed for new health schema fields and runtime restart endpoint contract.
+
 ## 0.6.26 - 2026-03-26
 
 ### Changed

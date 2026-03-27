@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runtime/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Api Runtime Restart */
+        post: operations["api_runtime_restart_api_runtime_restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/commander/raw": {
         parameters: {
             query?: never;
@@ -841,6 +858,8 @@ export interface components {
         /** HealthResponse */
         HealthResponse: {
             api: components["schemas"]["ApiReleaseMetadata"];
+            /** Api Uptime */
+            api_uptime: number;
             /** Build Date */
             build_date: string | null;
             /** Build Time */
@@ -1085,6 +1104,44 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** RuntimeRestartRequest */
+        RuntimeRestartRequest: {
+            /** Action Source */
+            action_source?: string | null;
+            /** Delay Ms */
+            delay_ms?: number | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Operator */
+            operator?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Token */
+            token?: string | null;
+        };
+        /** RuntimeRestartResponse */
+        RuntimeRestartResponse: {
+            /** Action */
+            action: string;
+            /** Delay Ms */
+            delay_ms: number;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Ok */
+            ok: boolean;
+            /** Reason */
+            reason: string;
+            /** Service */
+            service: string;
+            /** Utc */
+            utc: string;
+        } & {
+            [key: string]: unknown;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1184,6 +1241,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RuntimeReloadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    api_runtime_restart_api_runtime_restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RuntimeRestartRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeRestartResponse"];
                 };
             };
             /** @description Validation Error */

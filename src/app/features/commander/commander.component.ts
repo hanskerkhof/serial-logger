@@ -336,7 +336,8 @@ export class CommanderComponent implements OnInit {
     effect(() => {
       const isDiscovery = this.discoveryLoading();
       const isFixtureDiscovery = this.discoverFixturesLoading();
-      const isQuery = this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading();
+      const isFixtureQuery = this.fixtureQueryLoading();
+      const isQuery = isFixtureQuery || this.planQueryLoading() || this.planGroupQueryLoading();
       // Only clear the progress channel — 'app' completion toasts manage their own lifetime via `life`.
       this.messageService.clear('app-progress');
       if (isDiscovery) {
@@ -349,7 +350,11 @@ export class CommanderComponent implements OnInit {
       } else if (isFixtureDiscovery) {
         this.messageService.add({ key: 'app-progress', severity: 'warn', summary: 'Discovering fixtures…', sticky: true, closable: false, data: { cancellable: 'fixtures' } });
       } else if (isQuery) {
-        this.messageService.add({ key: 'app-progress', severity: 'warn', summary: 'Running query…', sticky: true, closable: false });
+        const fixtureName = this.fixtureName().trim();
+        const summary = isFixtureQuery && fixtureName
+          ? `Running query for ${fixtureName}...`
+          : 'Running query…';
+        this.messageService.add({ key: 'app-progress', severity: 'warn', summary, sticky: true, closable: false });
       }
     });
   }
@@ -855,13 +860,15 @@ export class CommanderComponent implements OnInit {
 
     this.fixtureQueryLoading.set(true);
     this.error.set(null);
+    const startedAt = performance.now();
     this.commanderApi.getFixtureVersion(fixture).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'fixture_query');
+        const durationS = (performance.now() - startedAt) / 1000;
         this.fixtureQueryLoading.set(false);
         this.sidebarRefreshingFixture.set(null);
-        this.showQueryResultToast(stats);
+        this.showQueryResultToast(stats, durationS);
       },
       error: (err: unknown) => {
         this.showErrorToast(this.formatError(`Fixture query failed for ${fixture}`, err));
@@ -902,7 +909,7 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'discovery_query');
         this.discoveryLoading.set(false);
-        this.showQueryResultToast(stats, durationS);
+        this.showQueryResultToast(stats, durationS, true);
         if (then) setTimeout(then, 0);
       },
       error: (err: unknown) => {
@@ -1043,13 +1050,15 @@ export class CommanderComponent implements OnInit {
 
     this.planQueryLoading.set(true);
     this.error.set(null);
+    const startedAt = performance.now();
     this.commanderApi.getPlanVersions(plan).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'plan_query');
+        const durationS = (performance.now() - startedAt) / 1000;
         this.planQueryLoading.set(false);
         this.sidebarRefreshingPlan.set(null);
-        this.showQueryResultToast(stats);
+        this.showQueryResultToast(stats, durationS);
       },
       error: (err: unknown) => {
         this.showErrorToast(this.formatError(`Plan query failed for ${plan}`, err));
@@ -1140,13 +1149,15 @@ export class CommanderComponent implements OnInit {
 
     this.planGroupQueryLoading.set(true);
     this.error.set(null);
+    const startedAt = performance.now();
     this.commanderApi.getPlanGroupVersions(planGroup).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'plan_group_query');
+        const durationS = (performance.now() - startedAt) / 1000;
         this.planGroupQueryLoading.set(false);
         this.sidebarRefreshingPlanGroup.set(null);
-        this.showQueryResultToast(stats);
+        this.showQueryResultToast(stats, durationS);
       },
       error: (err: unknown) => {
         this.showErrorToast(this.formatError(`Plan group query failed for ${planGroup}`, err));
@@ -1436,13 +1447,16 @@ export class CommanderComponent implements OnInit {
   private showQueryResultToast(
     stats: { added: number; updated: number } | null,
     durationS?: number,
+    includeDiscoveryAverages = false,
   ): void {
     let summary = stats ? this.formatUpsertStats(stats) : 'No fixtures found in response';
     if (durationS !== undefined) {
-      const avg = this.discoveryAvgS();
-      const cnt = this.discoveryTimings().length;
-      summary += ` · ${durationS.toFixed(1)}s`;
-      if (cnt >= 2 && avg !== null) summary += ` · avg ${avg.toFixed(1)}s`;
+      summary += ` - ${durationS.toFixed(1)}s`;
+      if (includeDiscoveryAverages) {
+        const avg = this.discoveryAvgS();
+        const cnt = this.discoveryTimings().length;
+        if (cnt >= 2 && avg !== null) summary += ` - avg ${avg.toFixed(1)}s`;
+      }
     }
     this.messageService.add({ key: 'app', severity: 'success', summary, life: 3000 });
   }

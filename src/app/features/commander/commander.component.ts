@@ -1024,10 +1024,12 @@ export class CommanderComponent implements OnInit {
     const total = fixtureNames.length;
     const failedCount = failures.length;
     const severity = failedCount > 0 ? 'warn' : 'success';
+    const elapsedS = this.discoverFixturesLastDurationS() ?? (performance.now() - startedAt) / 1000;
+    const elapsedSuffix = ` - ${elapsedS.toFixed(1)}s`;
     const summary =
       failedCount > 0
-        ? `Discover fixtures finished: ${successCount}/${total} queried, ${failedCount} failed`
-        : `Discover fixtures finished: ${successCount}/${total} queried`;
+        ? `Discover fixtures finished: ${successCount}/${total} queried, ${failedCount} failed${elapsedSuffix}`
+        : `Discover fixtures finished: ${successCount}/${total} queried${elapsedSuffix}`;
     const detail =
       failedCount > 0
         ? `Failed: ${failures.slice(0, 5).join(', ')}${failedCount > 5 ? ', ...' : ''}`

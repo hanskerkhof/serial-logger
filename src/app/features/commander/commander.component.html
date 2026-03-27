@@ -1,4 +1,14 @@
 <p-toast key="app" position="top-center"></p-toast>
+<p-toast key="app-progress" position="top-center">
+  <ng-template pTemplate="message" let-message>
+    <div class="discovery-progress-toast">
+      <span class="discovery-progress-toast__summary">{{ message.summary }}</span>
+      @if (message.data?.cancellable) {
+        <button type="button" class="discovery-progress-toast__cancel" (click)="cancelCurrentDiscovery()">Cancel</button>
+      }
+    </div>
+  </ng-template>
+</p-toast>
 <p-toast key="cmdr-offline" position="top-center">
   <ng-template pTemplate="message" let-message>
     <div class="cmdr-offline-toast">
@@ -25,18 +35,16 @@
     </header>
 
     <div class="commander__sidebar-actions">
-      <button
-        pButton
-        type="button"
+      <p-splitbutton
         [label]="discoveryButtonLabel()"
         icon="pi pi-play"
         iconPos="right"
         severity="primary"
         size="small"
-        [loading]="discoveryLoading()"
-        (click)="runFullDiscovery()"
-        [disabled]="backendBusy() || commanderUnavailable()"
-      ></button>
+        [model]="fullDiscoveryMenuItems()"
+        (onClick)="runFullDiscovery()"
+        [disabled]="backendBusy() || commanderUnavailable() || discoveryLoading() || discoverFixturesLoading()"
+      ></p-splitbutton>
       <p-splitbutton
         [label]="discoverFixturesButtonLabel()"
         [icon]="discoverFixturesLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"

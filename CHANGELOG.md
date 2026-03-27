@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+- "Full Discovery" is now a split button. The primary action runs full discovery as before. The dropdown item "Full discovery + fixtures" runs full discovery and then immediately runs "Discover fixtures" sequentially (with the same spinning icon and toast notifications).
+- On page load with an empty fixture list, the automatic full discovery now continues into "Discover fixtures" automatically, matching the "Full discovery + fixtures" behaviour.
+- Cancel button in the progress toast for full discovery and fixture discovery. Cancelling full discovery unsubscribes the HTTP request immediately. Cancelling fixture discovery stops the sequential loop after the current fixture and reports how many were queried before stopping. Progress toasts now use a dedicated `app-progress` toast channel with a custom template; completion and error toasts remain on the `app` channel and are no longer cleared by the progress effect.
+
 ### Changed
 - Color picker trigger now has a 1 px outline using the PrimeNG `--p-content-border-color` semantic token, which adapts automatically to light and dark mode.
 

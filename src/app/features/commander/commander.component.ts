@@ -332,17 +332,21 @@ export class CommanderComponent implements OnInit {
 
     effect(() => {
       const isDiscovery = this.discoveryLoading();
+      const isFixtureDiscovery = this.discoverFixturesLoading();
       const isQuery = this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading();
-      this.messageService.clear('app');
+      // Only clear the progress channel — 'app' completion toasts manage their own lifetime via `life`.
+      this.messageService.clear('app-progress');
       if (isDiscovery) {
         const avg = this.discoveryAvgS();
         const summary =
           avg !== null
             ? `Running full discovery… · ~${avg.toFixed(1)}s`
             : 'Running full discovery…';
-        this.messageService.add({ key: 'app', severity: 'warn', summary, sticky: true, closable: false });
+        this.messageService.add({ key: 'app-progress', severity: 'warn', summary, sticky: true, closable: false, data: { cancellable: 'full' } });
+      } else if (isFixtureDiscovery) {
+        this.messageService.add({ key: 'app-progress', severity: 'warn', summary: 'Discovering fixtures…', sticky: true, closable: false, data: { cancellable: 'fixtures' } });
       } else if (isQuery) {
-        this.messageService.add({ key: 'app', severity: 'warn', summary: 'Running query...', sticky: true, closable: false });
+        this.messageService.add({ key: 'app-progress', severity: 'warn', summary: 'Running query…', sticky: true, closable: false });
       }
     });
   }
@@ -453,6 +457,15 @@ export class CommanderComponent implements OnInit {
       .filter(([, status]) => status.outdated)
       .map(([name]) => name),
   );
+
+  protected readonly fullDiscoveryMenuItems = computed<MenuItem[]>(() => [
+    {
+      label: 'Full discovery + fixtures',
+      icon: 'pi pi-list',
+      disabled: this.backendBusy() || this.commanderUnavailable() || this.discoveryLoading() || this.discoverFixturesLoading(),
+      command: () => this.runFullDiscoveryThenFixtures(),
+    },
+  ]);
 
   protected readonly discoverFixturesMenuItems = computed<MenuItem[]>(() => {
     const outdatedCount = this.outdatedFixtureNames().length;
@@ -857,25 +870,50 @@ export class CommanderComponent implements OnInit {
   }
 
   protected runFullDiscovery(): void {
+    this.doFullDiscovery();
+  }
+
+  protected runFullDiscoveryThenFixtures(): void {
+    this.doFullDiscovery(() => this.runSidebarFixtureDiscovery());
+  }
+
+  private discoverySubscription: Subscription | null = null;
+  private discoverFixturesCancelRequested = false;
+
+  private doFullDiscovery(then?: () => void): void {
     if (!this.checkApiReachable()) return;
     this.discoveryLoading.set(true);
     this.error.set(null);
     const startedAt = performance.now();
 
-    this.commanderApi.getFixtureDiscovery().subscribe({
+    this.discoverySubscription = this.commanderApi.getFixtureDiscovery().subscribe({
       next: (result) => {
+        this.discoverySubscription = null;
         const durationS = (performance.now() - startedAt) / 1000;
         this.addDiscoveryTiming(durationS);
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'discovery_query');
         this.discoveryLoading.set(false);
         this.showQueryResultToast(stats, durationS);
+        if (then) setTimeout(then, 0);
       },
       error: (err: unknown) => {
+        this.discoverySubscription = null;
         this.showErrorToast(this.formatError('Full discovery failed', err));
         this.discoveryLoading.set(false);
       },
     });
+  }
+
+  protected cancelCurrentDiscovery(): void {
+    if (this.discoverySubscription) {
+      this.discoverySubscription.unsubscribe();
+      this.discoverySubscription = null;
+      this.discoveryLoading.set(false);
+      this.messageService.add({ key: 'app', severity: 'info', summary: 'Full discovery cancelled', life: 3000 });
+    } else if (this.discoverFixturesLoading()) {
+      this.discoverFixturesCancelRequested = true;
+    }
   }
 
   protected runSidebarFixtureDiscovery(): void {
@@ -900,6 +938,7 @@ export class CommanderComponent implements OnInit {
     }
 
     this.error.set(null);
+    this.discoverFixturesCancelRequested = false;
     this.discoverFixturesLoading.set(true);
     this.discoverFixturesCurrentFixture.set(null);
     this.discoverFixturesElapsedS.set(0);
@@ -922,6 +961,7 @@ export class CommanderComponent implements OnInit {
     }
 
     this.error.set(null);
+    this.discoverFixturesCancelRequested = false;
     this.discoverFixturesLoading.set(true);
     this.discoverFixturesCurrentFixture.set(null);
     this.discoverFixturesElapsedS.set(0);
@@ -933,8 +973,13 @@ export class CommanderComponent implements OnInit {
     let successCount = 0;
     const failures: string[] = [];
 
+    let cancelled = false;
     try {
       for (const fixtureName of fixtureNames) {
+        if (this.discoverFixturesCancelRequested) {
+          cancelled = true;
+          break;
+        }
         this.discoverFixturesCurrentFixture.set(fixtureName);
         this.sidebarRefreshingFixture.set(fixtureName);
         try {
@@ -954,6 +999,11 @@ export class CommanderComponent implements OnInit {
       this.discoverFixturesCurrentFixture.set(null);
       this.discoverFixturesLoading.set(false);
       this.discoverFixturesLastDurationS.set((performance.now() - startedAt) / 1000);
+    }
+
+    if (cancelled) {
+      this.messageService.add({ key: 'app', severity: 'info', summary: `Fixture discovery cancelled — ${successCount} queried before stopping`, life: 4000 });
+      return;
     }
 
     const total = fixtureNames.length;
@@ -1533,7 +1583,7 @@ export class CommanderComponent implements OnInit {
           this._autoDiscoveryTriggered = true;
           setTimeout(() => {
             if (this.fixtureStore.fixtureCount() === 0 && this.health()?.commander?.detected === true) {
-              this.runFullDiscovery();
+              this.runFullDiscoveryThenFixtures();
             }
           }, 3000);
         }

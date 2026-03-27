@@ -599,113 +599,133 @@
       </section>
     </header>
     <div class="commander__dialog-body">
-      <app-fixture-plan-control
-        [planControls]="selectedFixturePlanControls()"
-        [planState]="selectedFixturePlanState()"
-        [loading]="fixtureActionLoading()"
-        [querying]="modalQueryLoading()"
-        [disabled]="playerControlsDisabled()"
-        (actionRequested)="runModalPlanAction($event)"
-      />
-      <app-fixture-player-controls
-        [player]="selectedFixturePlayer()"
-        [playerType]="selectedFixturePlayerType()"
-        [playerState]="selectedFixturePlayerState()"
-        [disabled]="playerControlsDisabled()"
-        (commandRequested)="onPlayerCommand($event)"
-      />
-      <section class="commander__rssi-session" aria-label="RSSI session">
-        @if (selectedFixtureIsEsp8266()) {
-          <p class="commander__rssi-session-unsupported">
-            ⚠ RSSI sessions are not supported on ESP8266 boards (ESP-01, D1 Mini).
-          </p>
-        } @else {
-          <button
-            pButton
-            type="button"
-            [label]="rssiSessionCountdown() !== null ? ('Session active · ' + rssiSessionCountdown() + 's') : 'Start RSSI session'"
-            icon="pi pi-wifi"
-            iconPos="left"
-            severity="secondary"
-            size="small"
-            [loading]="rssiSessionLoading()"
-            [disabled]="rssiSessionLoading() || rssiSessionCountdown() !== null || commanderUnavailable()"
-            (click)="startRssiSession(20000)"
-          ></button>
-        }
-      </section>
-      <section class="commander__rssi" aria-label="Link quality">
-        <h4 class="commander__rssi-title">
-          Link Quality
-          @if (selectedFixtureRssi()) {
-            <span class="commander__rssi-direction">signal received by fixture</span>
-          } @else {
-            <span class="commander__rssi-direction">signal received by commander</span>
-          }
-        </h4>
-        <div class="commander__rssi-summary">
-          @if (selectedFixtureRssiQuality(); as quality) {
-            <span class="commander__rssi-badge commander__rssi-badge--{{ rssiQualityClass(quality) }}">
-              {{ quality.replace('_', ' ') }}
-            </span>
-          }
-          @if (selectedFixtureRssiDbm(); as dbm) {
-            <span class="commander__rssi-dbm">{{ dbm }} dBm</span>
-          }
-          @if (selectedFixtureRssi(); as rssi) {
-            <span class="commander__rssi-duration">{{ rssiDurationLabel(rssi) }}</span>
-          }
-          @if (!selectedFixtureRssiDbm() && !selectedFixtureRssiQuality()) {
-            <span class="commander__rssi-no-data">
-              ⚠ No data yet — the commander must receive at least one message from this fixture first.
-            </span>
-          }
-        </div>
-        @if (selectedFixtureRssi(); as rssi) {
-          <table class="commander__rssi-table">
-            <thead>
-              <tr>
-                <th>Peer</th>
-                <th>MAC</th>
-                <th>Avg</th>
-                <th>Min</th>
-                <th>Max</th>
-                <th>Trend</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (peer of rssi.peers; track peer.mac) {
-                <tr>
-                  <td class="commander__rssi-peer-name">
-                    {{ macToFixtureName()[peer.mac.toUpperCase()] || '—' }}
-                  </td>
-                  <td>
-                    <span class="commander__rssi-mac-addr">{{ peer.mac }}</span>
-                  </td>
-                  <td>{{ peer.avg_rssi }} dBm</td>
-                  <td>{{ peer.min_rssi }}</td>
-                  <td>{{ peer.max_rssi }}</td>
-                  <td>{{ peer.trend_label }}</td>
-                </tr>
+      <p-tabs value="status">
+        <p-tablist>
+          <p-tab value="status">Status</p-tab>
+          <p-tab value="config">
+            Config@if (!selectedFixtureConfig()) { <span class="commander__tab-no-data">· no data</span>}
+          </p-tab>
+        </p-tablist>
+        <p-tabpanels>
+          <p-tabpanel value="status">
+            <app-fixture-plan-control
+              [planControls]="selectedFixturePlanControls()"
+              [planState]="selectedFixturePlanState()"
+              [loading]="fixtureActionLoading()"
+              [querying]="modalQueryLoading()"
+              [disabled]="playerControlsDisabled()"
+              (actionRequested)="runModalPlanAction($event)"
+            />
+            <app-fixture-player-controls
+              [player]="selectedFixturePlayer()"
+              [playerType]="selectedFixturePlayerType()"
+              [playerState]="selectedFixturePlayerState()"
+              [disabled]="playerControlsDisabled()"
+              (commandRequested)="onPlayerCommand($event)"
+            />
+            <section class="commander__rssi-session" aria-label="RSSI session">
+              @if (selectedFixtureIsEsp8266()) {
+                <p class="commander__rssi-session-unsupported">
+                  ⚠ RSSI sessions are not supported on ESP8266 boards (ESP-01, D1 Mini).
+                </p>
+              } @else {
+                <button
+                  pButton
+                  type="button"
+                  [label]="rssiSessionCountdown() !== null ? ('Session active · ' + rssiSessionCountdown() + 's') : 'Start RSSI session'"
+                  icon="pi pi-wifi"
+                  iconPos="left"
+                  severity="secondary"
+                  size="small"
+                  [loading]="rssiSessionLoading()"
+                  [disabled]="rssiSessionLoading() || rssiSessionCountdown() !== null || commanderUnavailable()"
+                  (click)="startRssiSession(20000)"
+                ></button>
               }
-            </tbody>
-          </table>
-        }
-      </section>
-      @if (selectedFixtureCustomCommands().length > 0) {
-        <app-fixture-custom-control
-          [commands]="selectedFixtureCustomCommands()"
-          [values]="customCommandValues()"
-          [loading]="fixtureActionLoading()"
-          [disabled]="playerControlsDisabled()"
-          (argChanged)="onFixtureCustomArgChanged($event)"
-          (commandRunRequested)="onFixtureCustomCommandRunRequested($event)"
-          (sliderReleased)="onFixtureCustomSliderReleased($event)"
-          (masterPreviewChanged)="onFixtureCustomMasterPreviewChanged($event)"
-          (masterReleased)="onFixtureCustomMasterReleased($event)"
-          (sharedRgbChanged)="onFixtureSharedRgbChanged($event)"
-        />
-      }
+            </section>
+            <section class="commander__rssi" aria-label="Link quality">
+              <h4 class="commander__rssi-title">
+                Link Quality
+                @if (selectedFixtureRssi()) {
+                  <span class="commander__rssi-direction">signal received by fixture</span>
+                } @else {
+                  <span class="commander__rssi-direction">signal received by commander</span>
+                }
+              </h4>
+              <div class="commander__rssi-summary">
+                @if (selectedFixtureRssiQuality(); as quality) {
+                  <span class="commander__rssi-badge commander__rssi-badge--{{ rssiQualityClass(quality) }}">
+                    {{ quality.replace('_', ' ') }}
+                  </span>
+                }
+                @if (selectedFixtureRssiDbm(); as dbm) {
+                  <span class="commander__rssi-dbm">{{ dbm }} dBm</span>
+                }
+                @if (selectedFixtureRssi(); as rssi) {
+                  <span class="commander__rssi-duration">{{ rssiDurationLabel(rssi) }}</span>
+                }
+                @if (!selectedFixtureRssiDbm() && !selectedFixtureRssiQuality()) {
+                  <span class="commander__rssi-no-data">
+                    ⚠ No data yet — the commander must receive at least one message from this fixture first.
+                  </span>
+                }
+              </div>
+              @if (selectedFixtureRssi(); as rssi) {
+                <table class="commander__rssi-table">
+                  <thead>
+                    <tr>
+                      <th>Peer</th>
+                      <th>MAC</th>
+                      <th>Avg</th>
+                      <th>Min</th>
+                      <th>Max</th>
+                      <th>Trend</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (peer of rssi.peers; track peer.mac) {
+                      <tr>
+                        <td class="commander__rssi-peer-name">
+                          {{ macToFixtureName()[peer.mac.toUpperCase()] || '—' }}
+                        </td>
+                        <td>
+                          <span class="commander__rssi-mac-addr">{{ peer.mac }}</span>
+                        </td>
+                        <td>{{ peer.avg_rssi }} dBm</td>
+                        <td>{{ peer.min_rssi }}</td>
+                        <td>{{ peer.max_rssi }}</td>
+                        <td>{{ peer.trend_label }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </section>
+            @if (selectedFixtureCustomCommands().length > 0) {
+              <app-fixture-custom-control
+                [commands]="selectedFixtureCustomCommands()"
+                [values]="customCommandValues()"
+                [loading]="fixtureActionLoading()"
+                [disabled]="playerControlsDisabled()"
+                (argChanged)="onFixtureCustomArgChanged($event)"
+                (commandRunRequested)="onFixtureCustomCommandRunRequested($event)"
+                (sliderReleased)="onFixtureCustomSliderReleased($event)"
+                (masterPreviewChanged)="onFixtureCustomMasterPreviewChanged($event)"
+                (masterReleased)="onFixtureCustomMasterReleased($event)"
+                (sharedRgbChanged)="onFixtureSharedRgbChanged($event)"
+              />
+            }
+          </p-tabpanel>
+          <p-tabpanel value="config">
+            <app-fixture-config-control
+              [config]="selectedFixtureConfig()"
+              [disabled]="playerControlsDisabled()"
+              [loading]="modalQueryLoading()"
+              (commandRequested)="onConfigCommand($event)"
+            />
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
     </div>
     <footer class="commander__dialog-footer">
       <input

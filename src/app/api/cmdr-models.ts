@@ -25,6 +25,10 @@ export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem
 export type CmdrCustomCommandUiArg  = components['schemas']['CustomCommandUiArg'];
 export type CmdrFixtureRssiReport   = components['schemas']['FixtureRssiReport'];
 export type CmdrRssiPeerEntry       = components['schemas']['RssiPeerEntry'];
+export type CmdrFixtureConfig       = components['schemas']['FixtureConfig'];
+export type CmdrFixtureConfigPlayer = components['schemas']['FixtureConfigPlayer'];
+export type CmdrFixtureConfigAux    = components['schemas']['FixtureConfigAux'];
+export type CmdrFixtureConfigDmx    = components['schemas']['FixtureConfigDmx'];
 
 // --- Messages API (not in OpenAPI schema — handwritten) ---
 export interface CmdrMessageSection {

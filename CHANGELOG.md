@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- **Config tab in fixture modal** — new "Config" tab next to "Status" in the fixture dialog. Shows EEPROM config fields read from `BK_CONFIG`: Player (volume, default/min/max, EQ), Aux (auto-off toggle + read-only freq/power), WiFi (current SSID display + editable SSID/password), DMX (read-only), and Info fields. Each editable field has its own Save button. Config data loads automatically when a fixture query returns it; "no data" hint shown until a query is run.
+- New standalone `FixtureConfigControlComponent` (`src/app/shared/fixture-config-control/`) with signal-based per-field linked state, `commandRequested` output, and OnPush change detection.
+- `CmdrFixtureConfig`, `CmdrFixtureConfigPlayer`, `CmdrFixtureConfigAux`, `CmdrFixtureConfigDmx` type aliases added to `cmdr-models.ts`.
+- `TabsModule` (PrimeNG `p-tabs`) added to `CommanderComponent` — first use of tabs in the fixture modal.
+
+### Changed
+- Fixture `raw` record now preserves existing `config` when a single-fixture query returns `config: null` (prevents discovery data from being overwritten).
 - "Full Discovery" is now a split button. The primary action runs full discovery as before. The dropdown item "Full discovery + fixtures" runs full discovery and then immediately runs "Discover fixtures" sequentially (with the same spinning icon and toast notifications).
 - On page load with an empty fixture list, the automatic full discovery now continues into "Discover fixtures" automatically, matching the "Full discovery + fixtures" behaviour.
 - Cancel button in the progress toast for full discovery and fixture discovery. Cancelling full discovery unsubscribes the HTTP request immediately. Cancelling fixture discovery stops the sequential loop after the current fixture and reports how many were queried before stopping. Progress toasts now use a dedicated `app-progress` toast channel with a custom template; completion and error toasts remain on the `app` channel and are no longer cleared by the progress effect.

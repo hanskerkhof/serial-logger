@@ -1,0 +1,274 @@
+@if (!config()) {
+  <p class="fixture-config__no-data">No config data — run a query to load config.</p>
+} @else {
+  @if (config()?.player !== null && config()?.player !== undefined) {
+    <section class="fixture-config__section">
+      <h4 class="fixture-config__section-title">Player</h4>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">Volume (0–30)</label>
+        <input
+          type="number"
+          pInputText
+          class="fixture-config__input"
+          [ngModel]="volume()"
+          (ngModelChange)="volume.set($event)"
+          min="0"
+          max="30"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled() || volume() === null"
+          (click)="saveVolume()"
+        ></button>
+      </div>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">Default volume (0–30)</label>
+        <input
+          type="number"
+          pInputText
+          class="fixture-config__input"
+          [ngModel]="defaultVolume()"
+          (ngModelChange)="defaultVolume.set($event)"
+          min="0"
+          max="30"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled() || defaultVolume() === null"
+          (click)="saveDefaultVolume()"
+        ></button>
+      </div>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">Min volume (0–30)</label>
+        <input
+          type="number"
+          pInputText
+          class="fixture-config__input"
+          [ngModel]="minVolume()"
+          (ngModelChange)="minVolume.set($event)"
+          min="0"
+          max="30"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled() || minVolume() === null"
+          (click)="saveMinVolume()"
+        ></button>
+      </div>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">Max volume (0–30)</label>
+        <input
+          type="number"
+          pInputText
+          class="fixture-config__input"
+          [ngModel]="maxVolume()"
+          (ngModelChange)="maxVolume.set($event)"
+          min="0"
+          max="30"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled() || maxVolume() === null"
+          (click)="saveMaxVolume()"
+        ></button>
+      </div>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">EQ preset</label>
+        <p-select
+          class="fixture-config__select"
+          [options]="eqPresets"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="eq()"
+          (ngModelChange)="eq.set($event)"
+          [disabled]="controlsDisabled()"
+          appendTo="body"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled()"
+          (click)="saveEq()"
+        ></button>
+      </div>
+    </section>
+  }
+
+  @if (config()?.aux !== null && config()?.aux !== undefined) {
+    <section class="fixture-config__section">
+      <h4 class="fixture-config__section-title">Aux</h4>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">Auto off</label>
+        <p-toggleswitch
+          [ngModel]="autoOff()"
+          (ngModelChange)="autoOff.set($event)"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled()"
+          (click)="saveAutoOff()"
+        ></button>
+      </div>
+
+      @if (config()?.aux?.freq_mhz !== null && config()?.aux?.freq_mhz !== undefined) {
+        <div class="fixture-config__row fixture-config__row--readonly">
+          <span class="fixture-config__label">FM frequency</span>
+          <span class="fixture-config__value">{{ config()?.aux?.freq_mhz }} MHz</span>
+        </div>
+      }
+
+      @if (config()?.aux?.fm_tx_power_pct !== null && config()?.aux?.fm_tx_power_pct !== undefined) {
+        <div class="fixture-config__row fixture-config__row--readonly">
+          <span class="fixture-config__label">FM TX power</span>
+          <span class="fixture-config__value">{{ config()?.aux?.fm_tx_power_pct }}%</span>
+        </div>
+      }
+    </section>
+  }
+
+  <section class="fixture-config__section">
+    <h4 class="fixture-config__section-title">WiFi</h4>
+
+    @if (wifiSsidDisplay()) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">Current SSID</span>
+        <span class="fixture-config__value">{{ wifiSsidDisplay() }}</span>
+        <span class="fixture-config__badge" [class.fixture-config__badge--ok]="config()?.wifi_valid" [class.fixture-config__badge--err]="!config()?.wifi_valid">
+          {{ config()?.wifi_valid ? 'valid' : 'invalid' }}
+        </span>
+      </div>
+    }
+
+    <div class="fixture-config__row">
+      <label class="fixture-config__label">New SSID</label>
+      <input
+        type="text"
+        pInputText
+        class="fixture-config__input"
+        placeholder="SSID"
+        [ngModel]="newSsid()"
+        (ngModelChange)="newSsid.set($event)"
+        [disabled]="controlsDisabled()"
+      />
+    </div>
+    <div class="fixture-config__row">
+      <label class="fixture-config__label">Password</label>
+      <input
+        type="text"
+        pInputText
+        class="fixture-config__input"
+        placeholder="Password"
+        [ngModel]="newPassword()"
+        (ngModelChange)="newPassword.set($event)"
+        [disabled]="controlsDisabled()"
+      />
+      <button
+        pButton
+        type="button"
+        label="Save"
+        size="small"
+        class="fixture-config__save-btn"
+        [disabled]="controlsDisabled() || !newSsid().trim()"
+        (click)="saveWifi()"
+      ></button>
+    </div>
+  </section>
+
+  @if (config()?.dmx) {
+    <section class="fixture-config__section">
+      <h4 class="fixture-config__section-title">DMX</h4>
+      @if (config()?.dmx?.universe !== null && config()?.dmx?.universe !== undefined) {
+        <div class="fixture-config__row fixture-config__row--readonly">
+          <span class="fixture-config__label">Universe</span>
+          <span class="fixture-config__value">{{ config()?.dmx?.universe }}</span>
+        </div>
+      }
+      @if (config()?.dmx?.address !== null && config()?.dmx?.address !== undefined) {
+        <div class="fixture-config__row fixture-config__row--readonly">
+          <span class="fixture-config__label">Address</span>
+          <span class="fixture-config__value">{{ config()?.dmx?.address }}</span>
+        </div>
+      }
+      @if (config()?.dmx?.fixture_mode !== null && config()?.dmx?.fixture_mode !== undefined) {
+        <div class="fixture-config__row fixture-config__row--readonly">
+          <span class="fixture-config__label">Fixture mode</span>
+          <span class="fixture-config__value">{{ config()?.dmx?.fixture_mode }}</span>
+        </div>
+      }
+    </section>
+  }
+
+  <section class="fixture-config__section">
+    <h4 class="fixture-config__section-title">Info</h4>
+    @if (config()?.fixture_mode !== null && config()?.fixture_mode !== undefined) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">Fixture mode</span>
+        <span class="fixture-config__value">{{ config()?.fixture_mode }}</span>
+      </div>
+    }
+    @if (config()?.plan_auto_start !== null && config()?.plan_auto_start !== undefined) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">Plan auto-start</span>
+        <span class="fixture-config__value">{{ config()?.plan_auto_start ? 'yes' : 'no' }}</span>
+      </div>
+    }
+    @if (config()?.ota_flag !== null && config()?.ota_flag !== undefined) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">OTA flag</span>
+        <span class="fixture-config__value">{{ config()?.ota_flag }}</span>
+      </div>
+    }
+    @if (config()?.blob_version !== null && config()?.blob_version !== undefined) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">Blob version</span>
+        <span class="fixture-config__value">{{ config()?.blob_version }}</span>
+      </div>
+    }
+    @if (config()?.is_default !== null && config()?.is_default !== undefined) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">Is default</span>
+        <span class="fixture-config__value">{{ config()?.is_default ? 'yes' : 'no' }}</span>
+      </div>
+    }
+    @if (config()?.magic !== null && config()?.magic !== undefined) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">Magic</span>
+        <span class="fixture-config__value">{{ config()?.magic }}</span>
+      </div>
+    }
+  </section>
+}

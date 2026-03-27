@@ -24,6 +24,7 @@ import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
 import { MessageService, MenuItem } from 'primeng/api';
 import { SplitButtonModule } from 'primeng/splitbutton';
+import { TabsModule } from 'primeng/tabs';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import {
   CommanderApiService,
@@ -40,6 +41,7 @@ import {
   CmdrCustomCommandUiArg,
   CmdrCustomCommandUiItem,
   CmdrFixtureCapabilities,
+  CmdrFixtureConfig,
   CmdrFixtureRssiReport,
   CmdrPlanControls,
   CmdrPlayerCapabilities,
@@ -54,6 +56,7 @@ import {
   FixtureCustomControlComponent,
   FixtureCustomMasterReleasedEvent,
 } from '../../shared/fixture-custom-control/fixture-custom-control.component';
+import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
 
 interface SelectOption {
   label: string;
@@ -77,7 +80,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, TabsModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -559,6 +562,11 @@ export class CommanderComponent implements OnInit {
   protected readonly playerControlsDisabled = computed(
     () => this.fixtureActionLoading() || this.modalQueryLoading() || this.commanderUnavailable(),
   );
+
+  protected readonly selectedFixtureConfig = computed<CmdrFixtureConfig | null>(() => {
+    const raw = this.selectedFixture()?.raw['config'];
+    return (raw as CmdrFixtureConfig | null | undefined) ?? null;
+  });
 
   protected readonly selectedFixturePlayerState = computed<{ volume?: number; eq?: number } | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
@@ -1275,6 +1283,12 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, command);
   }
 
+  protected onConfigCommand(command: string): void {
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) return;
+    this.sendCommand(fixture, command);
+  }
+
   protected runRawCommand(): void {
     const command = this.rawCommand().trim();
     if (!command) return;
@@ -1500,10 +1514,19 @@ export class CommanderComponent implements OnInit {
         });
       }
 
+      // Preserve discovery-only fields (e.g. config from BK_CONFIG) that single-
+      // fixture queries don't populate. Without this, a Run Query would clobber
+      // the config populated by a previous full discovery.
+      const existingRaw = existing_record?.raw;
+      const mergedRaw: Record<string, unknown> = { ...item, fixture_name };
+      if (mergedRaw['config'] == null && existingRaw?.['config'] != null) {
+        mergedRaw['config'] = existingRaw['config'];
+      }
+
       records.push({
         fixture_name,
         plan_name,
-        raw: { ...item, fixture_name },
+        raw: mergedRaw,
         lastUpdatedAt: now,
         source,
       });

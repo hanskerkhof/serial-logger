@@ -687,6 +687,75 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** FixtureConfig */
+        FixtureConfig: {
+            aux?: components["schemas"]["FixtureConfigAux"] | null;
+            /** Aux Fm Tx Power Pct */
+            aux_fm_tx_power_pct?: number | null;
+            /** Aux Freq Mhz */
+            aux_freq_mhz?: number | null;
+            /** Blob Version */
+            blob_version?: number | null;
+            dmx?: components["schemas"]["FixtureConfigDmx"] | null;
+            /** Fixture Mode */
+            fixture_mode?: number | null;
+            /** Is Default */
+            is_default?: boolean | null;
+            /** Magic */
+            magic?: number | null;
+            /** Ota Flag */
+            ota_flag?: number | null;
+            /** Plan Auto Start */
+            plan_auto_start?: boolean | null;
+            player?: components["schemas"]["FixtureConfigPlayer"] | null;
+            /** Wifi Ssid Pass */
+            wifi_ssid_pass?: string | null;
+            /** Wifi Valid */
+            wifi_valid?: boolean | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixtureConfigAux */
+        FixtureConfigAux: {
+            /** Auto Off */
+            auto_off?: number | null;
+            /** Fm Tx Power Pct */
+            fm_tx_power_pct?: number | null;
+            /** Freq Mhz */
+            freq_mhz?: number | null;
+            /** One */
+            one?: number | null;
+            /** Two */
+            two?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixtureConfigDmx */
+        FixtureConfigDmx: {
+            /** Address */
+            address?: number | null;
+            /** Fixture Mode */
+            fixture_mode?: number | null;
+            /** Universe */
+            universe?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixtureConfigPlayer */
+        FixtureConfigPlayer: {
+            /** Default Volume */
+            default_volume?: number | null;
+            /** Eq */
+            eq?: number | null;
+            /** Max Volume */
+            max_volume?: number | null;
+            /** Min Volume */
+            min_volume?: number | null;
+            /** Volume */
+            volume?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** FixturePlanActionRequest */
         FixturePlanActionRequest: {
             /** Action */
@@ -723,6 +792,7 @@ export interface components {
             capabilities_status: "ok" | "unknown";
             /** Channel */
             channel: number | null;
+            config?: components["schemas"]["FixtureConfig"] | null;
             /** Custom Command Ui */
             custom_command_ui: components["schemas"]["CustomCommandUiItem"][];
             /** Fixture Group */

@@ -520,6 +520,11 @@
   color: var(--p-text-muted-color, #888);
 }
 
+.commander__tab-no-data {
+  font-size: 0.75em;
+  opacity: 0.55;
+}
+
 @media (max-width: 960px) {
   .commander {
     grid-template-columns: 1fr;

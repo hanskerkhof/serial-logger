@@ -49,6 +49,16 @@
   font-size: 0.85rem;
 }
 
+.fixture-config__input--short-int {
+  flex: 0 0 7.5rem;
+  max-width: 7.5rem;
+}
+
+.fixture-config__input--short-char {
+  flex: 0 0 12.5rem;
+  max-width: 12.5rem;
+}
+
 .fixture-config__select {
   flex: 1 1 8rem;
   min-width: 0;

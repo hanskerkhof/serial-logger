@@ -157,6 +157,55 @@
           <span class="fixture-config__value">{{ config()?.aux?.fm_tx_power_pct }}%</span>
         </div>
       }
+
+      @for (index of auxIntIndexes; track index) {
+        <div class="fixture-config__row">
+          <label class="fixture-config__label">auxInt{{ index }}</label>
+          <input
+            type="number"
+            pInputText
+            class="fixture-config__input fixture-config__input--short-int"
+            [ngModel]="auxIntValue(index)"
+            (ngModelChange)="setAuxIntValue(index, $event)"
+            min="0"
+            max="9999999"
+            [disabled]="controlsDisabled()"
+          />
+          <button
+            pButton
+            type="button"
+            label="Save"
+            size="small"
+            class="fixture-config__save-btn"
+            [disabled]="controlsDisabled() || auxIntValue(index) === null"
+            (click)="saveAuxInt(index)"
+          ></button>
+        </div>
+      }
+
+      @for (index of auxCharIndexes; track index) {
+        <div class="fixture-config__row">
+          <label class="fixture-config__label">auxChar{{ index }}</label>
+          <input
+            type="text"
+            pInputText
+            class="fixture-config__input fixture-config__input--short-char"
+            [ngModel]="auxCharValue(index)"
+            (ngModelChange)="setAuxCharValue(index, $event)"
+            maxlength="12"
+            [disabled]="controlsDisabled()"
+          />
+          <button
+            pButton
+            type="button"
+            label="Save"
+            size="small"
+            class="fixture-config__save-btn"
+            [disabled]="controlsDisabled()"
+            (click)="saveAuxChar(index)"
+          ></button>
+        </div>
+      }
     </section>
   }
 

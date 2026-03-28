@@ -736,6 +736,38 @@ export interface components {
         FixtureConfigAux: {
             /** Auto Off */
             auto_off?: number | null;
+            /** Aux Char1 */
+            aux_char1?: string | null;
+            /** Aux Char2 */
+            aux_char2?: string | null;
+            /** Aux Char3 */
+            aux_char3?: string | null;
+            /** Aux Char4 */
+            aux_char4?: string | null;
+            /** Aux Char5 */
+            aux_char5?: string | null;
+            /** Aux Char6 */
+            aux_char6?: string | null;
+            /** Aux Char7 */
+            aux_char7?: string | null;
+            /** Aux Char8 */
+            aux_char8?: string | null;
+            /** Aux Int1 */
+            aux_int1?: number | null;
+            /** Aux Int2 */
+            aux_int2?: number | null;
+            /** Aux Int3 */
+            aux_int3?: number | null;
+            /** Aux Int4 */
+            aux_int4?: number | null;
+            /** Aux Int5 */
+            aux_int5?: number | null;
+            /** Aux Int6 */
+            aux_int6?: number | null;
+            /** Aux Int7 */
+            aux_int7?: number | null;
+            /** Aux Int8 */
+            aux_int8?: number | null;
             /** Fm Tx Power Pct */
             fm_tx_power_pct?: number | null;
             /** Freq Mhz */

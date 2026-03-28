@@ -41,6 +41,8 @@ export class FixtureConfigControlComponent {
   protected readonly eq = linkedSignal(() => this.config()?.player?.eq ?? 0);
   protected readonly autoOff = linkedSignal(() => !!(this.config()?.aux?.auto_off));
   protected readonly wifiSsidPass = linkedSignal(() => this.config()?.wifi_ssid_pass ?? '');
+  protected readonly auxOne = linkedSignal(() => this.config()?.aux?.one ?? null);
+  protected readonly auxTwo = linkedSignal(() => this.config()?.aux?.two ?? null);
   protected readonly auxInt1 = linkedSignal(() => this.config()?.aux?.aux_int1 ?? null);
   protected readonly auxInt2 = linkedSignal(() => this.config()?.aux?.aux_int2 ?? null);
   protected readonly auxInt3 = linkedSignal(() => this.config()?.aux?.aux_int3 ?? null);
@@ -100,6 +102,22 @@ export class FixtureConfigControlComponent {
 
   protected saveAutoOff(): void {
     this.commandRequested.emit(`cmd;config;setAutoOff=${this.autoOff() ? 1 : 0};save=1;`);
+  }
+
+  protected saveAuxOne(): void {
+    const v = this.auxOne();
+    if (v === null || Number.isNaN(Number(v))) return;
+    const clamped = Math.max(0, Math.min(255, Math.trunc(Number(v))));
+    this.auxOne.set(clamped);
+    this.commandRequested.emit(`cmd;config;setAuxOne=${clamped};save=1;`);
+  }
+
+  protected saveAuxTwo(): void {
+    const v = this.auxTwo();
+    if (v === null || Number.isNaN(Number(v))) return;
+    const clamped = Math.max(0, Math.min(255, Math.trunc(Number(v))));
+    this.auxTwo.set(clamped);
+    this.commandRequested.emit(`cmd;config;setAuxTwo=${clamped};save=1;`);
   }
 
   protected auxIntValue(index: number): number | null {

@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **aux.one / aux.two editable fields in Config tab** — `aux.one` and `aux.two` now appear as editable integer inputs (0–255) in the Aux section when the fixture reports non-null values. Saves via `cmd;config;setAuxOne=X;save=1;` / `cmd;config;setAuxTwo=X;save=1;`. Requires matching firmware `setAuxOne`/`setAuxTwo` command handlers added to `CommandHandlers.h`.
 - **Config tab in fixture modal** — new "Config" tab next to "Status" in the fixture dialog. Shows EEPROM config fields read from `BK_CONFIG`: Player (volume, default/min/max, EQ), Aux (auto-off toggle + read-only freq/power), WiFi (current SSID display + editable SSID/password), DMX (read-only), and Info fields. Each editable field has its own Save button. Config data loads automatically when a fixture query returns it; "no data" hint shown until a query is run.
 - New standalone `FixtureConfigControlComponent` (`src/app/shared/fixture-config-control/`) with signal-based per-field linked state, `commandRequested` output, and OnPush change detection.
 - `CmdrFixtureConfig`, `CmdrFixtureConfigPlayer`, `CmdrFixtureConfigAux`, `CmdrFixtureConfigDmx` type aliases added to `cmdr-models.ts`.

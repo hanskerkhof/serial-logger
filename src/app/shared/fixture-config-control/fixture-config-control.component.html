@@ -158,6 +158,56 @@
         </div>
       }
 
+      @if (config()?.aux?.one !== null && config()?.aux?.one !== undefined) {
+        <div class="fixture-config__row">
+          <label class="fixture-config__label">aux.one</label>
+          <input
+            type="number"
+            pInputText
+            class="fixture-config__input fixture-config__input--short-int"
+            [ngModel]="auxOne()"
+            (ngModelChange)="auxOne.set($event)"
+            min="0"
+            max="255"
+            [disabled]="controlsDisabled()"
+          />
+          <button
+            pButton
+            type="button"
+            label="Save"
+            size="small"
+            class="fixture-config__save-btn"
+            [disabled]="controlsDisabled() || auxOne() === null"
+            (click)="saveAuxOne()"
+          ></button>
+        </div>
+      }
+
+      @if (config()?.aux?.two !== null && config()?.aux?.two !== undefined) {
+        <div class="fixture-config__row">
+          <label class="fixture-config__label">aux.two</label>
+          <input
+            type="number"
+            pInputText
+            class="fixture-config__input fixture-config__input--short-int"
+            [ngModel]="auxTwo()"
+            (ngModelChange)="auxTwo.set($event)"
+            min="0"
+            max="255"
+            [disabled]="controlsDisabled()"
+          />
+          <button
+            pButton
+            type="button"
+            label="Save"
+            size="small"
+            class="fixture-config__save-btn"
+            [disabled]="controlsDisabled() || auxTwo() === null"
+            (click)="saveAuxTwo()"
+          ></button>
+        </div>
+      }
+
       @for (index of auxIntIndexes; track index) {
         <div class="fixture-config__row">
           <label class="fixture-config__label">auxInt{{ index }}</label>

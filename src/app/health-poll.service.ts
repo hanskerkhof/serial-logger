@@ -108,12 +108,14 @@ export class HealthPollService {
     this._ws = ws;
 
     ws.onopen = () => {
+      if (ws !== this._ws) return; // stale socket — a newer connection superseded this one
       // Reset backoff on successful connection; payload arrives via onmessage.
       this._wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
       this._nextHealthPollAt.set(0); // no pending reconnect countdown
     };
 
     ws.onmessage = (ev: MessageEvent) => {
+      if (ws !== this._ws) return; // stale socket
       let data: Record<string, unknown>;
       try {
         data = JSON.parse(ev.data as string) as Record<string, unknown>;
@@ -138,6 +140,7 @@ export class HealthPollService {
     };
 
     ws.onclose = () => {
+      if (ws !== this._ws) return; // stale socket — don't overwrite healthy state
       this._ws = null;
       this._healthRefreshing.set(false);
       this._healthError.set('API unreachable');

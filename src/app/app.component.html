@@ -164,7 +164,7 @@
   </div>
 </dialog>
 
-<dialog #releaseNoticeDialog class="update-dialog release-notice-dialog" (cancel)="$event.preventDefault()">
+<dialog #releaseNoticeDialog class="update-dialog release-notice-dialog" (close)="showReleaseNoticeDialog.set(false)">
   <h2 class="update-dialog__header">
     Release Notice
     @if (releaseNoticeVersion()) {

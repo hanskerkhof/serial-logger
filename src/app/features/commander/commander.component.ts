@@ -1268,16 +1268,23 @@ export class CommanderComponent implements OnInit {
     this.modalQuerySub?.unsubscribe();
     this.modalQueryLoading.set(true);
     this.modalQueryError.set(null);
+    const startedAt = performance.now();
 
     this.modalQuerySub = this.commanderApi.getFixtureVersion(fixture).subscribe({
       next: (result) => {
         this.modalQuerySub = null;
+        const durationMs = performance.now() - startedAt;
         this.queryResult.set(result);
         // Pass the selected fixture's store key so the record is updated under
         // the correct name even when the API summary reports a different
         // fixture_name (CMDR alias vs fixture self-identity).
         this.ingestQueryResult(result, 'fixture_query', fixture);
         this.modalQueryLoading.set(false);
+        const fwVersion = result.summary?.fw_version;
+        const message = fwVersion
+          ? `Query complete for ${fixture} · fw v${fwVersion}`
+          : `Query complete for ${fixture}`;
+        this.setFixtureModalFeedback(message, 'success', durationMs);
         onComplete?.(result);
       },
       error: (err: unknown) => {

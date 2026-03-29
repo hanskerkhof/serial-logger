@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.3 - 2026-03-29
+
 ### Added
 - **aux.one / aux.two editable fields in Config tab** — `aux.one` and `aux.two` now appear as editable integer inputs (0–255) in the Aux section when the fixture reports non-null values. Saves via `cmd;config;setAuxOne=X;save=1;` / `cmd;config;setAuxTwo=X;save=1;`. Requires matching firmware `setAuxOne`/`setAuxTwo` command handlers added to `CommandHandlers.h`.
 - **Config tab in fixture modal** — new "Config" tab next to "Status" in the fixture dialog. Shows EEPROM config fields read from `BK_CONFIG`: Player (volume, default/min/max, EQ), Aux (auto-off toggle + read-only freq/power), WiFi (current SSID display + editable SSID/password), DMX (read-only), and Info fields. Each editable field has its own Save button. Config data loads automatically when a fixture query returns it; "no data" hint shown until a query is run.
@@ -14,9 +16,8 @@
 - "Full Discovery" is now a split button. The primary action runs full discovery as before. The dropdown item "Full discovery + fixtures" runs full discovery and then immediately runs "Discover fixtures" sequentially (with the same spinning icon and toast notifications).
 - On page load with an empty fixture list, the automatic full discovery now continues into "Discover fixtures" automatically, matching the "Full discovery + fixtures" behaviour.
 - Cancel button in the progress toast for full discovery and fixture discovery. Cancelling full discovery unsubscribes the HTTP request immediately. Cancelling fixture discovery stops the sequential loop after the current fixture and reports how many were queried before stopping. Progress toasts now use a dedicated `app-progress` toast channel with a custom template; completion and error toasts remain on the `app` channel and are no longer cleared by the progress effect.
-
-### Changed
 - Color picker trigger now has a 1 px outline using the PrimeNG `--p-content-border-color` semantic token, which adapts automatically to light and dark mode.
+- Studio deploy refreshed generated build metadata (`src/app/build-info.ts`) and service-worker app version payload (`ngsw-config.json` `appData.version`) for `v0.7.3`.
 
 ## 0.7.2 - 2026-03-29
 

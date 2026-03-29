@@ -18,6 +18,13 @@
 ### Changed
 - Color picker trigger now has a 1 px outline using the PrimeNG `--p-content-border-color` semantic token, which adapts automatically to light and dark mode.
 
+## 0.7.2 - 2026-03-29
+
+### Changed
+- Frontend patch release bump to `v0.7.2`.
+- Studio deploy refreshed generated build metadata (`src/app/build-info.ts`) and service-worker app version payload (`ngsw-config.json` `appData.version`).
+- Deployed Studio web bundle updated in root repo under `web/serial-logger-app`.
+
 ## 0.6.28 - 2026-03-27
 
 ### Changed

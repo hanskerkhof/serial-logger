@@ -57,6 +57,7 @@ import {
   FixtureCustomMasterReleasedEvent,
 } from '../../shared/fixture-custom-control/fixture-custom-control.component';
 import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
+import { HealthPollService } from '../../health-poll.service';
 
 interface SelectOption {
   label: string;
@@ -89,9 +90,15 @@ function compareVersions(a: string, b: string): number {
 export class CommanderComponent implements OnInit {
   protected readonly frontendVersion = APP_VERSION;
   protected readonly frontendBuildDate = BUILD_DATE;
+
+  // Health service — injected early so signal aliases below can reference it at field-init time
+  private readonly healthService = inject(HealthPollService);
+  protected readonly health = this.healthService.health;
+  protected readonly healthRefreshing = this.healthService.healthRefreshing;
+  protected readonly healthError = this.healthService.healthError;
+  protected readonly nextHealthPollCountdown = this.healthService.nextHealthPollCountdown;
+
   protected readonly loading = signal(true);
-  protected readonly healthRefreshing = signal(false);
-  protected readonly healthError = signal<string | null>(null);
   protected readonly fixtureQueryLoading = signal(false);
   protected readonly planQueryLoading = signal(false);
   protected readonly planGroupQueryLoading = signal(false);
@@ -103,7 +110,6 @@ export class CommanderComponent implements OnInit {
   protected readonly discoverFixturesCurrentFixture = signal<string | null>(null);
   protected readonly discoverFixturesElapsedS = signal<number>(0);
   protected readonly discoverFixturesLastDurationS = signal<number | null>(null);
-  protected readonly health = signal<CommanderHealthResponse | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
   protected readonly fixtureName = signal(localStorage.getItem('cmdr.selectedFixture') ?? 'CLIGNOTEUR1');
@@ -127,15 +133,6 @@ export class CommanderComponent implements OnInit {
   protected readonly otaInProgress = signal<Set<string>>(new Set());
   protected readonly selectedFixtureOtaInProgress = computed(() =>
     this.otaInProgress().has(this.selectedFixtureName() ?? ''),
-  );
-  private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
-  private healthRetryDelayMs = 3_000;
-  private static readonly HEALTH_POLL_MS = 30_000;
-  private static readonly HEALTH_INITIAL_RETRY_MS = 3_000;
-  private static readonly HEALTH_MAX_RETRY_MS = 30_000;
-  private readonly nextHealthPollAt = signal(Date.now() + 30_000);
-  protected readonly nextHealthPollCountdown = computed(() =>
-    Math.max(0, Math.round((this.nextHealthPollAt() - this.now()) / 1000)),
   );
   protected readonly discoveryTimings = signal<number[]>(
     JSON.parse(localStorage.getItem('cmdr.discovery.timings') ?? '[]'),
@@ -785,53 +782,70 @@ export class CommanderComponent implements OnInit {
       () => this.loadLanGroups(),
     );
 
-    this.loadHealth();
     this.loadExposedPlans();
     this.loadLanGroups();
     const timer = setInterval(() => this.now.set(Date.now()), 1000);
     this.destroyRef.onDestroy(() => clearInterval(timer));
 
-    // Auto-poll health every 30 s; skip if a fetch is already in flight
-    this.startHealthPollTimer();
-    this.destroyRef.onDestroy(() => this.cancelHealthPollTimer());
-  }
-
-  protected reloadHealth(): void {
-    this.cancelHealthPollTimer();
-    this.loadHealth();
-  }
-
-  private startHealthPollTimer(delayMs = CommanderComponent.HEALTH_POLL_MS): void {
-    this.cancelHealthPollTimer();
-    this.nextHealthPollAt.set(Date.now() + delayMs);
-    this.healthPollTimer = setTimeout(() => {
-      this.healthPollTimer = null;
-      if (!this.loading() && !this.healthRefreshing()) {
-        this.loadHealth();
-        if (this.swUpdate.isEnabled) this.swUpdate.checkForUpdate();
+    // If health arrived before this component mounted (rare), clear loading immediately.
+    if (this.healthService.health() !== null || this.healthService.healthError() !== null) {
+      this.loading.set(false);
+      // Also run auto-discovery check for the already-available health data.
+      if (this.healthService.health() !== null) {
+        this.handleFirstHealthSuccess(false);
       }
-    }, delayMs);
+    }
+
+    // React to health lifecycle events from the shared service.
+    const successSub = this.healthService.healthSuccess$.subscribe(({ wasOffline }) => {
+      this.loading.set(false);
+      this.handleFirstHealthSuccess(wasOffline);
+    });
+    const failedSub = this.healthService.healthFailed$.subscribe(() => {
+      this.loading.set(false);
+    });
+    // Subscribe to timed poll cycles for SW update checks.
+    const pollSub = this.healthService.pollCycle$.subscribe(() => {
+      if (!this.loading() && this.swUpdate.isEnabled) this.swUpdate.checkForUpdate();
+    });
+    this.destroyRef.onDestroy(() => {
+      successSub.unsubscribe();
+      failedSub.unsubscribe();
+      pollSub.unsubscribe();
+    });
   }
 
-  private cancelHealthPollTimer(): void {
-    if (this.healthPollTimer !== null) {
-      clearTimeout(this.healthPollTimer);
-      this.healthPollTimer = null;
+  private handleFirstHealthSuccess(wasOffline: boolean): void {
+    if (wasOffline) this.runRecoveryCallbacks();
+    if (!this._autoDiscoveryTriggered && this.fixtureStore.fixtureCount() === 0) {
+      this._autoDiscoveryTriggered = true;
+      setTimeout(() => {
+        if (
+          this.fixtureStore.fixtureCount() === 0 &&
+          this.healthService.health()?.commander?.detected === true
+        ) {
+          this.runFullDiscoveryThenFixtures();
+        }
+      }, 3000);
     }
   }
 
+  protected reloadHealth(): void {
+    this.error.set(null);
+    this.healthService.refresh();
+  }
+
   protected retryHealth(): void {
-    this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS; // Reset backoff
-    this.cancelHealthPollTimer();
-    this.loadHealth(true);
+    this.error.set(null);
+    this.loading.set(true);
+    this.healthService.retryHealth();
   }
 
   protected useTarget(url: string): void {
     this.commanderApi.setApiBaseUrl(url);
     this.customUrl.set(this.activeApiUrl());
-    this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS;
-    this.cancelHealthPollTimer();
-    this.loadHealth(true); // URL changed — stale health data, force full loading state
+    this.loading.set(true);
+    this.healthService.retryHealth(); // reset backoff + clear stale data + force reload
     this.loadExposedPlans();
     this.loadLanGroups();
   }
@@ -844,9 +858,8 @@ export class CommanderComponent implements OnInit {
     }
 
     this.customUrl.set(this.activeApiUrl());
-    this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS;
-    this.cancelHealthPollTimer();
-    this.loadHealth(true); // URL changed — stale health data, force full loading state
+    this.loading.set(true);
+    this.healthService.retryHealth(); // reset backoff + clear stale data + force reload
     this.loadExposedPlans();
     this.loadLanGroups();
   }
@@ -1587,64 +1600,6 @@ export class CommanderComponent implements OnInit {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
     return trimmed.length ? trimmed : null;
-  }
-
-  private loadHealth(force = false): void {
-    // Treat as a refresh (keep panel alive) if health data OR a prior error is already showing
-    const isRefresh = !force && (this.health() !== null || this.healthError() !== null);
-    this.error.set(null);
-
-    if (isRefresh) {
-      // Keep the panel alive (don't null health or set loading) — just show button spinner
-      this.healthRefreshing.set(true);
-    } else {
-      this.loading.set(true);
-      this.health.set(null);
-      this.healthError.set(null); // clear stale error on full reload
-    }
-
-    this.commanderApi.getHealth().subscribe({
-      next: (result) => {
-        const wasOffline = this.healthError() !== null;
-        this.health.set(result);
-        this.healthError.set(null); // clear degraded state on success
-        this.loading.set(false);
-        this.healthRefreshing.set(false);
-        // Reset backoff — schedule next poll at normal 30 s interval
-        this.healthRetryDelayMs = CommanderComponent.HEALTH_INITIAL_RETRY_MS;
-        this.startHealthPollTimer();
-        if (wasOffline) {
-          // API just came back — re-fetch all registered recovery endpoints
-          this.runRecoveryCallbacks();
-        }
-        // Auto-discover on first API success when fixture store is empty.
-        // Covers both initial load and recovery-after-offline. The flag ensures
-        // it fires at most once per session even across health polls.
-        // Delayed by 3 s so the commander serial connection has time to stabilise
-        // before the discovery request hits the API (USB-CDC boards can take
-        // a few seconds to come online after the API opens the serial port).
-        if (!this._autoDiscoveryTriggered && this.fixtureStore.fixtureCount() === 0) {
-          this._autoDiscoveryTriggered = true;
-          setTimeout(() => {
-            if (this.fixtureStore.fixtureCount() === 0 && this.health()?.commander?.detected === true) {
-              this.runFullDiscoveryThenFixtures();
-            }
-          }, 3000);
-        }
-      },
-      error: () => {
-        // Unified: always surface as healthError so the panel stays visible
-        this.healthError.set('API unreachable');
-        this.loading.set(false);
-        this.healthRefreshing.set(false);
-        // Schedule next retry with exponential backoff, then double the delay
-        this.startHealthPollTimer(this.healthRetryDelayMs);
-        this.healthRetryDelayMs = Math.min(
-          this.healthRetryDelayMs * 2,
-          CommanderComponent.HEALTH_MAX_RETRY_MS,
-        );
-      },
-    });
   }
 
   private runRecoveryCallbacks(): void {

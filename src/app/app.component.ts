@@ -4,18 +4,20 @@ import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
 import { PopoverModule } from 'primeng/popover';
 import { Popover } from 'primeng/popover';
+import { ButtonModule } from 'primeng/button';
 import { filter } from 'rxjs';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { APP_VERSION, BUILD_DATE } from './build-info';
 import { CommanderApiService } from './commander-api.service';
 import { SerialService } from './serial.service';
 import { CmdrMessage, CmdrHealthResponse } from './api/cmdr-models';
+import { HealthPollService } from './health-poll.service';
 import { ReleaseNotesComponent } from './shared/release-notes/release-notes.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ReleaseNotesComponent],
+  imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ButtonModule, ReleaseNotesComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
@@ -45,8 +47,8 @@ export class AppComponent {
     detected: boolean | null;
     degradedReason: string | null;
   } | null>(null);
-  protected readonly secondsSinceHealthCheck = signal<number | null>(null);
-  private healthTickTimer: ReturnType<typeof setInterval> | null = null;
+  protected readonly healthService = inject(HealthPollService);
+  protected readonly secondsSinceHealthCheck = this.healthService.secondsSinceHealthCheck;
   protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {
     if (this.apiConnected() !== 'ok') return 'offline';
     return this.healthSummary()?.detected ? 'healthy' : 'degraded';
@@ -95,9 +97,6 @@ export class AppComponent {
   protected readonly releaseMessagesTotal = signal(0);
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => {
-      if (this.healthTickTimer !== null) clearInterval(this.healthTickTimer);
-    });
 
     // Drive native <dialog> elements via showModal/close so they enter the top layer.
     effect(() => {
@@ -140,9 +139,16 @@ export class AppComponent {
       this.router.navigateByUrl('/commander');
     }
 
-    this.commanderApi.getHealth().subscribe({
-      next:  (h) => this.processHealth(h),
-      error: () => this.apiConnected.set('error'),
+    // Start the shared health poll (30 s cycle). Effects below react to updates.
+    this.healthService.startPolling();
+    effect(() => {
+      const h = this.healthService.health();
+      if (h) this.processHealth(h);
+    });
+    effect(() => {
+      if (!this.healthService.health() && this.healthService.healthError()) {
+        this.apiConnected.set('error');
+      }
     });
   }
 
@@ -178,13 +184,6 @@ export class AppComponent {
       // hides the Later button, leaving only "Update Now".
       this.showUpdateDialog.set(true);
     }, delayMinutes * 60 * 1000);
-  }
-
-  protected refreshHealth(): void {
-    this.commanderApi.getHealth().subscribe({
-      next:  (h) => this.processHealth(h),
-      error: () => this.apiConnected.set('error'),
-    });
   }
 
   protected openReleaseNoticeDialog(): void {
@@ -234,13 +233,6 @@ export class AppComponent {
         ? (cmdr.last_transition_reason ?? 'Commander disconnected')
         : null,
     });
-    // Reset + restart the "X seconds ago" counter.
-    if (this.healthTickTimer !== null) clearInterval(this.healthTickTimer);
-    this.secondsSinceHealthCheck.set(0);
-    this.healthTickTimer = setInterval(
-      () => this.secondsSinceHealthCheck.update((s) => (s ?? 0) + 1),
-      1000,
-    );
   }
 
   private refreshReleaseNotice(releaseVersion: string | null, releaseBuildDate: string | null): void {

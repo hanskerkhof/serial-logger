@@ -214,18 +214,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.health-pop__refresh {
-  background: none;
-  border: 1px solid var(--p-surface-border, #e5e7eb);
-  border-radius: 0.25rem;
-  padding: 0.2rem 0.65rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  color: var(--p-text-color, #1f2937);
-  transition: background 0.15s;
-
-  &:hover { background: var(--p-surface-100, #f3f4f6); }
-}
 
 .install-banner {
   position: fixed;

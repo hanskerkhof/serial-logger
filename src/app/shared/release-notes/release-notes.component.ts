@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
+import { MarkdownComponent } from 'ngx-markdown';
 import { CmdrMessage } from '../../api/cmdr-models';
 
 @Component({
   selector: 'app-release-notes',
   standalone: true,
+  imports: [MarkdownComponent],
   templateUrl: './release-notes.component.html',
   styleUrl: './release-notes.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

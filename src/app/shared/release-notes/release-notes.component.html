@@ -19,7 +19,7 @@
       <h4 class="release-notes__section-heading">{{ section.heading }}</h4>
       <ul class="release-notes__bullets">
         @for (bullet of section.bullets; track $index) {
-          <li>{{ bullet }}</li>
+          <li><markdown [data]="bullet" /></li>
         }
       </ul>
     }

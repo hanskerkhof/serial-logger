@@ -53,6 +53,19 @@
     line-height: 1.5;
     color: var(--p-text-color, #1f2937);
     margin-bottom: 0.15rem;
+
+    // ngx-markdown wraps inline content in <p>; strip its block spacing
+    markdown p {
+      display: inline;
+      margin: 0;
+    }
+
+    code {
+      font-size: 0.78rem;
+      background: var(--p-surface-100, #f3f4f6);
+      border-radius: 0.2rem;
+      padding: 0.05em 0.3em;
+    }
   }
 }
 

@@ -203,6 +203,11 @@ export class CommanderComponent implements OnInit {
     }
     return 'Commander not detected';
   });
+  /** True when the serial port was released via manual override (POST /commander/serial/release). */
+  protected readonly commanderManualOverride = computed(
+    () => this.health()?.commander?.['serial_hold_active'] === true &&
+          this.health()?.commander?.['serial_hold_reason'] === 'manual_release',
+  );
   /** True only when the API reports it can compile firmware (macOS only). Gates the OTA Update button. */
   protected readonly compileSupported = computed(() => this.health()?.compile_supported === true);
   protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {

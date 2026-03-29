@@ -15,6 +15,7 @@
       <strong class="cmdr-offline-toast__summary">Commander unavailable</strong>
       <span class="cmdr-offline-toast__detail">
         @if (healthError()) { API unreachable — run queries are disabled. }
+        @else if (commanderManualOverride()) { Serial port released — manual override active — run queries are disabled. }
         @else { Commander not detected — run queries are disabled. }
       </span>
       <span class="cmdr-offline-toast__footer">

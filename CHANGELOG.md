@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.7.4 - 2026-03-29
+
+### Added
+- Release notes markdown rendering in `ReleaseNotesComponent` via `ngx-markdown` (`v21.1.0`) so `**bold**` and `` `backtick` `` spans render correctly in release-note bullets.
+
+### Changed
+- Angular updated from `21.2.5` to `21.2.6` (framework packages including `@angular/service-worker`) and `@angular/cli` / `@angular/build` updated from `21.2.3` to `21.2.5`.
+- Studio bundle redeployed to `web/serial-logger-app` with refreshed generated build metadata (`src/app/build-info.ts`) and service-worker app data version (`ngsw-config.json`).
+
 ## 0.7.3 - 2026-03-29
 
 ### Added

@@ -14,7 +14,7 @@ export class HealthPollService {
   private readonly _health = signal<CommanderHealthResponse | null>(null);
   private readonly _healthRefreshing = signal(false);
   private readonly _healthError = signal<string | null>(null);
-  private readonly _nextHealthPollAt = signal(Date.now() + HealthPollService.HEALTH_POLL_MS);
+  private readonly _nextHealthPollAt = signal(0);
   private readonly _lastHealthAt = signal<number | null>(null);
   private readonly _now = signal(Date.now());
 
@@ -24,7 +24,10 @@ export class HealthPollService {
   readonly healthError: Signal<string | null> = this._healthError.asReadonly();
   readonly nextHealthPollAt: Signal<number> = this._nextHealthPollAt.asReadonly();
 
-  /** Seconds until next scheduled poll. */
+  /**
+   * Seconds until next reconnect attempt (counts down when offline/reconnecting).
+   * Returns 0 when the WebSocket is connected and health is live.
+   */
   readonly nextHealthPollCountdown = computed(() =>
     Math.max(0, Math.round((this._nextHealthPollAt() - this._now()) / 1000)),
   );
@@ -41,92 +44,118 @@ export class HealthPollService {
   // auto-discovery, recovery callbacks, SW update checks).
   /** Emits on every successful health response; includes whether previous state was offline. */
   readonly healthSuccess$ = new Subject<{ result: CommanderHealthResponse; wasOffline: boolean }>();
-  /** Emits on every failed health request. */
+  /** Emits on every failed health request / WebSocket disconnect. */
   readonly healthFailed$ = new Subject<void>();
-  /** Emits just before each timer-triggered poll cycle (not on manual refresh calls). */
+  /** Emits every 30 s for SW update checks (independent of WS state). */
   readonly pollCycle$ = new Subject<void>();
 
-  private healthPollTimer: ReturnType<typeof setTimeout> | null = null;
-  private healthRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
+  private _ws: WebSocket | null = null;
+  private _wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
+  private _wsRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private _started = false;
 
   constructor() {
     // Single 1 s clock ticker drives both nextHealthPollCountdown and secondsSinceHealthCheck.
-    // Services are root singletons — the timer runs for the app lifetime.
     setInterval(() => this._now.set(Date.now()), 1000);
   }
 
   /**
-   * Trigger the first health fetch and start the 30 s poll cycle.
+   * Open the WebSocket connection and start the 30 s pollCycle$ interval for SW update checks.
    * Call exactly once (from AppComponent constructor). Subsequent calls are no-ops.
    */
   startPolling(): void {
     if (this._started) return;
     this._started = true;
-    this.loadHealth();
-  }
-
-  /** Cancel the pending timer and immediately fire a refresh (keeps existing data visible). */
-  refresh(): void {
-    this.cancelHealthPollTimer();
-    this.loadHealth();
+    this._connect();
+    // Keep pollCycle$ firing every 30 s for SW update checks regardless of WS state.
+    setInterval(() => this.pollCycle$.next(), HealthPollService.HEALTH_POLL_MS);
   }
 
   /**
-   * Reset exponential backoff, clear stale data, and fire an immediate reload.
+   * Send a ping over the open WebSocket — server responds with a fresh health payload.
+   * No-op when the socket is not open (offline state is already shown in the UI).
+   */
+  refresh(): void {
+    if (this._ws?.readyState === WebSocket.OPEN) {
+      this._healthRefreshing.set(true);
+      this._ws.send(JSON.stringify({ type: 'ping' }));
+    }
+  }
+
+  /**
+   * Reset exponential backoff, clear stale data, and reconnect immediately.
    * Use when the API URL changes or the user retries after a prolonged outage.
    */
   retryHealth(): void {
-    this.healthRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
+    this._wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
     this._health.set(null);
     this._healthError.set(null);
-    this.cancelHealthPollTimer();
-    this.loadHealth();
-  }
-
-  private loadHealth(): void {
-    this._healthRefreshing.set(true);
-    const wasOffline = this._healthError() !== null;
-
-    this.commanderApi.getHealth().subscribe({
-      next: (result) => {
-        this._health.set(result);
-        this._healthError.set(null);
-        this._healthRefreshing.set(false);
-        this._lastHealthAt.set(Date.now());
-        this.healthRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
-        this.startHealthPollTimer();
-        this.healthSuccess$.next({ result, wasOffline });
-      },
-      error: () => {
-        this._healthError.set('API unreachable');
-        this._healthRefreshing.set(false);
-        this.startHealthPollTimer(this.healthRetryDelayMs);
-        this.healthRetryDelayMs = Math.min(
-          this.healthRetryDelayMs * 2,
-          HealthPollService.HEALTH_MAX_RETRY_MS,
-        );
-        this.healthFailed$.next();
-      },
-    });
-  }
-
-  private startHealthPollTimer(delayMs = HealthPollService.HEALTH_POLL_MS): void {
-    this.cancelHealthPollTimer();
-    this._nextHealthPollAt.set(Date.now() + delayMs);
-    this.healthPollTimer = setTimeout(() => {
-      this.healthPollTimer = null;
-      if (!this._healthRefreshing()) {
-        this.pollCycle$.next();
-        this.loadHealth();
-      }
-    }, delayMs);
-  }
-
-  private cancelHealthPollTimer(): void {
-    if (this.healthPollTimer !== null) {
-      clearTimeout(this.healthPollTimer);
-      this.healthPollTimer = null;
+    if (this._ws) {
+      this._ws.onclose = null; // suppress the scheduled reconnect from the old socket
+      this._ws.close();
+      this._ws = null;
     }
+    if (this._wsRetryTimer !== null) {
+      clearTimeout(this._wsRetryTimer);
+      this._wsRetryTimer = null;
+    }
+    this._connect();
+  }
+
+  private _connect(): void {
+    this._healthRefreshing.set(true);
+    const ws = this.commanderApi.openHealthWebSocket();
+    this._ws = ws;
+
+    ws.onopen = () => {
+      // Reset backoff on successful connection; payload arrives via onmessage.
+      this._wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
+      this._nextHealthPollAt.set(0); // no pending reconnect countdown
+    };
+
+    ws.onmessage = (ev: MessageEvent) => {
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(ev.data as string) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+      if (data?.['type'] === 'heartbeat') {
+        // Heartbeat keeps "X s ago" counter fresh — no UI state change needed.
+        this._lastHealthAt.set(Date.now());
+        return;
+      }
+      const wasOffline = this._healthError() !== null;
+      this._health.set(data as unknown as CommanderHealthResponse);
+      this._healthError.set(null);
+      this._healthRefreshing.set(false);
+      this._lastHealthAt.set(Date.now());
+      this.healthSuccess$.next({ result: data as unknown as CommanderHealthResponse, wasOffline });
+    };
+
+    ws.onerror = () => {
+      // All error states are handled in onclose which always fires after onerror.
+    };
+
+    ws.onclose = () => {
+      this._ws = null;
+      this._healthRefreshing.set(false);
+      this._healthError.set('API unreachable');
+      this.healthFailed$.next();
+      this._scheduleReconnect();
+    };
+  }
+
+  private _scheduleReconnect(): void {
+    if (this._wsRetryTimer !== null) clearTimeout(this._wsRetryTimer);
+    this._nextHealthPollAt.set(Date.now() + this._wsRetryDelayMs);
+    this._wsRetryTimer = setTimeout(() => {
+      this._wsRetryTimer = null;
+      this._connect();
+    }, this._wsRetryDelayMs);
+    this._wsRetryDelayMs = Math.min(
+      this._wsRetryDelayMs * 2,
+      HealthPollService.HEALTH_MAX_RETRY_MS,
+    );
   }
 }

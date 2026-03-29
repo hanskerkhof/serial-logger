@@ -82,6 +82,12 @@ export class CommanderApiService {
     return this.http.get<CmdrHealthResponse>(`${this.apiBaseUrl()}/health`);
   }
 
+  /** Open the /health/ws WebSocket. HealthPollService owns the lifetime. */
+  openHealthWebSocket(): WebSocket {
+    const base = this.apiBaseUrl().replace(/^http/, 'ws');
+    return new WebSocket(`${base}/health/ws`);
+  }
+
   getFixtureVersion(fixtureName: string): Observable<CmdrVersionsResponse> {
     return this.http.get<CmdrVersionsResponse>(
       `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/version`,

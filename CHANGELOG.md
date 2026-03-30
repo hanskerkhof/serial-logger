@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Relay state display in fixture modal Status tab for `NER_B_RLY_1`: 4 dots showing relay state (gray=off, green=on, blinking amber=scheduled) with relay number and scheduled countdown in seconds.
+
 ### Changed
 - Renamed "Discover fixtures" button label to "Query fixtures" and "Discover outdated (N)" menu item to "Query outdated (N)".
 

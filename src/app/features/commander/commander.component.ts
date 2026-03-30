@@ -42,6 +42,7 @@ import {
   CmdrCustomCommandUiItem,
   CmdrFixtureCapabilities,
   CmdrFixtureConfig,
+  CmdrFixtureConfigUi,
   CmdrFixtureRssiReport,
   CmdrPlanControls,
   CmdrPlayerCapabilities,
@@ -62,6 +63,12 @@ import { HealthPollService } from '../../health-poll.service';
 interface SelectOption {
   label: string;
   value: string;
+}
+
+interface RelayStateItem {
+  n: number;
+  state: 'off' | 'on' | 'scheduled';
+  scheduledMs: number;
 }
 
 type CustomCommandValue = string | number | boolean;
@@ -575,6 +582,11 @@ export class CommanderComponent implements OnInit {
     return (raw as CmdrFixtureConfig | null | undefined) ?? null;
   });
 
+  protected readonly selectedFixtureConfigUi = computed<CmdrFixtureConfigUi | null>(() => {
+    const raw = this.selectedFixture()?.raw['config_ui'];
+    return (raw as CmdrFixtureConfigUi | null | undefined) ?? null;
+  });
+
   protected readonly selectedFixturePlayerState = computed<{ volume?: number; eq?: number } | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     const s = ps?.['state'] as Record<string, unknown> | null | undefined;
@@ -582,6 +594,14 @@ export class CommanderComponent implements OnInit {
     const volume = typeof s['volume'] === 'number' ? (s['volume'] as number) : undefined;
     const eq = typeof s['eq'] === 'number' ? (s['eq'] as number) : undefined;
     return volume !== undefined || eq !== undefined ? { volume, eq } : null;
+  });
+
+  protected readonly selectedFixtureRelayStates = computed<RelayStateItem[] | null>(() => {
+    const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
+    const s = ps?.['state'] as Record<string, unknown> | null | undefined;
+    const relays = s?.['relays'];
+    if (!Array.isArray(relays) || relays.length === 0) return null;
+    return relays as RelayStateItem[];
   });
 
   protected readonly selectedFixtureCustomCommands = computed<CmdrCustomCommandUiItem[]>(() => {

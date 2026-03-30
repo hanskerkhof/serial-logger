@@ -618,6 +618,19 @@
               [disabled]="playerControlsDisabled()"
               (actionRequested)="runModalPlanAction($event)"
             />
+            @if (selectedFixtureRelayStates(); as relays) {
+              <section class="commander__relays" aria-label="Relay states">
+                @for (relay of relays; track relay.n) {
+                  <div class="commander__relay commander__relay--{{ relay.state }}">
+                    <div class="commander__relay-dot"></div>
+                    <span class="commander__relay-number">{{ relay.n }}</span>
+                    @if (relay.state === 'scheduled') {
+                      <span class="commander__relay-time">{{ (relay.scheduledMs / 1000).toFixed(1) }}s</span>
+                    }
+                  </div>
+                }
+              </section>
+            }
             <app-fixture-player-controls
               [player]="selectedFixturePlayer()"
               [playerType]="selectedFixturePlayerType()"
@@ -721,6 +734,7 @@
           <p-tabpanel value="config">
             <app-fixture-config-control
               [config]="selectedFixtureConfig()"
+              [configUi]="selectedFixtureConfigUi()"
               [disabled]="playerControlsDisabled()"
               [loading]="modalQueryLoading()"
               (commandRequested)="onConfigCommand($event)"

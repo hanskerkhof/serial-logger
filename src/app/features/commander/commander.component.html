@@ -734,6 +734,7 @@
           <p-tabpanel value="config">
             <app-fixture-config-control
               [config]="selectedFixtureConfig()"
+              [configUi]="selectedFixtureConfigUi()"
               [disabled]="playerControlsDisabled()"
               [loading]="modalQueryLoading()"
               (commandRequested)="onConfigCommand($event)"

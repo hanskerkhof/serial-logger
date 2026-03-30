@@ -4,7 +4,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { CmdrFixtureConfig } from '../../api/cmdr-models';
+import { CmdrFixtureConfig, CmdrFixtureConfigUi } from '../../api/cmdr-models';
 
 const EQ_PRESETS = [
   { label: 'Normal', value: 0 },
@@ -24,6 +24,7 @@ const EQ_PRESETS = [
 })
 export class FixtureConfigControlComponent {
   readonly config = input<CmdrFixtureConfig | null>(null);
+  readonly configUi = input<CmdrFixtureConfigUi | null>(null);
   readonly disabled = input(false);
   readonly loading = input(false);
 
@@ -61,6 +62,9 @@ export class FixtureConfigControlComponent {
   protected readonly auxChar8 = linkedSignal(() => this.config()?.aux?.aux_char8 ?? '');
   protected readonly auxIntIndexes = [1, 2, 3, 4, 5, 6, 7, 8] as const;
   protected readonly auxCharIndexes = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+  protected readonly configFieldLabels = computed<Record<string, string>>(
+    () => this.configUi()?.field_labels ?? {},
+  );
 
   // Used to show the wifi ssid input (without the pass part)
   protected readonly wifiSsidDisplay = computed(() => {
@@ -197,5 +201,20 @@ export class FixtureConfigControlComponent {
     let cmd = `cmd;wifi;ssid=${ssid};`;
     if (pass) cmd += `password=${pass};`;
     this.commandRequested.emit(cmd);
+  }
+
+  protected labelFor(fieldKey: string, fallback: string): string {
+    const override = this.configFieldLabels()[fieldKey];
+    if (typeof override !== 'string') return fallback;
+    const trimmed = override.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  }
+
+  protected auxIntLabel(index: number): string {
+    return this.labelFor(`aux.aux_int${index}`, `auxInt${index}`);
+  }
+
+  protected auxCharLabel(index: number): string {
+    return this.labelFor(`aux.aux_char${index}`, `auxChar${index}`);
   }
 }

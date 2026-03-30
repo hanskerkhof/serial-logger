@@ -807,6 +807,15 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** FixtureConfigUi */
+        FixtureConfigUi: {
+            /** Field Labels */
+            field_labels?: {
+                [key: string]: string;
+            } | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** FixturePlanActionRequest */
         FixturePlanActionRequest: {
             /** Action */
@@ -844,6 +853,7 @@ export interface components {
             /** Channel */
             channel: number | null;
             config?: components["schemas"]["FixtureConfig"] | null;
+            config_ui?: components["schemas"]["FixtureConfigUi"] | null;
             /** Custom Command Ui */
             custom_command_ui: components["schemas"]["CustomCommandUiItem"][];
             /** Fixture Group */
@@ -950,6 +960,7 @@ export interface components {
              * @enum {string}
              */
             capabilities_status: "ok" | "unknown";
+            config_ui?: components["schemas"]["FixtureConfigUi"] | null;
             /** Custom Command Ui */
             custom_command_ui?: components["schemas"]["CustomCommandUiItem"][] | null;
             /** Fixture Name */

@@ -29,6 +29,7 @@ export type CmdrFixtureConfig       = components['schemas']['FixtureConfig'];
 export type CmdrFixtureConfigPlayer = components['schemas']['FixtureConfigPlayer'];
 export type CmdrFixtureConfigAux    = components['schemas']['FixtureConfigAux'];
 export type CmdrFixtureConfigDmx    = components['schemas']['FixtureConfigDmx'];
+export type CmdrFixtureConfigUi     = components['schemas']['FixtureConfigUi'];
 
 // --- Messages API (not in OpenAPI schema — handwritten) ---
 export interface CmdrMessageSection {

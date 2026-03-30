@@ -6,7 +6,7 @@
       <h4 class="fixture-config__section-title">Player</h4>
 
       <div class="fixture-config__row">
-        <label class="fixture-config__label">Volume (0–30)</label>
+        <label class="fixture-config__label">{{ labelFor('player.volume', 'Volume (0–30)') }}</label>
         <input
           type="number"
           pInputText
@@ -29,7 +29,7 @@
       </div>
 
       <div class="fixture-config__row">
-        <label class="fixture-config__label">Default volume (0–30)</label>
+        <label class="fixture-config__label">{{ labelFor('player.default_volume', 'Default volume (0–30)') }}</label>
         <input
           type="number"
           pInputText
@@ -52,7 +52,7 @@
       </div>
 
       <div class="fixture-config__row">
-        <label class="fixture-config__label">Min volume (0–30)</label>
+        <label class="fixture-config__label">{{ labelFor('player.min_volume', 'Min volume (0–30)') }}</label>
         <input
           type="number"
           pInputText
@@ -75,7 +75,7 @@
       </div>
 
       <div class="fixture-config__row">
-        <label class="fixture-config__label">Max volume (0–30)</label>
+        <label class="fixture-config__label">{{ labelFor('player.max_volume', 'Max volume (0–30)') }}</label>
         <input
           type="number"
           pInputText
@@ -98,7 +98,7 @@
       </div>
 
       <div class="fixture-config__row">
-        <label class="fixture-config__label">EQ preset</label>
+        <label class="fixture-config__label">{{ labelFor('player.eq', 'EQ preset') }}</label>
         <p-select
           class="fixture-config__select"
           [options]="eqPresets"
@@ -127,7 +127,7 @@
       <h4 class="fixture-config__section-title">Aux</h4>
 
       <div class="fixture-config__row">
-        <label class="fixture-config__label">Auto off</label>
+        <label class="fixture-config__label">{{ labelFor('aux.auto_off', 'Auto off') }}</label>
         <p-toggleswitch
           [ngModel]="autoOff()"
           (ngModelChange)="autoOff.set($event)"
@@ -146,21 +146,21 @@
 
       @if (config()?.aux?.freq_mhz !== null && config()?.aux?.freq_mhz !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
-          <span class="fixture-config__label">FM frequency</span>
+          <span class="fixture-config__label">{{ labelFor('aux.freq_mhz', 'FM frequency') }}</span>
           <span class="fixture-config__value">{{ config()?.aux?.freq_mhz }} MHz</span>
         </div>
       }
 
       @if (config()?.aux?.fm_tx_power_pct !== null && config()?.aux?.fm_tx_power_pct !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
-          <span class="fixture-config__label">FM TX power</span>
+          <span class="fixture-config__label">{{ labelFor('aux.fm_tx_power_pct', 'FM TX power') }}</span>
           <span class="fixture-config__value">{{ config()?.aux?.fm_tx_power_pct }}%</span>
         </div>
       }
 
       @if (config()?.aux?.one !== null && config()?.aux?.one !== undefined) {
         <div class="fixture-config__row">
-          <label class="fixture-config__label">aux.one</label>
+          <label class="fixture-config__label">{{ labelFor('aux.one', 'aux.one') }}</label>
           <input
             type="number"
             pInputText
@@ -185,7 +185,7 @@
 
       @if (config()?.aux?.two !== null && config()?.aux?.two !== undefined) {
         <div class="fixture-config__row">
-          <label class="fixture-config__label">aux.two</label>
+          <label class="fixture-config__label">{{ labelFor('aux.two', 'aux.two') }}</label>
           <input
             type="number"
             pInputText
@@ -210,7 +210,7 @@
 
       @for (index of auxIntIndexes; track index) {
         <div class="fixture-config__row">
-          <label class="fixture-config__label">auxInt{{ index }}</label>
+          <label class="fixture-config__label">{{ auxIntLabel(index) }}</label>
           <input
             type="number"
             pInputText
@@ -235,7 +235,7 @@
 
       @for (index of auxCharIndexes; track index) {
         <div class="fixture-config__row">
-          <label class="fixture-config__label">auxChar{{ index }}</label>
+          <label class="fixture-config__label">{{ auxCharLabel(index) }}</label>
           <input
             type="text"
             pInputText
@@ -264,7 +264,7 @@
 
     @if (wifiSsidDisplay()) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">Current SSID</span>
+        <span class="fixture-config__label">{{ labelFor('wifi.current_ssid', 'Current SSID') }}</span>
         <span class="fixture-config__value">{{ wifiSsidDisplay() }}</span>
         <span class="fixture-config__badge" [class.fixture-config__badge--ok]="config()?.wifi_valid" [class.fixture-config__badge--err]="!config()?.wifi_valid">
           {{ config()?.wifi_valid ? 'valid' : 'invalid' }}
@@ -273,7 +273,7 @@
     }
 
     <div class="fixture-config__row">
-      <label class="fixture-config__label">New SSID</label>
+      <label class="fixture-config__label">{{ labelFor('wifi.new_ssid', 'New SSID') }}</label>
       <input
         type="text"
         pInputText
@@ -285,7 +285,7 @@
       />
     </div>
     <div class="fixture-config__row">
-      <label class="fixture-config__label">Password</label>
+      <label class="fixture-config__label">{{ labelFor('wifi.password', 'Password') }}</label>
       <input
         type="text"
         pInputText
@@ -312,19 +312,19 @@
       <h4 class="fixture-config__section-title">DMX</h4>
       @if (config()?.dmx?.universe !== null && config()?.dmx?.universe !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
-          <span class="fixture-config__label">Universe</span>
+          <span class="fixture-config__label">{{ labelFor('dmx.universe', 'Universe') }}</span>
           <span class="fixture-config__value">{{ config()?.dmx?.universe }}</span>
         </div>
       }
       @if (config()?.dmx?.address !== null && config()?.dmx?.address !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
-          <span class="fixture-config__label">Address</span>
+          <span class="fixture-config__label">{{ labelFor('dmx.address', 'Address') }}</span>
           <span class="fixture-config__value">{{ config()?.dmx?.address }}</span>
         </div>
       }
       @if (config()?.dmx?.fixture_mode !== null && config()?.dmx?.fixture_mode !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
-          <span class="fixture-config__label">Fixture mode</span>
+          <span class="fixture-config__label">{{ labelFor('dmx.fixture_mode', 'Fixture mode') }}</span>
           <span class="fixture-config__value">{{ config()?.dmx?.fixture_mode }}</span>
         </div>
       }
@@ -335,43 +335,43 @@
     <h4 class="fixture-config__section-title">Info</h4>
     @if (config()?.fixture_mode !== null && config()?.fixture_mode !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">Fixture mode</span>
+        <span class="fixture-config__label">{{ labelFor('info.fixture_mode', 'Fixture mode') }}</span>
         <span class="fixture-config__value">{{ config()?.fixture_mode }}</span>
       </div>
     }
     @if (config()?.plan_auto_start !== null && config()?.plan_auto_start !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">Plan auto-start</span>
+        <span class="fixture-config__label">{{ labelFor('info.plan_auto_start', 'Plan auto-start') }}</span>
         <span class="fixture-config__value">{{ config()?.plan_auto_start ? 'yes' : 'no' }}</span>
       </div>
     }
     @if (config()?.ota_flag !== null && config()?.ota_flag !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">OTA flag</span>
+        <span class="fixture-config__label">{{ labelFor('info.ota_flag', 'OTA flag') }}</span>
         <span class="fixture-config__value">{{ config()?.ota_flag }}</span>
       </div>
     }
     @if (config()?.blob_version !== null && config()?.blob_version !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">Blob version</span>
+        <span class="fixture-config__label">{{ labelFor('info.blob_version', 'Blob version') }}</span>
         <span class="fixture-config__value">{{ config()?.blob_version }}</span>
       </div>
     }
     @if (config()?.save_count !== null && config()?.save_count !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">Config saves</span>
+        <span class="fixture-config__label">{{ labelFor('info.save_count', 'Config saves') }}</span>
         <span class="fixture-config__value">{{ config()?.save_count }}</span>
       </div>
     }
     @if (config()?.is_default !== null && config()?.is_default !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">Is default</span>
+        <span class="fixture-config__label">{{ labelFor('info.is_default', 'Is default') }}</span>
         <span class="fixture-config__value">{{ config()?.is_default ? 'yes' : 'no' }}</span>
       </div>
     }
     @if (config()?.magic !== null && config()?.magic !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">Magic</span>
+        <span class="fixture-config__label">{{ labelFor('info.magic', 'Magic') }}</span>
         <span class="fixture-config__value">{{ config()?.magic }}</span>
       </div>
     }

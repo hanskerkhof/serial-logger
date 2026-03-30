@@ -5,6 +5,9 @@
 ### Added
 - Relay state display in fixture modal Status tab for `NER_B_RLY_1`: 4 dots showing relay state (gray=off, green=on, blinking amber=scheduled) with relay number and scheduled countdown in seconds.
 
+### Fixed
+- Removed accidentally committed `configUi` binding, `selectedFixtureConfigUi` signal, and `CmdrFixtureConfigUi` import that were bundled into the relay state commit; `[configUi]` input on `app-fixture-config-control` defaults to `null` so the Config tab is unaffected.
+
 ### Changed
 - Renamed "Discover fixtures" button label to "Query fixtures" and "Discover outdated (N)" menu item to "Query outdated (N)".
 

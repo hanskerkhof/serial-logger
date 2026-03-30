@@ -725,6 +725,8 @@ export interface components {
             /** Plan Auto Start */
             plan_auto_start?: boolean | null;
             player?: components["schemas"]["FixtureConfigPlayer"] | null;
+            /** Save Count */
+            save_count?: number | null;
             /** Wifi Ssid Pass */
             wifi_ssid_pass?: string | null;
             /** Wifi Valid */

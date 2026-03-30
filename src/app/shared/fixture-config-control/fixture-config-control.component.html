@@ -357,6 +357,12 @@
         <span class="fixture-config__value">{{ config()?.blob_version }}</span>
       </div>
     }
+    @if (config()?.save_count !== null && config()?.save_count !== undefined) {
+      <div class="fixture-config__row fixture-config__row--readonly">
+        <span class="fixture-config__label">Config saves</span>
+        <span class="fixture-config__value">{{ config()?.save_count }}</span>
+      </div>
+    }
     @if (config()?.is_default !== null && config()?.is_default !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">Is default</span>

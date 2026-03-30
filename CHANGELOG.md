@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- Renamed "Discover fixtures" button label to "Query fixtures" and "Discover outdated (N)" menu item to "Query outdated (N)".
+
 ## 0.7.4 - 2026-03-29
 
 ### Added

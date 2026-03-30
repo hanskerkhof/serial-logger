@@ -161,12 +161,12 @@ export class CommanderComponent implements OnInit {
       const current = this.discoverFixturesCurrentFixture();
       const elapsed = this.discoverFixturesElapsedS().toFixed(1);
       return current
-        ? `Discover fixtures - ${current} - ${elapsed}s`
-        : `Discover fixtures - ${elapsed}s`;
+        ? `Query fixtures - ${current} - ${elapsed}s`
+        : `Query fixtures - ${elapsed}s`;
     }
     const duration = this.discoverFixturesLastDurationS();
-    if (duration === null) return 'Discover fixtures';
-    return `Discover fixtures - DONE - ${duration.toFixed(2)}s`;
+    if (duration === null) return 'Query fixtures';
+    return `Query fixtures - DONE - ${duration.toFixed(2)}s`;
   });
   protected readonly manualCommand = signal('');
   protected readonly customCommandValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
@@ -481,7 +481,7 @@ export class CommanderComponent implements OnInit {
     const outdatedCount = this.outdatedFixtureNames().length;
     return [
       {
-        label: outdatedCount > 0 ? `Discover outdated (${outdatedCount})` : 'Discover outdated',
+        label: outdatedCount > 0 ? `Query outdated (${outdatedCount})` : 'Query outdated',
         icon: 'pi pi-exclamation-triangle',
         disabled: this.backendBusy() || this.commanderUnavailable() || outdatedCount === 0,
         command: () => this.runSidebarFixtureDiscoveryOutdated(),
@@ -1046,8 +1046,8 @@ export class CommanderComponent implements OnInit {
     const elapsedSuffix = ` - ${elapsedS.toFixed(1)}s`;
     const summary =
       failedCount > 0
-        ? `Discover fixtures finished: ${successCount}/${total} queried, ${failedCount} failed${elapsedSuffix}`
-        : `Discover fixtures finished: ${successCount}/${total} queried${elapsedSuffix}`;
+        ? `Query fixtures finished: ${successCount}/${total} queried, ${failedCount} failed${elapsedSuffix}`
+        : `Query fixtures finished: ${successCount}/${total} queried${elapsedSuffix}`;
     const detail =
       failedCount > 0
         ? `Failed: ${failures.slice(0, 5).join(', ')}${failedCount > 5 ? ', ...' : ''}`

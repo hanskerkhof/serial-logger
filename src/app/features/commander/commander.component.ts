@@ -42,7 +42,6 @@ import {
   CmdrCustomCommandUiItem,
   CmdrFixtureCapabilities,
   CmdrFixtureConfig,
-  CmdrFixtureConfigUi,
   CmdrFixtureRssiReport,
   CmdrPlanControls,
   CmdrPlayerCapabilities,
@@ -580,11 +579,6 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixtureConfig = computed<CmdrFixtureConfig | null>(() => {
     const raw = this.selectedFixture()?.raw['config'];
     return (raw as CmdrFixtureConfig | null | undefined) ?? null;
-  });
-
-  protected readonly selectedFixtureConfigUi = computed<CmdrFixtureConfigUi | null>(() => {
-    const raw = this.selectedFixture()?.raw['config_ui'];
-    return (raw as CmdrFixtureConfigUi | null | undefined) ?? null;
   });
 
   protected readonly selectedFixturePlayerState = computed<{ volume?: number; eq?: number } | null>(() => {

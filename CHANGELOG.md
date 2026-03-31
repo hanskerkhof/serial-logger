@@ -4,16 +4,12 @@
 
 ## 0.7.8 - 2026-03-31
 
-### Fixed
-- **Relay dots not showing in NER_B_RLY_1 dialog**: `writeStateJson` was always emitting `scheduledMs` and `remainingOnMs` on every relay entry, requiring ~229 bytes for 4 relays but the `EspNowPlanStateMessage.stateJson` buffer is only 224 bytes (sized to fit within the 250-byte ESP-NOW packet limit). The function hit the truncation guard and returned 0, so the commander sent `"state":{}` and `plan_state` was never populated. Fix: only emit `scheduledMs` when a relay is scheduled and `remainingOnMs` when a relay is on with a countdown — fields are omitted when zero. Worst-case payload is now ~221 bytes. `CmdrRelayStateItem` timing fields updated to optional (`scheduledMs?`, `remainingOnMs?`).
-
-## 0.7.8 - 2026-03-31
-
 ### Added
 - Relay state display in fixture modal Status tab for `NER_B_RLY_1`: 4 dots showing relay state (gray=off, green=on, blinking amber=scheduled) with relay number and scheduled countdown in seconds. When a relay is on for a timed duration, the remaining on-time is now also shown below the dot (e.g. `9.4s`), mirroring the scheduled-time display.
 - **WS connection status icon** in the app header bar (next to heart icon, always visible on mobile): green = connected, blinking amber = connecting, dark grey = disconnected. Clicking opens a popover showing "WS Connected/Connecting…/Disconnected", seconds since last health payload, and reconnect countdown when offline.
 
 ### Fixed
+- **Relay dots not showing in NER_B_RLY_1 dialog**: `writeStateJson` was always emitting `scheduledMs` and `remainingOnMs` on every relay entry, requiring ~229 bytes for 4 relays but the `EspNowPlanStateMessage.stateJson` buffer is only 224 bytes (sized to fit within the 250-byte ESP-NOW packet limit). The function hit the truncation guard and returned 0, so the commander sent `"state":{}` and `plan_state` was never populated. Fix: only emit `scheduledMs` when a relay is scheduled and `remainingOnMs` when a relay is on with a countdown — fields are omitted when zero. Worst-case payload is now ~221 bytes. `CmdrRelayStateItem` timing fields updated to optional (`scheduledMs?`, `remainingOnMs?`).
 - Relay dots disappearing after modal auto-query: `plan_state` is now preserved from the existing cached record when a fixture query returns `plan_state: null`, matching the existing `config` preservation pattern.
 - Removed accidentally committed `configUi` binding, `selectedFixtureConfigUi` signal, and `CmdrFixtureConfigUi` import that were bundled into the relay state commit; `[configUi]` input on `app-fixture-config-control` defaults to `null` so the Config tab is unaffected.
 - **False-positive "Commander unavailable" toast on iPhone sleep/wake**: the toast is now debounced with a 5 s grace period. Brief WS reconnects (sleep/wake cycle typically resolves in ~3 s) cancel the pending toast; only genuine outages lasting more than 5 s trigger the sticky warning.

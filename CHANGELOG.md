@@ -4,7 +4,7 @@
 
 ### Added
 - Relay state display in fixture modal Status tab for `NER_B_RLY_1`: 4 dots showing relay state (gray=off, green=on, blinking amber=scheduled) with relay number and scheduled countdown in seconds.
-- **WS connection status icon** in the heartbeat panel header (right side): green = connected, blinking amber = connecting, dark grey = disconnected. Clicking the icon opens a popover showing the current state, seconds since last health payload, and reconnect countdown when offline.
+- **WS connection status icon** in the app header bar (next to heart icon, always visible on mobile): green = connected, blinking amber = connecting, dark grey = disconnected. Clicking opens a popover showing "WS Connected/Connecting…/Disconnected", seconds since last health payload, and reconnect countdown when offline.
 
 ### Fixed
 - Removed accidentally committed `configUi` binding, `selectedFixtureConfigUi` signal, and `CmdrFixtureConfigUi` import that were bundled into the relay state commit; `[configUi]` input on `app-fixture-config-control` defaults to `null` so the Config tab is unaffected.

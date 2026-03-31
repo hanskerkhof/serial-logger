@@ -39,10 +39,10 @@ export interface CmdrRelayStateItem {
   n: number;
   /** Current state of the relay. */
   state: 'off' | 'on' | 'scheduled';
-  /** Remaining ms until a scheduled relay activates (state === 'scheduled'). 0 otherwise. */
-  scheduledMs: number;
-  /** Remaining ms until a timed-on relay turns off (state === 'on', durationMs > 0). 0 for permanent on or when off/scheduled. */
-  remainingOnMs: number;
+  /** Remaining ms until a scheduled relay activates (state === 'scheduled'). Absent when 0. */
+  scheduledMs?: number;
+  /** Remaining ms until a timed-on relay turns off (state === 'on', durationMs > 0). Absent when 0 or permanent on. */
+  remainingOnMs?: number;
 }
 
 // --- Messages API (not in OpenAPI schema — handwritten) ---

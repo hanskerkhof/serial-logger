@@ -235,18 +235,6 @@
               <span class="commander__health-degraded">· ⚠ {{ healthError() }}</span>
             }
           </span>
-          <button
-            type="button"
-            class="commander__ws-btn"
-            (click)="wsPopover.toggle($event); $event.stopPropagation()"
-            [attr.aria-label]="'WebSocket: ' + wsConnectionState()"
-            title="WebSocket connection"
-          >
-            <i class="pi pi-wifi commander__ws-icon"
-               [class.commander__ws-icon--connected]="wsConnectionState() === 'connected'"
-               [class.commander__ws-icon--connecting]="wsConnectionState() === 'connecting'"
-               [class.commander__ws-icon--disconnected]="wsConnectionState() === 'disconnected'"></i>
-          </button>
         </ng-template>
         <div class="commander__card">
           @if (!health()) {
@@ -308,32 +296,6 @@
           ></button>
         </div>
       </p-panel>
-      <p-popover #wsPopover appendTo="body">
-        <div class="commander__ws-popover">
-          <div class="commander__ws-popover-state">
-            <i class="pi pi-wifi commander__ws-icon"
-               [class.commander__ws-icon--connected]="wsConnectionState() === 'connected'"
-               [class.commander__ws-icon--connecting]="wsConnectionState() === 'connecting'"
-               [class.commander__ws-icon--disconnected]="wsConnectionState() === 'disconnected'"></i>
-            <strong>{{
-              wsConnectionState() === 'connected' ? 'Connected' :
-              wsConnectionState() === 'connecting' ? 'Connecting…' : 'Disconnected'
-            }}</strong>
-          </div>
-          @if (secondsSinceHealthCheck() !== null) {
-            <div class="commander__ws-popover-row">
-              <span>Last health</span>
-              <span>{{ secondsSinceHealthCheck() }}s ago</span>
-            </div>
-          }
-          @if (wsConnectionState() === 'disconnected' && nextHealthPollCountdown() > 0) {
-            <div class="commander__ws-popover-row">
-              <span>Reconnect in</span>
-              <span>{{ nextHealthPollCountdown() }}s</span>
-            </div>
-          }
-        </div>
-      </p-popover>
     } @else if (error(); as err) {
       <p class="commander__error" role="alert">{{ err }}</p>
     }

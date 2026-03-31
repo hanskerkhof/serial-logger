@@ -20,7 +20,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectChangeEvent, SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
-import { PopoverModule } from 'primeng/popover';
 import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
 import { MessageService, MenuItem } from 'primeng/api';
@@ -89,7 +88,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, PopoverModule, DialogModule, TabsModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, TabsModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -105,7 +104,6 @@ export class CommanderComponent implements OnInit {
   protected readonly healthRefreshing = this.healthService.healthRefreshing;
   protected readonly healthError = this.healthService.healthError;
   protected readonly nextHealthPollCountdown = this.healthService.nextHealthPollCountdown;
-  protected readonly secondsSinceHealthCheck = this.healthService.secondsSinceHealthCheck;
 
   protected readonly loading = signal(true);
   protected readonly fixtureQueryLoading = signal(false);
@@ -219,11 +217,6 @@ export class CommanderComponent implements OnInit {
   protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {
     if (this.healthError()) return 'offline';
     return this.health()?.commander?.detected === true ? 'healthy' : 'degraded';
-  });
-  protected readonly wsConnectionState = computed<'connected' | 'connecting' | 'disconnected'>(() => {
-    if (this.healthRefreshing()) return 'connecting';
-    if (this.healthError()) return 'disconnected';
-    return 'connected';
   });
   // Tracks whether we've been through at least one unavailable state this session
   // so the "back online" toast only fires on recovery, never on initial load.

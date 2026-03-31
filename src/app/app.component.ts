@@ -27,6 +27,7 @@ export class AppComponent {
   @ViewChild('updateDialog') private updateDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('releaseNoticeDialog') private releaseNoticeDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('healthPopover') protected healthPopoverRef!: Popover;
+  @ViewChild('wsPopover') protected wsPopoverRef!: Popover;
 
   private readonly router = inject(Router);
   private readonly commanderApi = inject(CommanderApiService);
@@ -49,9 +50,15 @@ export class AppComponent {
   } | null>(null);
   protected readonly healthService = inject(HealthPollService);
   protected readonly secondsSinceHealthCheck = this.healthService.secondsSinceHealthCheck;
+  protected readonly nextHealthPollCountdown = this.healthService.nextHealthPollCountdown;
   protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {
     if (this.apiConnected() !== 'ok') return 'offline';
     return this.healthSummary()?.detected ? 'healthy' : 'degraded';
+  });
+  protected readonly wsConnectionState = computed<'connected' | 'connecting' | 'disconnected'>(() => {
+    if (this.healthService.healthRefreshing()) return 'connecting';
+    if (this.healthService.healthError()) return 'disconnected';
+    return 'connected';
   });
 
   private readonly isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);

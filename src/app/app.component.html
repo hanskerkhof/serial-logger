@@ -89,6 +89,46 @@
             </div>
           </p-popover>
 
+          <!-- WS connection status -->
+          <button
+            class="app-shell__icon-btn"
+            [class.app-shell__icon-btn--ws-connected]="wsConnectionState() === 'connected'"
+            [class.app-shell__icon-btn--ws-connecting]="wsConnectionState() === 'connecting'"
+            [class.app-shell__icon-btn--ws-disconnected]="wsConnectionState() === 'disconnected'"
+            (click)="wsPopoverRef.toggle($event)"
+            title="WebSocket connection"
+            type="button"
+          >
+            <i class="pi pi-wifi"></i>
+          </button>
+          <p-popover #wsPopover>
+            <div class="health-pop">
+              <div class="health-pop__status">
+                <span
+                  class="health-pop__dot"
+                  [class.health-pop__dot--ws-connected]="wsConnectionState() === 'connected'"
+                  [class.health-pop__dot--ws-connecting]="wsConnectionState() === 'connecting'"
+                  [class.health-pop__dot--ws-disconnected]="wsConnectionState() === 'disconnected'"
+                ></span>
+                @switch (wsConnectionState()) {
+                  @case ('connected')    { WS Connected }
+                  @case ('connecting')   { WS Connecting… }
+                  @default               { WS Disconnected }
+                }
+              </div>
+              <dl class="health-pop__dl">
+                @if (secondsSinceHealthCheck() !== null) {
+                  <dt>Last health</dt>
+                  <dd>{{ secondsSinceHealthCheck() }}s ago</dd>
+                }
+                @if (wsConnectionState() === 'disconnected' && nextHealthPollCountdown() > 0) {
+                  <dt>Reconnect in</dt>
+                  <dd>{{ nextHealthPollCountdown() }}s</dd>
+                }
+              </dl>
+            </div>
+          </p-popover>
+
           <!-- Release notes -->
           <button
             class="app-shell__icon-btn"

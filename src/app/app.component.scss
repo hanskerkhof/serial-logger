@@ -121,6 +121,11 @@
 
   // release notes: unread
   &--unread { color: var(--p-primary-color, #6366f1); &:hover { color: var(--p-primary-color, #6366f1); } }
+
+  // WS connection states
+  &--ws-connected    { color: #16a34a; &:hover { color: #16a34a; } }
+  &--ws-connecting   { color: #f59e0b; animation: ws-blink 800ms ease-in-out infinite; &:hover { color: #f59e0b; } }
+  &--ws-disconnected { color: #4b5563; &:hover { color: #4b5563; } }
 }
 
 @keyframes heartbeat {
@@ -129,6 +134,11 @@
   28%       { transform: scale(1); }
   42%       { transform: scale(1.15); }
   70%       { transform: scale(1); }
+}
+
+@keyframes ws-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
 }
 
 .app-shell__icon-badge {
@@ -169,6 +179,9 @@
   &--healthy  { background: #ef4444; }
   &--degraded { background: #9ca3af; }
   &--offline  { background: #4b5563; }
+  &--ws-connected    { background: #16a34a; }
+  &--ws-connecting   { background: #f59e0b; animation: ws-blink 800ms ease-in-out infinite; }
+  &--ws-disconnected { background: #4b5563; }
 }
 
 .health-pop__dl {

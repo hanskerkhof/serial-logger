@@ -9,6 +9,7 @@
 - **WS connection status icon** in the app header bar (next to heart icon, always visible on mobile): green = connected, blinking amber = connecting, dark grey = disconnected. Clicking opens a popover showing "WS Connected/Connecting…/Disconnected", seconds since last health payload, and reconnect countdown when offline.
 
 ### Fixed
+- Relay dots disappearing after modal auto-query: `plan_state` is now preserved from the existing cached record when a fixture query returns `plan_state: null`, matching the existing `config` preservation pattern.
 - Removed accidentally committed `configUi` binding, `selectedFixtureConfigUi` signal, and `CmdrFixtureConfigUi` import that were bundled into the relay state commit; `[configUi]` input on `app-fixture-config-control` defaults to `null` so the Config tab is unaffected.
 - **False-positive "Commander unavailable" toast on iPhone sleep/wake**: the toast is now debounced with a 5 s grace period. Brief WS reconnects (sleep/wake cycle typically resolves in ~3 s) cancel the pending toast; only genuine outages lasting more than 5 s trigger the sticky warning.
 

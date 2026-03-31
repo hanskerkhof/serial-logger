@@ -1596,6 +1596,11 @@ export class CommanderComponent implements OnInit {
       if (mergedRaw['config'] == null && existingRaw?.['config'] != null) {
         mergedRaw['config'] = existingRaw['config'];
       }
+      // Preserve plan_state from cache when a query returns null — plan_state is only
+      // populated when the commander has a recent BK_PLAN_STATE serial message.
+      if (mergedRaw['plan_state'] == null && existingRaw?.['plan_state'] != null) {
+        mergedRaw['plan_state'] = existingRaw['plan_state'];
+      }
 
       records.push({
         fixture_name,

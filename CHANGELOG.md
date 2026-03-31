@@ -5,7 +5,7 @@
 ## 0.7.8 - 2026-03-31
 
 ### Added
-- Relay state display in fixture modal Status tab for `NER_B_RLY_1`: 4 dots showing relay state (gray=off, green=on, blinking amber=scheduled) with relay number and scheduled countdown in seconds.
+- Relay state display in fixture modal Status tab for `NER_B_RLY_1`: 4 dots showing relay state (gray=off, green=on, blinking amber=scheduled) with relay number and scheduled countdown in seconds. When a relay is on for a timed duration, the remaining on-time is now also shown below the dot (e.g. `9.4s`), mirroring the scheduled-time display.
 - **WS connection status icon** in the app header bar (next to heart icon, always visible on mobile): green = connected, blinking amber = connecting, dark grey = disconnected. Clicking opens a popover showing "WS Connected/Connecting…/Disconnected", seconds since last health payload, and reconnect countdown when offline.
 
 ### Fixed

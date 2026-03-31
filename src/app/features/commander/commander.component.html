@@ -627,6 +627,9 @@
                     @if (relay.state === 'scheduled') {
                       <span class="commander__relay-time">{{ (relay.scheduledMs / 1000).toFixed(1) }}s</span>
                     }
+                    @if (relay.state === 'on' && relay.remainingOnMs > 0) {
+                      <span class="commander__relay-time">{{ (relay.remainingOnMs / 1000).toFixed(1) }}s</span>
+                    }
                   </div>
                 }
               </section>

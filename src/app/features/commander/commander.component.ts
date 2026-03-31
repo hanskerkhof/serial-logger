@@ -46,6 +46,7 @@ import {
   CmdrFixtureRssiReport,
   CmdrPlanControls,
   CmdrPlayerCapabilities,
+  CmdrRelayStateItem,
   CmdrVersionsResponse,
 } from '../../api/cmdr-models';
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
@@ -63,12 +64,6 @@ import { HealthPollService } from '../../health-poll.service';
 interface SelectOption {
   label: string;
   value: string;
-}
-
-interface RelayStateItem {
-  n: number;
-  state: 'off' | 'on' | 'scheduled';
-  scheduledMs: number;
 }
 
 type CustomCommandValue = string | number | boolean;
@@ -614,12 +609,12 @@ export class CommanderComponent implements OnInit {
     return volume !== undefined || eq !== undefined ? { volume, eq } : null;
   });
 
-  protected readonly selectedFixtureRelayStates = computed<RelayStateItem[] | null>(() => {
+  protected readonly selectedFixtureRelayStates = computed<CmdrRelayStateItem[] | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     const s = ps?.['state'] as Record<string, unknown> | null | undefined;
     const relays = s?.['relays'];
     if (!Array.isArray(relays) || relays.length === 0) return null;
-    return relays as RelayStateItem[];
+    return relays as CmdrRelayStateItem[];
   });
 
   protected readonly selectedFixtureCustomCommands = computed<CmdrCustomCommandUiItem[]>(() => {

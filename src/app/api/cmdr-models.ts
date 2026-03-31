@@ -31,6 +31,20 @@ export type CmdrFixtureConfigAux    = components['schemas']['FixtureConfigAux'];
 export type CmdrFixtureConfigDmx    = components['schemas']['FixtureConfigDmx'];
 export type CmdrFixtureConfigUi     = components['schemas']['FixtureConfigUi'];
 
+// --- Plan state models (not in OpenAPI schema — firmware-specific, handwritten) ---
+
+/** One relay's runtime state as emitted by NERO_BIANCO_RELAY BK_PLAN_STATE. */
+export interface CmdrRelayStateItem {
+  /** Relay number 1–N. */
+  n: number;
+  /** Current state of the relay. */
+  state: 'off' | 'on' | 'scheduled';
+  /** Remaining ms until a scheduled relay activates (state === 'scheduled'). 0 otherwise. */
+  scheduledMs: number;
+  /** Remaining ms until a timed-on relay turns off (state === 'on', durationMs > 0). 0 for permanent on or when off/scheduled. */
+  remainingOnMs: number;
+}
+
 // --- Messages API (not in OpenAPI schema — handwritten) ---
 export interface CmdrMessageSection {
   heading: string;

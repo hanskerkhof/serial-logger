@@ -624,10 +624,10 @@
                   <div class="commander__relay commander__relay--{{ relay.state }}">
                     <div class="commander__relay-dot"></div>
                     <span class="commander__relay-number">{{ relay.n }}</span>
-                    @if (relay.state === 'scheduled') {
+                    @if (relay.state === 'scheduled' && relay.scheduledMs != null) {
                       <span class="commander__relay-time">{{ (relay.scheduledMs / 1000).toFixed(1) }}s</span>
                     }
-                    @if (relay.state === 'on' && relay.remainingOnMs > 0) {
+                    @if (relay.state === 'on' && relay.remainingOnMs != null && relay.remainingOnMs > 0) {
                       <span class="commander__relay-time">{{ (relay.remainingOnMs / 1000).toFixed(1) }}s</span>
                     }
                   </div>

@@ -20,6 +20,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectChangeEvent, SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
+import { PopoverModule } from 'primeng/popover';
 import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
 import { MessageService, MenuItem } from 'primeng/api';
@@ -88,7 +89,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, TabsModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, PopoverModule, DialogModule, TabsModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -104,6 +105,7 @@ export class CommanderComponent implements OnInit {
   protected readonly healthRefreshing = this.healthService.healthRefreshing;
   protected readonly healthError = this.healthService.healthError;
   protected readonly nextHealthPollCountdown = this.healthService.nextHealthPollCountdown;
+  protected readonly secondsSinceHealthCheck = this.healthService.secondsSinceHealthCheck;
 
   protected readonly loading = signal(true);
   protected readonly fixtureQueryLoading = signal(false);
@@ -218,9 +220,15 @@ export class CommanderComponent implements OnInit {
     if (this.healthError()) return 'offline';
     return this.health()?.commander?.detected === true ? 'healthy' : 'degraded';
   });
+  protected readonly wsConnectionState = computed<'connected' | 'connecting' | 'disconnected'>(() => {
+    if (this.healthRefreshing()) return 'connecting';
+    if (this.healthError()) return 'disconnected';
+    return 'connected';
+  });
   // Tracks whether we've been through at least one unavailable state this session
   // so the "back online" toast only fires on recovery, never on initial load.
   private _wasUnavailable = false;
+  private _unavailableToastTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Ensures auto-discovery on empty store fires at most once per session.
   private _autoDiscoveryTriggered = false;
@@ -313,31 +321,48 @@ export class CommanderComponent implements OnInit {
 
     effect(() => {
       const unavailable = this.commanderUnavailable();
-      // Read loading() explicitly so this effect re-runs when loading changes.
-      // We suppress the toast while the initial health fetch is still in flight
-      // to avoid flashing "unavailable" before the first response arrives.
       const stillLoading = this.loading();
+      // Read healthRefreshing reactively: when _connect() fires after the backoff and sets
+      // healthRefreshing = true, this effect re-evaluates and cancels the pending timer.
+      const refreshing = this.healthRefreshing();
       // setTimeout: p-toast subscribes to MessageService during view init,
       // after this constructor effect fires — defer so the message isn't lost.
       setTimeout(() => {
         this.messageService.clear('cmdr-offline');
-        if (unavailable && !stillLoading) {
-          this._wasUnavailable = true;
-          this.messageService.add({ key: 'cmdr-offline', severity: 'warn', summary: 'Commander unavailable', sticky: true });
-        } else if (!unavailable && this._wasUnavailable) {
-          // Recovery: only toast if we previously showed the unavailable warning.
-          this._wasUnavailable = false;
-          // Clear stale modal errors from the outage so the feedback strip resets.
-          this.modalQueryError.set(null);
-          this.fixtureActionMessage.set(null);
-          this.fixtureActionResult.set(null);
-          this.messageService.add({
-            key: 'app',
-            severity: 'success',
-            summary: 'Commander available',
-            detail: 'Connection restored.',
-            life: 4000,
-          });
+        if (unavailable && !stillLoading && !refreshing) {
+          // Debounce: only alarm after persistent unavailability.
+          // Brief WS reconnects (sleep/wake) resolve in ~3 s — 5 s grace avoids false positives.
+          if (this._unavailableToastTimer === null) {
+            this._unavailableToastTimer = setTimeout(() => {
+              this._unavailableToastTimer = null;
+              // Snapshot at fire time: skip if WS has already started reconnecting.
+              if (this.commanderUnavailable() && !this.loading() && !this.healthRefreshing()) {
+                this._wasUnavailable = true;
+                this.messageService.add({ key: 'cmdr-offline', severity: 'warn', summary: 'Commander unavailable', sticky: true });
+              }
+            }, 5000);
+          }
+        } else {
+          // Cancel pending timer — WS reconnecting (refreshing=true) or availability restored.
+          if (this._unavailableToastTimer !== null) {
+            clearTimeout(this._unavailableToastTimer);
+            this._unavailableToastTimer = null;
+          }
+          if (!unavailable && this._wasUnavailable) {
+            // Recovery: only toast if the 5 s timer actually fired and showed "unavailable".
+            this._wasUnavailable = false;
+            // Clear stale modal errors from the outage so the feedback strip resets.
+            this.modalQueryError.set(null);
+            this.fixtureActionMessage.set(null);
+            this.fixtureActionResult.set(null);
+            this.messageService.add({
+              key: 'app',
+              severity: 'success',
+              summary: 'Commander available',
+              detail: 'Connection restored.',
+              life: 4000,
+            });
+          }
         }
       }, 0);
     });

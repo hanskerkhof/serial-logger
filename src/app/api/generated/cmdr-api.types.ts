@@ -174,6 +174,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fixtures/{fixture_name}/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fixture Docs List */
+        get: operations["fixture_docs_list_fixtures__fixture_name__docs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/{fixture_name}/docs/{filename}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fixture Doc Content */
+        get: operations["fixture_doc_content_fixtures__fixture_name__docs__filename__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fixtures/{fixture_name}/ota-update": {
         parameters: {
             query?: never;
@@ -813,6 +847,19 @@ export interface components {
             field_labels?: {
                 [key: string]: string;
             } | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixtureDocsListResponse */
+        FixtureDocsListResponse: {
+            /** Docs */
+            docs: string[];
+            /** Fixture Name */
+            fixture_name: string;
+            /** Ok */
+            ok: boolean;
+            /** Plan Name */
+            plan_name: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -1535,6 +1582,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixtureCommandResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_docs_list_fixtures__fixture_name__docs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDocsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_doc_content_fixtures__fixture_name__docs__filename__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_name: string;
+                filename: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

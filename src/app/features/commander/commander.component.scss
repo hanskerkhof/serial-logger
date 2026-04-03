@@ -315,6 +315,18 @@
   pointer-events: none;
 }
 
+// Make the drawer content area a flex column so the dialog layout fills it.
+// PrimeNG appends overlays to <body>, so this must use ::ng-deep.
+:host ::ng-deep .commander__fixture-drawer {
+  .p-drawer-content {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    height: 100%;
+  }
+}
+
 .commander__dialog {
   width: 100%;
   height: 100%;

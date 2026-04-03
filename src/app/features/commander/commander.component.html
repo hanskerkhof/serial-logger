@@ -436,19 +436,37 @@
     <div class="commander__dropdown-backdrop"></div>
   }
 
-  <p-dialog
-    [visible]="fixtureModalVisible()"
-    (visibleChange)="onFixtureDialogVisibleChange($event)"
-    [modal]="true"
-    [dismissableMask]="true"
-    [draggable]="false"
-    [resizable]="false"
-    [closeOnEscape]="true"
-    [showHeader]="false"
-    styleClass="commander__fixture-dialog"
-    [style]="{ width: 'min(72rem, 96vw)', maxHeight: '90vh' }"
-    [contentStyle]="{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }"
-  >
+  @if (FIXTURE_DETAIL_DRAWER) {
+    <p-drawer
+      [visible]="fixtureModalVisible()"
+      (visibleChange)="onFixtureDialogVisibleChange($event)"
+      position="full"
+      [modal]="true"
+      [dismissible]="true"
+      [closeOnEscape]="true"
+      [closable]="false"
+      styleClass="commander__fixture-drawer"
+    >
+      <ng-container [ngTemplateOutlet]="fixtureDetail" />
+    </p-drawer>
+  } @else {
+    <p-dialog
+      [visible]="fixtureModalVisible()"
+      (visibleChange)="onFixtureDialogVisibleChange($event)"
+      [modal]="true"
+      [dismissableMask]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [closeOnEscape]="true"
+      [showHeader]="false"
+      styleClass="commander__fixture-dialog"
+      [style]="{ width: 'min(72rem, 96vw)', maxHeight: '90vh' }"
+      [contentStyle]="{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }"
+    >
+      <ng-container [ngTemplateOutlet]="fixtureDetail" />
+    </p-dialog>
+  }
+  <ng-template #fixtureDetail>
     <div class="commander__dialog">
     <header class="commander__dialog-header">
       <h3>
@@ -607,6 +625,7 @@
           <p-tab value="config">
             Config@if (!selectedFixtureConfig()) { <span class="commander__tab-no-data">· no data</span>}
           </p-tab>
+          <p-tab value="docs">Docs</p-tab>
         </p-tablist>
         <p-tabpanels>
           <p-tabpanel value="status">
@@ -743,6 +762,9 @@
               (commandRequested)="onConfigCommand($event)"
             />
           </p-tabpanel>
+          <p-tabpanel value="docs">
+            <app-fixture-docs [fixtureName]="selectedFixtureName()" />
+          </p-tabpanel>
         </p-tabpanels>
       </p-tabs>
     </div>
@@ -774,5 +796,5 @@
       ></button>
     </footer>
     </div>
-  </p-dialog>
+  </ng-template>
 </section>

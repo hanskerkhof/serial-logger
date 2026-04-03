@@ -13,6 +13,7 @@ import type {
   CmdrDiscoveryResponse,
   CmdrQueryResponse,
   CmdrMessagesResponse,
+  CmdrFixtureDocsListResponse,
 } from './api/cmdr-models';
 
 // Re-export generated-type aliases under legacy names so existing component imports are unchanged.
@@ -157,6 +158,19 @@ export class CommanderApiService {
   getReleaseNotes(limit = 10, offset = 0): Observable<CmdrMessagesResponse> {
     return this.http.get<CmdrMessagesResponse>(
       `${this.apiBaseUrl()}/messages/release-notes?limit=${limit}&offset=${offset}`,
+    );
+  }
+
+  getFixtureDocs(fixtureName: string): Observable<CmdrFixtureDocsListResponse> {
+    return this.http.get<CmdrFixtureDocsListResponse>(
+      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs`,
+    );
+  }
+
+  getFixtureDocContent(fixtureName: string, filename: string): Observable<string> {
+    return this.http.get(
+      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs/${encodeURIComponent(filename)}`,
+      { responseType: 'text' },
     );
   }
 

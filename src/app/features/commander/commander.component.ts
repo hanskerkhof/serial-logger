@@ -25,7 +25,10 @@ import { DialogModule } from 'primeng/dialog';
 import { MessageService, MenuItem } from 'primeng/api';
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { TabsModule } from 'primeng/tabs';
+import { DrawerModule } from 'primeng/drawer';
+import { NgTemplateOutlet } from '@angular/common';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
+import { FIXTURE_DETAIL_DRAWER } from '../../feature-flags';
 import {
   CommanderApiService,
   CommanderExposedPlan,
@@ -59,6 +62,7 @@ import {
   FixtureCustomMasterReleasedEvent,
 } from '../../shared/fixture-custom-control/fixture-custom-control.component';
 import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
+import { FixtureDocsComponent } from '../../shared/fixture-docs/fixture-docs.component';
 import { HealthPollService } from '../../health-poll.service';
 
 interface SelectOption {
@@ -83,7 +87,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, TabsModule, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -451,6 +455,7 @@ export class CommanderComponent implements OnInit {
         return a.plan_group.localeCompare(b.plan_group);
       });
   });
+  protected readonly FIXTURE_DETAIL_DRAWER = FIXTURE_DETAIL_DRAWER;
   protected readonly selectedFixtureName = this.fixtureStore.selectedFixtureName;
   protected readonly selectedFixture = this.fixtureStore.selectedFixture;
   protected readonly fixtureCount = this.fixtureStore.fixtureCount;

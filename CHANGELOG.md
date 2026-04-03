@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+- **Fixture dialog — Docs tab**: third tab in the fixture modal showing plan documentation. Left panel lists available files; right panel renders the selected file. Markdown files are rendered via `ngx-markdown`; images (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`) are displayed inline.
+- **Feature flag `FIXTURE_DETAIL_DRAWER`** (`src/app/feature-flags.ts`, default `true`): when enabled, the fixture detail renders as a full-screen PrimeNG Drawer instead of a centred Dialog. Set to `false` to restore the previous dialog layout.
+
 ## 0.7.8 - 2026-03-31
 
 ### Added

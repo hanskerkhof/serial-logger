@@ -1,0 +1,32 @@
+@if (loading()) {
+  <p class="fixture-docs__status">Loading…</p>
+} @else if (docs().length === 0) {
+  <p class="fixture-docs__empty">No documentation available for this fixture.</p>
+} @else {
+  <div class="fixture-docs__layout">
+    <nav class="fixture-docs__nav" aria-label="Documentation files">
+      @for (doc of docs(); track doc) {
+        <button
+          type="button"
+          class="fixture-docs__nav-item"
+          [class.fixture-docs__nav-item--active]="selectedDoc() === doc"
+          (click)="selectDoc(doc)"
+        >{{ doc }}</button>
+      }
+    </nav>
+    <div class="fixture-docs__content">
+      @if (selectedDoc()) {
+        <h2 class="fixture-docs__title">{{ selectedDoc() }}</h2>
+      }
+      @if (isImage()) {
+        @if (docImageUrl(); as imgUrl) {
+          <img [src]="imgUrl" [alt]="selectedDoc()!" class="fixture-docs__image" />
+        }
+      } @else if (contentLoading()) {
+        <p class="fixture-docs__status">Loading…</p>
+      } @else if (docContent()) {
+        <markdown [data]="docContent()!" class="fixture-docs__markdown" />
+      }
+    </div>
+  </div>
+}

@@ -4,4 +4,4 @@
  */
 
 /** Render the fixture detail as a full-screen PrimeNG Drawer instead of a centred Dialog. */
-export const FIXTURE_DETAIL_DRAWER = true;
+export const FIXTURE_DETAIL_DRAWER = false;

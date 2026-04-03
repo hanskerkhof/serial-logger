@@ -81,11 +81,70 @@
   opacity: 0.6;
 }
 
+.commander__dialog-fixture-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.commander__dialog-fixture-select {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
+::ng-deep .commander__fixture-select-input {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+
+  &:hover,
+  &.p-focus {
+    background: var(--p-content-hover-background);
+  }
+
+  .p-select-label {
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.2rem 0.4rem;
+    letter-spacing: 0.01em;
+  }
+
+  .commander__fixture-filter-clear {
+    cursor: pointer;
+    color: var(--p-text-muted-color);
+    transition: color 0.15s;
+
+    &:hover {
+      color: var(--p-text-color);
+    }
+  }
+
+  .p-select-option-group {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-text-muted-color);
+    padding: 0.4rem 0.75rem 0.2rem;
+  }
+}
+
 .commander__dialog-fw-version {
   font-size: 0.75rem;
   font-weight: 600;
   opacity: 0.55;
   margin-left: 0.35rem;
+}
+
+.commander__dialog-pinned-icon {
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+  color: var(--p-primary-color);
+  opacity: 0.8;
+  vertical-align: middle;
 }
 
 .commander__dialog-fw-status {

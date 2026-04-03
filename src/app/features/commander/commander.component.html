@@ -469,12 +469,75 @@
   <ng-template #fixtureDetail>
     <div class="commander__dialog">
     <header class="commander__dialog-header">
-      <h3>
-        Fixture: {{ selectedFixture()?.fixture_name }}
-        @if (selectedFixtureFwStatus(); as fws) {
-          <span class="commander__dialog-fw-version">v{{ fws.fw }}</span>
-        }
-      </h3>
+      <div class="commander__dialog-fixture-nav">
+        <button
+          pButton
+          type="button"
+          icon="pi pi-chevron-left"
+          [text]="true"
+          [rounded]="true"
+          severity="secondary"
+          size="small"
+          (click)="navigateFixture(-1)"
+          [disabled]="allFixturesOrdered().length <= 1"
+          title="Previous fixture"
+          aria-label="Previous fixture"
+        ></button>
+
+        <div class="commander__dialog-fixture-select">
+          <p-select
+            [options]="allFixtureSelectOptions()"
+            [ngModel]="selectedFixture()?.fixture_name"
+            (ngModelChange)="onDialogFixtureSelectChange($event)"
+            optionLabel="label"
+            optionValue="value"
+            [group]="true"
+            optionGroupLabel="label"
+            optionGroupChildren="items"
+            [filter]="true"
+            filterBy="label"
+            scrollHeight="360px"
+            [filterValue]="dialogFixtureFilter()"
+            (onFilter)="dialogFixtureFilter.set($event.filter)"
+            (onHide)="dialogFixtureFilter.set(null)"
+            styleClass="commander__fixture-select-input"
+          >
+            <ng-template pTemplate="filtericon">
+              @if (dialogFixtureFilter()) {
+                <i
+                  class="pi pi-times commander__fixture-filter-clear"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Clear filter"
+                  (click)="dialogFixtureFilter.set(null); $event.stopPropagation()"
+                ></i>
+              } @else {
+                <i class="pi pi-search"></i>
+              }
+            </ng-template>
+          </p-select>
+          @if (selectedFixtureFwStatus(); as fws) {
+            <span class="commander__dialog-fw-version">v{{ fws.fw }}</span>
+          }
+          @if (selectedFixture()?.plan_name && pinnedPlans().has(selectedFixture()!.plan_name)) {
+            <i class="pi pi-bookmark-fill commander__dialog-pinned-icon" title="Plan is pinned"></i>
+          }
+        </div>
+
+        <button
+          pButton
+          type="button"
+          icon="pi pi-chevron-right"
+          [text]="true"
+          [rounded]="true"
+          severity="secondary"
+          size="small"
+          (click)="navigateFixture(1)"
+          [disabled]="allFixturesOrdered().length <= 1"
+          title="Next fixture"
+          aria-label="Next fixture"
+        ></button>
+      </div>
       @if (selectedFixtureFwStatus(); as fws) {
         <span
           class="commander__dialog-fw-status"

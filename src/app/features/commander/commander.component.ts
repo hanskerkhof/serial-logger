@@ -458,6 +458,30 @@ export class CommanderComponent implements OnInit {
   protected readonly FIXTURE_DETAIL_DRAWER = FIXTURE_DETAIL_DRAWER;
   protected readonly selectedFixtureName = this.fixtureStore.selectedFixtureName;
   protected readonly selectedFixture = this.fixtureStore.selectedFixture;
+
+  /** Tracks the current filter text in the fixture navigator p-select. */
+  protected readonly dialogFixtureFilter = signal<string | null>(null);
+
+  /** Flat ordered list of all fixtures, in plan-group display order (pinned groups first). */
+  protected readonly allFixturesOrdered = computed<FixtureRecord[]>(() => {
+    const result: FixtureRecord[] = [];
+    for (const { plans } of this.groupedFixturesByPlanGroup()) {
+      for (const plan of plans) {
+        result.push(...plan.fixtures);
+      }
+    }
+    return result;
+  });
+
+  /** Grouped options for the fixture select dropdown, mirroring sidebar plan-group structure. */
+  protected readonly allFixtureSelectOptions = computed(() =>
+    this.groupedFixturesByPlanGroup().map(({ plan_group, plans }) => ({
+      label: plan_group,
+      items: plans.flatMap((plan) =>
+        plan.fixtures.map((f) => ({ label: f.fixture_name, value: f.fixture_name })),
+      ),
+    })),
+  );
   protected readonly fixtureCount = this.fixtureStore.fixtureCount;
   protected readonly storageWarning = this.fixtureStore.storageWarning;
 
@@ -1224,6 +1248,20 @@ export class CommanderComponent implements OnInit {
         this.sidebarRefreshingPlanGroup.set(null);
       },
     });
+  }
+
+  protected navigateFixture(direction: 1 | -1): void {
+    const all = this.allFixturesOrdered();
+    if (all.length === 0) return;
+    const current = this.selectedFixture();
+    const idx = current ? all.findIndex((f) => f.fixture_name === current.fixture_name) : -1;
+    const next = all[(idx + direction + all.length) % all.length];
+    this.selectFixture(next);
+  }
+
+  protected onDialogFixtureSelectChange(fixtureName: string): void {
+    const record = this.fixtureStore.fixturesByName()[fixtureName];
+    if (record) this.selectFixture(record);
   }
 
   protected selectFixture(record: FixtureRecord): void {

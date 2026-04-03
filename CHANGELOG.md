@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- **`CopyToClipboardComponent`** (`src/app/shared/copy-to-clipboard/`): generic reusable component. Renders a small clipboard icon button; on click copies `[value]` to the clipboard and briefly shows a green check icon for 1.5 s. Used in the fixture dialog header to copy the fixture name.
+
+### Fixed
 - **Fixture dialog — Docs tab**: third tab in the fixture modal showing plan documentation. Left panel lists available files; right panel renders the selected file. Markdown files are rendered via `ngx-markdown`; images (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`) are displayed inline.
 - **Feature flag `FIXTURE_DETAIL_DRAWER`** (`src/app/feature-flags.ts`, default `true`): when enabled, the fixture detail renders as a full-screen PrimeNG Drawer instead of a centred Dialog. Set to `false` to restore the previous dialog layout.
 - **Fixture dialog — Fixture navigator**: fixture name area in the dialog header replaced with `‹ name ›` navigation. Chevron buttons cycle prev/next through the fixture list (wraps around). Fixture name is a PrimeNG `p-select` grouped by plan group, with filter input and a clear (×) icon when text is entered. Dropdown shows ~9 items; group headers are styled small/uppercase matching the sidebar. Pinned bookmark icon and firmware version badge remain inline.

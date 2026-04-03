@@ -1,0 +1,10 @@
+<button
+  type="button"
+  class="copy-to-clipboard__btn"
+  [class.copy-to-clipboard__btn--copied]="copied()"
+  title="Copy to clipboard"
+  (click)="onCopy()"
+  aria-label="Copy to clipboard"
+>
+  <i [class]="copied() ? 'pi pi-fw pi-check' : 'pi pi-fw pi-copy'"></i>
+</button>

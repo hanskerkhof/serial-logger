@@ -516,6 +516,9 @@
               }
             </ng-template>
           </p-select>
+          @if (selectedFixture()?.fixture_name) {
+            <app-copy-to-clipboard [value]="selectedFixture()!.fixture_name" />
+          }
           @if (selectedFixtureFwStatus(); as fws) {
             <span class="commander__dialog-fw-version">v{{ fws.fw }}</span>
           }

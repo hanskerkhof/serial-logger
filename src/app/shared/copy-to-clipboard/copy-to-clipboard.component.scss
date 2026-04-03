@@ -1,0 +1,29 @@
+.copy-to-clipboard {
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.3rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--p-text-muted-color, #888);
+    transition: color 0.15s, background 0.15s;
+    line-height: 1;
+    flex-shrink: 0;
+
+    &:hover {
+      color: var(--p-text-color);
+      background: var(--p-content-hover-background);
+    }
+
+    &--copied {
+      color: var(--p-green-500, #22c55e);
+    }
+
+    i {
+      font-size: 0.8rem;
+    }
+  }
+}

@@ -63,6 +63,7 @@ import {
 } from '../../shared/fixture-custom-control/fixture-custom-control.component';
 import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
 import { FixtureDocsComponent } from '../../shared/fixture-docs/fixture-docs.component';
+import { CopyToClipboardComponent } from '../../shared/copy-to-clipboard/copy-to-clipboard.component';
 import { HealthPollService } from '../../health-poll.service';
 
 interface SelectOption {
@@ -87,7 +88,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],

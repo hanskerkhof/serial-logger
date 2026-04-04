@@ -72,6 +72,11 @@ pre {
     height: 80vh;
     max-height: 80vh;
   }
+  &.qr-scanner-dialog {
+    width: min(64rem, 96vw);
+    height: 86vh;
+    max-height: 86vh;
+  }
   border: 1px solid var(--p-surface-border, #e5e7eb);
   border-radius: 0.5rem;
   background: var(--p-surface-0, #ffffff);
@@ -109,6 +114,11 @@ pre {
     min-height: 0;
 
     &.release-notice-dialog__body {
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+    &.qr-scanner-dialog__body {
       display: flex;
       min-height: 0;
       overflow: hidden;

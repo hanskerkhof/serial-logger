@@ -272,5 +272,10 @@
   margin-left: 0.35rem;
 }
 
+.qr-scanner-dialog__body {
+  min-width: min(60rem, calc(100vw - 3rem));
+  max-width: min(60rem, calc(100vw - 3rem));
+}
+
 // Update dialog styles live in global styles.scss (avoids Angular encapsulation
 // fighting with PrimeNG global heading/element color rules).

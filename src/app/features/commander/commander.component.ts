@@ -138,7 +138,13 @@ export class CommanderComponent implements OnInit {
   protected readonly rebootConfirmPending = signal(false);
   protected readonly fixtureAckEnabled = signal(false);
   protected readonly fixtureModalTab = signal<string>('status');
-  protected readonly selectedFixtureTracks = signal<{ index: number; name: string; duration_ms: number }[] | null>(null);
+  /** Tracks cached per plan name — persists across modal opens within the session. */
+  private readonly planTracksCache = signal<Map<string, { index: number; name: string; duration_ms: number }[]>>(new Map());
+  /** Tracks for the currently selected fixture's plan, null when not yet loaded. */
+  protected readonly selectedFixtureTracks = computed(() => {
+    const planName = this.selectedFixture()?.plan_name ?? null;
+    return planName ? (this.planTracksCache().get(planName) ?? null) : null;
+  });
   protected readonly rssiSessionLoading = signal(false);
   protected readonly rssiSessionCountdown = signal<number | null>(null);
   private rssiSessionTimer: ReturnType<typeof setInterval> | null = null;
@@ -1289,6 +1295,11 @@ export class CommanderComponent implements OnInit {
       this.autoQueriedFixtures.add(record.fixture_name);
       this.runModalFixtureQuery();
     }
+    // Load tracks on open if fixture already has a player in the store and tracks aren't cached yet.
+    const caps = record.raw['capabilities'] as { player?: { attached?: boolean } } | null | undefined;
+    if (caps?.player?.attached && record.plan_name) {
+      this.loadTracksForPlan(record.plan_name);
+    }
   }
 
   protected removeFixture(record: FixtureRecord, event: Event): void {
@@ -1325,6 +1336,16 @@ export class CommanderComponent implements OnInit {
     }
   }
 
+  private loadTracksForPlan(planName: string): void {
+    if (this.planTracksCache().has(planName)) return;
+    this.commanderApi.getPlanPlayerTracks(planName).subscribe({
+      next: (data) => {
+        this.planTracksCache.update(cache => new Map(cache).set(planName, data.tracks));
+      },
+      error: () => {},
+    });
+  }
+
   private resetFixtureModalState(): void {
     this.modalQuerySub?.unsubscribe();
     this.modalQuerySub = null;
@@ -1335,7 +1356,6 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionTone.set('info');
     this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
-    this.selectedFixtureTracks.set(null);
     this.fixtureModalTab.set('status');
   }
 
@@ -1379,17 +1399,11 @@ export class CommanderComponent implements OnInit {
           : `Query complete for ${fixture}`;
         this.setFixtureModalFeedback(message, 'success', durationMs);
         onComplete?.(result);
-        // Load player tracks only when the fixture has an attached player.
+        // Load player tracks if the fixture has an attached player and tracks aren't cached yet.
         // Use selectedFixturePlayer() — ingestQueryResult above already updated the store.
-        const playerAttached = this.selectedFixturePlayer()?.attached === true;
         const planName = result.plan_name ?? this.selectedFixture()?.plan_name ?? null;
-        if (playerAttached && planName) {
-          this.commanderApi.getPlanPlayerTracks(planName).subscribe({
-            next: (data) => this.selectedFixtureTracks.set(data.tracks),
-            error: () => this.selectedFixtureTracks.set(null),
-          });
-        } else {
-          this.selectedFixtureTracks.set(null);
+        if (this.selectedFixturePlayer()?.attached === true && planName) {
+          this.loadTracksForPlan(planName);
         }
       },
       error: (err: unknown) => {

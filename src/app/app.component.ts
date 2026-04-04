@@ -13,11 +13,12 @@ import { SerialService } from './serial.service';
 import { CmdrMessage, CmdrHealthResponse } from './api/cmdr-models';
 import { HealthPollService } from './health-poll.service';
 import { ReleaseNotesComponent } from './shared/release-notes/release-notes.component';
+import { QrScannerDemoComponent } from './shared/qr-scanner-demo/qr-scanner-demo.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ButtonModule, ReleaseNotesComponent],
+  imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ButtonModule, ReleaseNotesComponent, QrScannerDemoComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
@@ -26,6 +27,7 @@ export class AppComponent {
 
   @ViewChild('updateDialog') private updateDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('releaseNoticeDialog') private releaseNoticeDialogRef!: ElementRef<HTMLDialogElement>;
+  @ViewChild('qrScannerDialog') private qrScannerDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('healthPopover') protected healthPopoverRef!: Popover;
   @ViewChild('wsPopover') protected wsPopoverRef!: Popover;
 
@@ -102,6 +104,7 @@ export class AppComponent {
   protected readonly releaseMessagesLoading = signal(false);
   protected readonly releaseMessagesOffset = signal(0);
   protected readonly releaseMessagesTotal = signal(0);
+  protected readonly showQrScannerDialog = signal(false);
 
   constructor() {
 
@@ -120,6 +123,17 @@ export class AppComponent {
     effect(() => {
       const show = this.showReleaseNoticeDialog();
       const el = this.releaseNoticeDialogRef?.nativeElement;
+      if (!el) return;
+      if (show) {
+        if (!el.open) el.showModal();
+      } else if (el.open) {
+        el.close();
+      }
+    });
+
+    effect(() => {
+      const show = this.showQrScannerDialog();
+      const el = this.qrScannerDialogRef?.nativeElement;
       if (!el) return;
       if (show) {
         if (!el.open) el.showModal();
@@ -196,6 +210,14 @@ export class AppComponent {
   protected openReleaseNoticeDialog(): void {
     this.showReleaseNoticeDialog.set(true);
     this.loadReleaseNotesPage(0);
+  }
+
+  protected openQrScannerDialog(): void {
+    this.showQrScannerDialog.set(true);
+  }
+
+  protected closeQrScannerDialog(): void {
+    this.showQrScannerDialog.set(false);
   }
 
   protected loadOlderReleaseNotesPage(): void {

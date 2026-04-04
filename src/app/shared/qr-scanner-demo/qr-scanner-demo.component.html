@@ -1,0 +1,18 @@
+<section class="qr-scanner-demo" aria-label="QR scanner demo">
+  <video #videoEl class="qr-scanner-demo__video" autoplay muted playsinline></video>
+
+  @if (status() === 'starting') {
+    <p class="qr-scanner-demo__status">Starting camera…</p>
+  } @else if (status() === 'error') {
+    <p class="qr-scanner-demo__status qr-scanner-demo__status--error">{{ errorMessage() }}</p>
+  }
+
+  <div class="qr-scanner-demo__result">
+    <p class="qr-scanner-demo__result-label">Detected QR value</p>
+    @if (lastDetectedQrText(); as value) {
+      <pre class="qr-scanner-demo__result-value">{{ value }}</pre>
+    } @else {
+      <p class="qr-scanner-demo__status">No QR detected yet.</p>
+    }
+  </div>
+</section>

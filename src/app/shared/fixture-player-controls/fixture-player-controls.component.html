@@ -6,19 +6,63 @@
         @if (playerType(); as pt) {
           <span class="fixture-player-controls__player-type">{{ pt }}</span>
         }
+        @if (currentPlayerStatus(); as status) {
+          <span class="fixture-player-controls__player-status"
+                [class.fixture-player-controls__player-status--playing]="status === 'PLAYING'">
+            {{ status }}
+          </span>
+        }
       </div>
 
       @if (p.play_track_available) {
         <div class="fixture-player-controls__row">
-          <input
-            class="fixture-player-controls__track-input"
-            type="number"
-            placeholder="track #"
-            min="1"
-            [value]="trackNumber() ?? ''"
-            [disabled]="disabled()"
-            (input)="onTrackInput($event)"
-          />
+          @if (trackOptions(); as opts) {
+            <p-select
+              [options]="opts"
+              [ngModel]="trackNumber()"
+              (ngModelChange)="trackNumber.set($event)"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="select track"
+              size="small"
+              scrollHeight="300px"
+              appendTo="body"
+              [disabled]="disabled()"
+              styleClass="fixture-player-controls__sound-select"
+              [filter]="true"
+              filterBy="label"
+              [filterValue]="trackFilter()"
+              (onFilter)="trackFilter.set($event.filter)"
+              (onHide)="trackFilter.set(null)"
+            >
+              <ng-template pTemplate="filtericon">
+                @if (trackFilter()) {
+                  <i
+                    class="pi pi-times fixture-player-controls__filter-clear"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Clear filter"
+                    (click)="trackFilter.set(null); $event.stopPropagation()"
+                  ></i>
+                } @else {
+                  <i class="pi pi-search"></i>
+                }
+              </ng-template>
+            </p-select>
+            @if (selectedTrackName(); as selectedTrackName) {
+              <app-copy-to-clipboard [value]="selectedTrackName" />
+            }
+          } @else {
+            <input
+              class="fixture-player-controls__track-input"
+              type="number"
+              placeholder="track #"
+              min="1"
+              [value]="trackNumber() ?? ''"
+              [disabled]="disabled()"
+              (input)="onTrackInput($event)"
+            />
+          }
           <button
             pButton
             severity="secondary"

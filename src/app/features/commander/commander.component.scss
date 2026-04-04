@@ -444,9 +444,13 @@
 
 .commander__dialog-feedback-message {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35rem;
   padding-right: 7rem;
+}
+
+.commander__dialog-feedback-message-text {
+  overflow-wrap: anywhere;
 }
 
 .commander__dialog-feedback-icon {
@@ -722,5 +726,4 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
-
 

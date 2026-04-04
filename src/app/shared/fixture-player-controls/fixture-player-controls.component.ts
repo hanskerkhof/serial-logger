@@ -3,6 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { CmdrPlayerCapabilities } from '../../api/cmdr-models';
+import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard.component';
+
+export interface PlayerTrack {
+  index: number;
+  name: string;
+  duration_ms: number;
+}
 
 /** DY players (DY-HV20T, DY-SV5W): 5 presets, no Bass (EQ range 0x00–0x04). */
 const EQ_PRESETS_DY = [
@@ -26,7 +33,7 @@ const EQ_PRESETS_ALL = [
 @Component({
   selector: 'app-fixture-player-controls',
   standalone: true,
-  imports: [ButtonModule, SelectModule, FormsModule],
+  imports: [ButtonModule, SelectModule, FormsModule, CopyToClipboardComponent],
   templateUrl: './fixture-player-controls.component.html',
   styleUrl: './fixture-player-controls.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,7 +41,8 @@ const EQ_PRESETS_ALL = [
 export class FixturePlayerControlsComponent {
   readonly player = input<CmdrPlayerCapabilities | null>(null);
   readonly playerType = input<string | null>(null);
-  readonly playerState = input<{ volume?: number; eq?: number } | null>(null);
+  readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: string } | null>(null);
+  readonly planTracks = input<PlayerTrack[] | null>(null);
   readonly disabled = input<boolean>(false);
 
   readonly commandRequested = output<string>();
@@ -81,6 +89,8 @@ export class FixturePlayerControlsComponent {
       if (!ps) return;
       if (ps.volume !== undefined) this.volumeLevel.set(ps.volume);
       if (ps.eq !== undefined) this.eqPreset.set(ps.eq);
+      // Only sync track if > 0 — currentTrack is 0 before any track has played.
+      if (ps.trackIndex !== undefined && ps.trackIndex > 0) this.trackNumber.set(ps.trackIndex);
     });
 
     // Clamp eqPreset to the highest valid index when player type changes.
@@ -90,6 +100,26 @@ export class FixturePlayerControlsComponent {
       if (this.eqPreset() > maxVal) this.eqPreset.set(maxVal);
     });
   }
+
+  protected readonly currentPlayerStatus = computed(() => this.playerState()?.playerStatus ?? null);
+
+  protected readonly trackOptions = computed(() => {
+    const tracks = this.planTracks();
+    if (!tracks) return null;
+    return tracks.map(t => ({
+      label: `${t.index} \u2014 ${t.name} (${(t.duration_ms / 1000).toFixed(1)}s)`,
+      value: t.index,
+    }));
+  });
+  protected readonly selectedTrackName = computed(() => {
+    const selectedTrackNumber = this.trackNumber();
+    if (selectedTrackNumber === null) return null;
+    const selectedTrack = this.planTracks()?.find((track) => track.index === selectedTrackNumber);
+    return selectedTrack?.name ?? null;
+  });
+
+  readonly trackFilter = signal<string | null>(null);
+
   readonly trackNumber = signal<number | null>(null);
   readonly volumeLevel = signal<number>(50);
   readonly fadeToVolume = signal<number>(30);

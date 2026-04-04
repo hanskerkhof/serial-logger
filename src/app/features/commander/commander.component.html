@@ -672,7 +672,10 @@
             } @else if (fixtureActionTone() === 'error') {
               <span class="commander__dialog-feedback-icon" aria-hidden="true">✖</span>
             }
-            <span>{{ actionMessage }}</span>
+            <span class="commander__dialog-feedback-message-text">{{ actionMessage }}</span>
+            @if (fixtureActionPastableCommand(); as pastableCommand) {
+              <app-copy-to-clipboard [value]="pastableCommand" />
+            }
           </p>
         } @else {
           <p class="commander__dialog-feedback-message commander__dialog-feedback-message--placeholder">&nbsp;</p>
@@ -685,7 +688,7 @@
       </section>
     </header>
     <div class="commander__dialog-body">
-      <p-tabs value="status">
+      <p-tabs [value]="fixtureModalTab()" (valueChange)="fixtureModalTab.set($event?.toString() ?? 'status')">
         <p-tablist>
           <p-tab value="status">Status</p-tab>
           <p-tab value="config">
@@ -723,6 +726,7 @@
               [player]="selectedFixturePlayer()"
               [playerType]="selectedFixturePlayerType()"
               [playerState]="selectedFixturePlayerState()"
+              [planTracks]="selectedFixtureTracks()"
               [disabled]="playerControlsDisabled()"
               (commandRequested)="onPlayerCommand($event)"
             />
@@ -829,7 +833,7 @@
             />
           </p-tabpanel>
           <p-tabpanel value="docs">
-            <app-fixture-docs [fixtureName]="selectedFixtureName()" />
+            <app-fixture-docs [fixtureName]="fixtureModalTab() === 'docs' ? selectedFixtureName() : null" />
           </p-tabpanel>
         </p-tabpanels>
       </p-tabs>

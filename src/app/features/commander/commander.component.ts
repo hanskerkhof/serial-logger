@@ -130,10 +130,15 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionLoading = signal(false);
   protected readonly fixtureActionResult = signal<FixturePlanActionResponse | null>(null);
   protected readonly fixtureActionMessage = signal<string | null>(null);
+  protected readonly fixtureActionPastableCommand = computed(() =>
+    this.extractPastableWireCommand(this.fixtureActionMessage()),
+  );
   protected readonly fixtureActionTone = signal<FixtureModalFeedbackTone>('info');
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   protected readonly rebootConfirmPending = signal(false);
   protected readonly fixtureAckEnabled = signal(false);
+  protected readonly fixtureModalTab = signal<string>('status');
+  protected readonly selectedFixtureTracks = signal<{ index: number; name: string; duration_ms: number }[] | null>(null);
   protected readonly rssiSessionLoading = signal(false);
   protected readonly rssiSessionCountdown = signal<number | null>(null);
   private rssiSessionTimer: ReturnType<typeof setInterval> | null = null;
@@ -634,13 +639,18 @@ export class CommanderComponent implements OnInit {
     return (raw as CmdrFixtureConfigUi | null | undefined) ?? null;
   });
 
-  protected readonly selectedFixturePlayerState = computed<{ volume?: number; eq?: number } | null>(() => {
+  protected readonly selectedFixturePlayerState = computed<{
+    volume?: number; eq?: number; trackIndex?: number; playerStatus?: string;
+  } | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     const s = ps?.['state'] as Record<string, unknown> | null | undefined;
     if (!s) return null;
     const volume = typeof s['volume'] === 'number' ? (s['volume'] as number) : undefined;
     const eq = typeof s['eq'] === 'number' ? (s['eq'] as number) : undefined;
-    return volume !== undefined || eq !== undefined ? { volume, eq } : null;
+    const trackIndex = typeof s['track_index'] === 'number' ? (s['track_index'] as number) : undefined;
+    const playerStatus = typeof s['player_status'] === 'string' ? (s['player_status'] as string) : undefined;
+    if (volume === undefined && eq === undefined && trackIndex === undefined && playerStatus === undefined) return null;
+    return { volume, eq, trackIndex, playerStatus };
   });
 
   protected readonly selectedFixtureRelayStates = computed<CmdrRelayStateItem[] | null>(() => {
@@ -1325,6 +1335,8 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionTone.set('info');
     this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
+    this.selectedFixtureTracks.set(null);
+    this.fixtureModalTab.set('status');
   }
 
   protected rebootFixture(): void {
@@ -1367,6 +1379,18 @@ export class CommanderComponent implements OnInit {
           : `Query complete for ${fixture}`;
         this.setFixtureModalFeedback(message, 'success', durationMs);
         onComplete?.(result);
+        // Load player tracks only when the fixture has an attached player.
+        // Use selectedFixturePlayer() — ingestQueryResult above already updated the store.
+        const playerAttached = this.selectedFixturePlayer()?.attached === true;
+        const planName = result.plan_name ?? this.selectedFixture()?.plan_name ?? null;
+        if (playerAttached && planName) {
+          this.commanderApi.getPlanPlayerTracks(planName).subscribe({
+            next: (data) => this.selectedFixtureTracks.set(data.tracks),
+            error: () => this.selectedFixtureTracks.set(null),
+          });
+        } else {
+          this.selectedFixtureTracks.set(null);
+        }
       },
       error: (err: unknown) => {
         this.modalQuerySub = null;
@@ -1863,6 +1887,21 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionMessage.set(message);
     this.fixtureActionTone.set(tone);
     this.fixtureActionDurationMs.set(durationMs);
+  }
+
+  private extractPastableWireCommand(message: string | null): string | null {
+    if (!message) return null;
+    const colonIndex = message.indexOf(':');
+    if (colonIndex < 0) return null;
+    const candidate = message.slice(colonIndex + 1).trim();
+    if (!candidate.startsWith('tcmd;') && !candidate.startsWith('ack;tcmd;')) return null;
+
+    // Remove generated request ids so copied commands are manually reusable.
+    let cleaned = candidate.replace(/(^|;)rid=[^;]*(?=;|$)/g, '$1');
+    cleaned = cleaned.replace(/;;+/g, ';').replace(/^;/, '').trim();
+    cleaned = cleaned.replace(/;+$/, '');
+
+    return cleaned || null;
   }
 
   private buildInitialCustomCommandValues(

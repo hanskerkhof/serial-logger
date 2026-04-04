@@ -79,45 +79,65 @@ export class CommanderApiService {
 
   readonly apiBaseUrl = signal<string>(this.getInitialApiBaseUrl());
 
+  private getRequestBaseUrl(explicitBaseUrl?: string): string {
+    const rawBaseUrl = explicitBaseUrl ?? this.apiBaseUrl();
+    if (typeof window === 'undefined' || window.location.protocol !== 'https:') return rawBaseUrl;
+
+    try {
+      const parsed = new URL(rawBaseUrl);
+      if (parsed.protocol === 'http:') parsed.protocol = 'https:';
+      const pathname = parsed.pathname.replace(/\/+$/, '');
+      return `${parsed.protocol}//${parsed.host}${pathname}`;
+    } catch {
+      return rawBaseUrl;
+    }
+  }
+
   getHealth(): Observable<CmdrHealthResponse> {
-    return this.http.get<CmdrHealthResponse>(`${this.apiBaseUrl()}/health`);
+    return this.http.get<CmdrHealthResponse>(`${this.getRequestBaseUrl()}/health`);
   }
 
   /** Open the /health/ws WebSocket. HealthPollService owns the lifetime. */
   openHealthWebSocket(): WebSocket {
-    const base = this.apiBaseUrl().replace(/^http/, 'ws');
+    const base = this.getRequestBaseUrl().replace(/^http/i, 'ws');
     return new WebSocket(`${base}/health/ws`);
   }
 
   getFixtureVersion(fixtureName: string): Observable<CmdrVersionsResponse> {
     return this.http.get<CmdrVersionsResponse>(
-      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/version`,
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/version`,
     );
   }
 
   getFixtureDiscovery(listenSeconds = 60): Observable<CmdrDiscoveryResponse> {
     return this.http.get<CmdrDiscoveryResponse>(
-      `${this.apiBaseUrl()}/fixtures/discovery?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
+      `${this.getRequestBaseUrl()}/fixtures/discovery?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
     );
   }
 
   getPlanVersions(planName: string): Observable<CmdrVersionsResponse> {
     return this.http.get<CmdrVersionsResponse>(
-      `${this.apiBaseUrl()}/plans/${encodeURIComponent(planName)}/versions`,
+      `${this.getRequestBaseUrl()}/plans/${encodeURIComponent(planName)}/versions`,
     );
   }
 
   getExposedPlans(): Observable<CmdrPlansResponse> {
-    return this.http.get<CmdrPlansResponse>(`${this.apiBaseUrl()}/plans`);
+    return this.http.get<CmdrPlansResponse>(`${this.getRequestBaseUrl()}/plans`);
   }
 
   getLanGroups(): Observable<CmdrPlanGroupsResponse> {
-    return this.http.get<CmdrPlanGroupsResponse>(`${this.apiBaseUrl()}/plan-groups`);
+    return this.http.get<CmdrPlanGroupsResponse>(`${this.getRequestBaseUrl()}/plan-groups`);
   }
 
   getPlanGroupVersions(planGroup: string): Observable<CmdrVersionsResponse> {
     return this.http.get<CmdrVersionsResponse>(
-      `${this.apiBaseUrl()}/plan-groups/${encodeURIComponent(planGroup)}/versions`,
+      `${this.getRequestBaseUrl()}/plan-groups/${encodeURIComponent(planGroup)}/versions`,
+    );
+  }
+
+  getPlanPlayerTracks(planName: string): Observable<{ plan_name: string; tracks: { index: number; name: string; duration_ms: number }[] }> {
+    return this.http.get<{ plan_name: string; tracks: { index: number; name: string; duration_ms: number }[] }>(
+      `${this.getRequestBaseUrl()}/plans/${encodeURIComponent(planName)}/player/tracks`,
     );
   }
 
@@ -126,14 +146,14 @@ export class CommanderApiService {
     command: string,
   ): Observable<CmdrFixtureCommandResponse> {
     return this.http.post<CmdrFixtureCommandResponse>(
-      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/cmd`,
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/cmd`,
       { command },
     );
   }
 
   postOtaUpdate(fixtureName: string): Observable<{ ok: boolean; fixture_name: string; status: string }> {
     return this.http.post<{ ok: boolean; fixture_name: string; status: string }>(
-      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/ota-update`,
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/ota-update`,
       {},
     );
   }
@@ -143,13 +163,13 @@ export class CommanderApiService {
     durationMs = 60000,
   ): Observable<CmdrFixtureCommandResponse> {
     return this.http.post<CmdrFixtureCommandResponse>(
-      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/rssi-session?duration_ms=${durationMs}`,
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/rssi-session?duration_ms=${durationMs}`,
       {},
     );
   }
 
   postRawCommand(command: string, listenSeconds = 3.0): Observable<CmdrRawResponse> {
-    return this.http.post<CmdrRawResponse>(`${this.apiBaseUrl()}/commander/raw`, {
+    return this.http.post<CmdrRawResponse>(`${this.getRequestBaseUrl()}/commander/raw`, {
       command,
       listen_seconds: listenSeconds,
     });
@@ -157,19 +177,19 @@ export class CommanderApiService {
 
   getReleaseNotes(limit = 10, offset = 0): Observable<CmdrMessagesResponse> {
     return this.http.get<CmdrMessagesResponse>(
-      `${this.apiBaseUrl()}/messages/release-notes?limit=${limit}&offset=${offset}`,
+      `${this.getRequestBaseUrl()}/messages/release-notes?limit=${limit}&offset=${offset}`,
     );
   }
 
   getFixtureDocs(fixtureName: string): Observable<CmdrFixtureDocsListResponse> {
     return this.http.get<CmdrFixtureDocsListResponse>(
-      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs`,
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs`,
     );
   }
 
   getFixtureDocContent(fixtureName: string, filename: string): Observable<string> {
     return this.http.get(
-      `${this.apiBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs/${encodeURIComponent(filename)}`,
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs/${encodeURIComponent(filename)}`,
       { responseType: 'text' },
     );
   }
@@ -178,7 +198,7 @@ export class CommanderApiService {
     apiBaseUrl: string,
     handlers: CommanderStreamHandlers,
   ): () => void {
-    const source = new EventSource(`${apiBaseUrl}/commander/stream`);
+    const source = new EventSource(`${this.getRequestBaseUrl(apiBaseUrl)}/commander/stream`);
 
     const handleMessage = (event: MessageEvent, forcedType?: string) => {
       try {

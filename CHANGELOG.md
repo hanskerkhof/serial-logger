@@ -5,11 +5,15 @@
 ### Added
 - **Confirmation dialog for custom commands**: `CUSTOM_COMMAND_UI` items with a `confirm` field now show a Yes/No `p-dialog` before sending the command. Generic — any fixture command can opt in by setting `confirm` in `fixture_data.py`. "No" cancels silently; "Yes" sends the command. First use: TRIPTYCH_RM "Reset to defaults".
 - **`CopyToClipboardComponent`** (`src/app/shared/copy-to-clipboard/`): generic reusable component. Renders a small clipboard icon button; on click copies `[value]` to the clipboard and briefly shows a green check icon for 1.5 s. Used in the fixture dialog header to copy the fixture name.
+- **Fixture Docs tab controls**: added a PrimeNG-styled refresh icon button that re-fetches the docs list from backend on demand.
+- **Fixture Docs tab mermaid rendering**: markdown docs can now render fenced Mermaid schematics in-place.
 
 ### Fixed
 - **Fixture dialog — Docs tab**: third tab in the fixture modal showing plan documentation. Left panel lists available files; right panel renders the selected file. Markdown files are rendered via `ngx-markdown`; images (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`) are displayed inline.
 - **Feature flag `FIXTURE_DETAIL_DRAWER`** (`src/app/feature-flags.ts`, default `true`): when enabled, the fixture detail renders as a full-screen PrimeNG Drawer instead of a centred Dialog. Set to `false` to restore the previous dialog layout.
 - **Fixture dialog — Fixture navigator**: fixture name area in the dialog header replaced with `‹ name ›` navigation. Chevron buttons cycle prev/next through the fixture list (wraps around). Fixture name is a PrimeNG `p-select` grouped by plan group, with filter input and a clear (×) icon when text is entered. Dropdown shows ~9 items; group headers are styled small/uppercase matching the sidebar. Pinned bookmark icon and firmware version badge remain inline.
+- **Fixture Docs tab error handling**: missing/removed docs now show a graceful warning state (including broken image handling) with a one-click "Refresh docs list" recovery action.
+- **Fixture Docs layout scrolling**: docs file list is pinned (non-scrolling), and only the rendered document pane scrolls.
 
 ## 0.7.8 - 2026-03-31
 

@@ -1,7 +1,27 @@
+<div class="fixture-docs__toolbar">
+  <span class="fixture-docs__toolbar-label">Documentation</span>
+  <button
+    pButton
+    type="button"
+    class="fixture-docs__refresh"
+    [text]="true"
+    [rounded]="true"
+    severity="secondary"
+    [icon]="loading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"
+    (click)="refreshDocs()"
+    [disabled]="loading()"
+    aria-label="Refresh documentation list"
+    title="Refresh documentation list"
+  ></button>
+</div>
+
 @if (loading()) {
-  <p class="fixture-docs__status">Loading…</p>
+  <p class="fixture-docs__status">Refreshing docs…</p>
 } @else if (docs().length === 0) {
-  <p class="fixture-docs__empty">No documentation available for this fixture.</p>
+  <div class="fixture-docs__empty-state">
+    <i class="pi pi-file"></i>
+    <p class="fixture-docs__empty">No documentation files found for this fixture yet.</p>
+  </div>
 } @else {
   <div class="fixture-docs__layout">
     <nav class="fixture-docs__nav" aria-label="Documentation files">
@@ -18,14 +38,21 @@
       @if (selectedDoc()) {
         <h2 class="fixture-docs__title">{{ selectedDoc() }}</h2>
       }
-      @if (isImage()) {
+
+      @if (contentLoading()) {
+        <p class="fixture-docs__status">Loading document…</p>
+      } @else if (contentError()) {
+        <div class="fixture-docs__error">
+          <i class="pi pi-exclamation-triangle"></i>
+          <p>{{ contentError() }}</p>
+          <button type="button" class="fixture-docs__error-action" (click)="refreshDocs()">Refresh docs list</button>
+        </div>
+      } @else if (isImage()) {
         @if (docImageUrl(); as imgUrl) {
-          <img [src]="imgUrl" [alt]="selectedDoc()!" class="fixture-docs__image" />
+          <img [src]="imgUrl" [alt]="selectedDoc()!" class="fixture-docs__image" (error)="onImageLoadError()" />
         }
-      } @else if (contentLoading()) {
-        <p class="fixture-docs__status">Loading…</p>
       } @else if (docContent()) {
-        <markdown [data]="docContent()!" class="fixture-docs__markdown" />
+        <markdown [mermaid]="mermaidReady()" [data]="docContent()!" class="fixture-docs__markdown" />
       }
     </div>
   </div>

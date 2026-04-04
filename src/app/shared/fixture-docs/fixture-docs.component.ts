@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MarkdownComponent } from 'ngx-markdown';
+import { ButtonModule } from 'primeng/button';
 import { CommanderApiService } from '../../commander-api.service';
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
@@ -7,7 +9,7 @@ const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.sv
 @Component({
   selector: 'app-fixture-docs',
   standalone: true,
-  imports: [MarkdownComponent],
+  imports: [MarkdownComponent, ButtonModule],
   templateUrl: './fixture-docs.component.html',
   styleUrl: './fixture-docs.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +24,8 @@ export class FixtureDocsComponent {
   readonly docs = signal<string[]>([]);
   readonly selectedDoc = signal<string | null>(null);
   readonly docContent = signal<string | null>(null);
+  readonly mermaidReady = signal(false);
+  readonly contentError = signal<string | null>(null);
 
   readonly isImage = computed(() => {
     const doc = this.selectedDoc();
@@ -38,31 +42,70 @@ export class FixtureDocsComponent {
   });
 
   constructor() {
+    void this.ensureMermaidLoaded();
+
     effect(() => {
       const name = this.fixtureName();
       this.docs.set([]);
       this.selectedDoc.set(null);
       this.docContent.set(null);
+      this.contentError.set(null);
       if (name) {
-        this.loadDocs(name);
+        this.loadDocs(name, null);
       }
     });
   }
 
-  private loadDocs(fixtureName: string): void {
+  private async ensureMermaidLoaded(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    const globalWindow = window as Window & { mermaid?: { initialize?: (...args: unknown[]) => void } };
+    if (globalWindow.mermaid?.initialize) {
+      this.mermaidReady.set(true);
+      return;
+    }
+    try {
+      const module = await import('mermaid');
+      const mermaid = (module as { default?: unknown }).default ?? module;
+      (globalWindow as Window & { mermaid?: unknown }).mermaid = mermaid;
+      this.mermaidReady.set(true);
+    } catch {
+      this.mermaidReady.set(false);
+    }
+  }
+
+  private loadDocs(fixtureName: string, preferredDoc: string | null): void {
     this.loading.set(true);
+    this.contentError.set(null);
     this.api.getFixtureDocs(fixtureName).subscribe({
       next: (res) => {
         this.loading.set(false);
-        this.docs.set(res.docs ?? []);
-        if (res.docs?.length) {
-          this.selectDoc(res.docs[0]);
+        const docs = res.docs ?? [];
+        this.docs.set(docs);
+
+        const nextDoc = preferredDoc && docs.includes(preferredDoc) ? preferredDoc : (docs[0] ?? null);
+        if (nextDoc) {
+          this.selectDoc(nextDoc);
+        } else {
+          this.selectedDoc.set(null);
+          this.docContent.set(null);
+          this.contentLoading.set(false);
         }
       },
       error: () => {
         this.loading.set(false);
+        this.docs.set([]);
+        this.selectedDoc.set(null);
+        this.docContent.set(null);
+        this.contentLoading.set(false);
+        this.contentError.set('Could not refresh documentation list from the backend.');
       },
     });
+  }
+
+  refreshDocs(): void {
+    const name = this.fixtureName();
+    if (!name) return;
+    this.loadDocs(name, this.selectedDoc());
   }
 
   selectDoc(filename: string): void {
@@ -70,6 +113,7 @@ export class FixtureDocsComponent {
     if (!name) return;
     this.selectedDoc.set(filename);
     this.docContent.set(null);
+    this.contentError.set(null);
 
     const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
     if (IMAGE_EXTENSIONS.has(ext)) {
@@ -81,12 +125,32 @@ export class FixtureDocsComponent {
     this.api.getFixtureDocContent(name, filename).subscribe({
       next: (content) => {
         this.contentLoading.set(false);
+        this.contentError.set(null);
+        if (ext === '.mmd') {
+          const mermaidMarkdown = ['```mermaid', content.trim(), '```'].join('\n');
+          this.docContent.set(mermaidMarkdown);
+          return;
+        }
         this.docContent.set(content);
       },
-      error: () => {
+      error: (error: unknown) => {
         this.contentLoading.set(false);
-        this.docContent.set('_Failed to load document._');
+        this.docContent.set(null);
+        this.contentError.set(this.describeDocError(error));
       },
     });
+  }
+
+  onImageLoadError(): void {
+    this.contentError.set(
+      'This image could not be loaded. It may have been removed or renamed. Use refresh to fetch the latest docs list.',
+    );
+  }
+
+  private describeDocError(error: unknown): string {
+    if (error instanceof HttpErrorResponse && error.status === 404) {
+      return 'This document was not found. It may have been removed or renamed. Use refresh to update the list.';
+    }
+    return 'Could not load this document from the backend. Please try refreshing the docs list.';
   }
 }

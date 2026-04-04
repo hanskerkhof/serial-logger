@@ -9,10 +9,42 @@
     padding: 0.5rem 0;
   }
 
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  &__toolbar-label {
+    font-size: 0.8rem;
+    color: var(--p-text-muted-color);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+
+  &__refresh {
+    width: 2rem;
+    height: 2rem;
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+
   &__empty {
     color: var(--p-text-muted-color);
     font-size: 0.875rem;
     padding: 1rem 0;
+  }
+
+  &__empty-state {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--p-text-muted-color);
   }
 
   &__layout {
@@ -20,16 +52,21 @@
     gap: 1rem;
     height: 100%;
     min-height: 0;
+    overflow: hidden;
   }
 
   &__nav {
     flex: 0 0 160px;
+    align-self: flex-start;
+    position: sticky;
+    top: 0;
+    height: 100%;
     display: flex;
     flex-direction: column;
     gap: 2px;
     padding-right: 0.75rem;
     border-right: 1px solid var(--p-content-border-color);
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   &__nav-item {
@@ -66,6 +103,7 @@
 
   &__content {
     flex: 1 1 0;
+    height: 100%;
     overflow-y: auto;
     min-width: 0;
   }
@@ -86,6 +124,41 @@
     margin: 0 0 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--p-content-border-color);
+  }
+
+  &__error {
+    border: 1px solid color-mix(in srgb, var(--p-orange-500) 35%, var(--p-content-border-color));
+    background: color-mix(in srgb, var(--p-orange-100) 45%, var(--p-content-background));
+    border-radius: 8px;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    :global(.pi) {
+      color: var(--p-orange-600);
+    }
+
+    p {
+      margin: 0;
+      color: var(--p-text-color);
+      flex: 1 1 300px;
+    }
+  }
+
+  &__error-action {
+    border: 1px solid var(--p-content-border-color);
+    background: var(--p-content-background);
+    color: var(--p-text-color);
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--p-content-hover-background);
+    }
   }
 
   &__markdown {
@@ -123,6 +196,17 @@
     :global(pre code) {
       background: none;
       padding: 0;
+    }
+
+    :global(.mermaid) {
+      overflow-x: auto;
+      margin: 0.6rem 0;
+    }
+
+    :global(.mermaid svg) {
+      max-width: 100%;
+      height: auto;
+      display: block;
     }
 
     :global(table) {

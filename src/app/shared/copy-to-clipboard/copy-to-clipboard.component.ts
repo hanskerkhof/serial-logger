@@ -23,7 +23,7 @@ export class CopyToClipboardComponent implements OnDestroy {
       this.hideTimer = setTimeout(() => {
         this.copied.set(false);
         this.hideTimer = null;
-      }, 1500);
+      }, 2000);
     });
   }
 

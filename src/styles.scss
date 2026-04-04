@@ -42,6 +42,16 @@ h6 {
   line-height: 1.2;
 }
 
+// Restore heading margins inside markdown content areas.
+// The global reset above is intentional for UI chrome (toolbar, cards, etc.)
+// but markdown prose needs natural vertical rhythm.
+.fixture-docs__markdown {
+  h1, h2, h3, h4, h5, h6 {
+    margin: 1rem 0 0.4rem;
+    line-height: 1.4;
+  }
+}
+
 p,
 ul,
 ol,

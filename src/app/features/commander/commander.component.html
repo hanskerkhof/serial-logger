@@ -833,7 +833,10 @@
             />
           </p-tabpanel>
           <p-tabpanel value="docs">
-            <app-fixture-docs [fixtureName]="fixtureModalTab() === 'docs' ? selectedFixtureName() : null" />
+            <app-fixture-docs
+              [fixtureName]="fixtureModalTab() === 'docs' ? selectedFixtureName() : null"
+              [reloadKey]="selectedFixtureDocsReloadKey()"
+            />
           </p-tabpanel>
         </p-tabpanels>
       </p-tabs>

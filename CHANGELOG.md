@@ -3,6 +3,16 @@
 ## Unreleased
 _No unreleased changes._
 
+## 0.9.5 - 2026-04-04
+
+### Changed
+- Fixture query refresh behavior now reloads docs and plan tracks in both key flows:
+  - `Run query` inside the fixture dialog (`runModalFixtureQuery`)
+  - sidebar fixture reload button (`commander__reload-btn` -> `runFixtureQuery`)
+- OTA success flow now auto-runs a fixture query after the `Firmware updated` toast for the updated fixture, including tracks/docs refresh. For the currently selected fixture this uses modal query; for non-selected fixtures it runs in the background and updates cache/store.
+- Docs component now supports external refresh triggering via a per-fixture reload key, so query-driven refreshes update docs list/content without requiring a manual docs refresh click.
+- FE version bumped to `0.9.5` and Studio deploy artifacts refreshed.
+
 ## 0.9.4 - 2026-04-04
 
 ### Added

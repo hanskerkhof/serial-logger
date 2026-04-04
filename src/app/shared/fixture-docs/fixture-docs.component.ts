@@ -18,6 +18,7 @@ export class FixtureDocsComponent {
   private readonly api = inject(CommanderApiService);
 
   readonly fixtureName = input<string | null>(null);
+  readonly reloadKey = input<number>(0);
 
   readonly loading = signal(false);
   readonly contentLoading = signal(false);
@@ -46,13 +47,15 @@ export class FixtureDocsComponent {
 
     effect(() => {
       const name = this.fixtureName();
-      this.docs.set([]);
-      this.selectedDoc.set(null);
-      this.docContent.set(null);
-      this.contentError.set(null);
-      if (name) {
-        this.loadDocs(name, null);
+      this.reloadKey(); // tracked dependency: re-fetch docs when parent bumps reload key
+      if (!name) {
+        this.docs.set([]);
+        this.selectedDoc.set(null);
+        this.docContent.set(null);
+        this.contentError.set(null);
+        return;
       }
+      this.loadDocs(name, this.selectedDoc());
     });
   }
 

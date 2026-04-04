@@ -140,10 +140,17 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureModalTab = signal<string>('status');
   /** Tracks cached per plan name — persists across modal opens within the session. */
   private readonly planTracksCache = signal<Map<string, { index: number; name: string; duration_ms: number }[]>>(new Map());
+  /** Per-fixture docs reload key; bumping a key tells FixtureDocsComponent to re-fetch docs list/content. */
+  private readonly docsReloadKeyByFixture = signal<Map<string, number>>(new Map());
   /** Tracks for the currently selected fixture's plan, null when not yet loaded. */
   protected readonly selectedFixtureTracks = computed(() => {
     const planName = this.selectedFixture()?.plan_name ?? null;
     return planName ? (this.planTracksCache().get(planName) ?? null) : null;
+  });
+  protected readonly selectedFixtureDocsReloadKey = computed(() => {
+    const fixtureName = this.selectedFixtureName();
+    if (!fixtureName) return 0;
+    return this.docsReloadKeyByFixture().get(fixtureName) ?? 0;
   });
   protected readonly rssiSessionLoading = signal(false);
   protected readonly rssiSessionCountdown = signal<number | null>(null);
@@ -809,7 +816,9 @@ export class CommanderComponent implements OnInit {
     });
     if (this.selectedFixtureName() === event.fixture_name) {
       this.runModalFixtureQuery();
+      return;
     }
+    this.queryFixtureByName(event.fixture_name);
   }
 
   protected onOtaError(event: { fixture_name: string; message?: string }): void {
@@ -966,6 +975,7 @@ export class CommanderComponent implements OnInit {
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'fixture_query');
+        this.refreshTracksAndDocsAfterQuery(fixture, result);
         const durationS = (performance.now() - startedAt) / 1000;
         this.fixtureQueryLoading.set(false);
         this.sidebarRefreshingFixture.set(null);
@@ -1336,8 +1346,8 @@ export class CommanderComponent implements OnInit {
     }
   }
 
-  private loadTracksForPlan(planName: string): void {
-    if (this.planTracksCache().has(planName)) return;
+  private loadTracksForPlan(planName: string, forceRefresh = false): void {
+    if (!forceRefresh && this.planTracksCache().has(planName)) return;
     this.commanderApi.getPlanPlayerTracks(planName).subscribe({
       next: (data) => {
         this.planTracksCache.update(cache => new Map(cache).set(planName, data.tracks));
@@ -1399,12 +1409,7 @@ export class CommanderComponent implements OnInit {
           : `Query complete for ${fixture}`;
         this.setFixtureModalFeedback(message, 'success', durationMs);
         onComplete?.(result);
-        // Load player tracks if the fixture has an attached player and tracks aren't cached yet.
-        // Use selectedFixturePlayer() — ingestQueryResult above already updated the store.
-        const planName = result.plan_name ?? this.selectedFixture()?.plan_name ?? null;
-        if (this.selectedFixturePlayer()?.attached === true && planName) {
-          this.loadTracksForPlan(planName);
-        }
+        this.refreshTracksAndDocsAfterQuery(fixture, result);
       },
       error: (err: unknown) => {
         this.modalQuerySub = null;
@@ -1413,6 +1418,50 @@ export class CommanderComponent implements OnInit {
         this.modalQueryError.set(compact);
         this.modalQueryLoading.set(false);
       },
+    });
+  }
+
+  private refreshTracksAndDocsAfterQuery(requestedFixtureName: string, result: CmdrVersionsResponse): void {
+    const fixture = this.fixtureStore.fixturesByName()[requestedFixtureName];
+    const planName = result.plan_name ?? fixture?.plan_name ?? null;
+    const playerAttached = (fixture?.raw['capabilities'] as { player?: { attached?: boolean } } | undefined)?.player?.attached === true;
+
+    if (playerAttached && planName) {
+      // Explicit query refresh should re-fetch tracks even if this plan is already cached.
+      this.loadTracksForPlan(planName, true);
+    }
+
+    this.prefetchFixtureDocs(requestedFixtureName);
+  }
+
+  private queryFixtureByName(fixtureName: string): void {
+    this.commanderApi.getFixtureVersion(fixtureName).subscribe({
+      next: (result) => {
+        this.queryResult.set(result);
+        this.ingestQueryResult(result, 'fixture_query', fixtureName);
+        this.refreshTracksAndDocsAfterQuery(fixtureName, result);
+      },
+      error: (err: unknown) => {
+        console.warn('[cmdr][queryFixtureByName] fixture query failed', { fixtureName, err });
+      },
+    });
+  }
+
+  private prefetchFixtureDocs(fixtureName: string): void {
+    this.commanderApi.getFixtureDocs(fixtureName).subscribe({
+      next: () => {
+        this.bumpDocsReloadKey(fixtureName);
+      },
+      error: () => {},
+    });
+  }
+
+  private bumpDocsReloadKey(fixtureName: string): void {
+    this.docsReloadKeyByFixture.update((current) => {
+      const next = new Map(current);
+      const prev = next.get(fixtureName) ?? 0;
+      next.set(fixtureName, prev + 1);
+      return next;
     });
   }
 

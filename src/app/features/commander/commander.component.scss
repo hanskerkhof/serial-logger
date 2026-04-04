@@ -403,6 +403,13 @@
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0; // required so the body can shrink within the modal flex column
+
+  p-tablist {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--p-dialog-background, var(--p-surface-0));
+  }
 }
 
 .commander__dialog-footer {

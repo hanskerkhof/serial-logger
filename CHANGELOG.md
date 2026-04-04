@@ -9,10 +9,12 @@ _No unreleased changes._
 - Header QR scanner action (`pi pi-qrcode`) opens a dedicated demo dialog with live camera preview and decoded QR value output.
 - QR scanner demo component based on `qr-scanner` library (`src/app/shared/qr-scanner-demo/`), including startup/error states and decoded-value display.
 - `mobile-web-app-capable` meta tag added in `src/index.html` alongside Apple mobile-web-app tags.
+- Player controls now include a copy-to-clipboard action next to the track selector, copying the selected track name.
 
 ### Changed
 - Player-track lists are now cached per plan in Commander (`planTracksCache`) so reopening fixture dialogs does not re-fetch track catalogs for already-seen plans.
 - Track catalogs are now preloaded on fixture dialog open when player capability is already known as attached.
+- QR scanner modal sizing/layout was tuned so camera preview uses the available dialog space consistently.
 - FE version bumped to `0.9.4` and deploy metadata refreshed (`build-info.ts`, service-worker appData, deployed bundle artifacts).
 
 ### Carried from prior Unreleased work

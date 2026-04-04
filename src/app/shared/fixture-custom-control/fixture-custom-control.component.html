@@ -1,3 +1,19 @@
+@if (pendingConfirmCommand(); as confirmCmd) {
+  <p-dialog
+    [visible]="true"
+    [modal]="true"
+    [closable]="false"
+    [header]="confirmCmd.label"
+    [style]="{ width: '22rem' }"
+    appendTo="body"
+  >
+    <p>{{ confirmCmd.confirm }}</p>
+    <ng-template pTemplate="footer">
+      <button pButton type="button" label="No" severity="secondary" size="small" (click)="onConfirmNo()"></button>
+      <button pButton type="button" label="Yes" severity="danger" size="small" (click)="onConfirmYes()"></button>
+    </ng-template>
+  </p-dialog>
+}
 @if (commands().length > 0) {
   <section class="fixture-custom-control" aria-label="Custom commands">
     <h4 class="fixture-custom-control__title">Custom Commands</h4>

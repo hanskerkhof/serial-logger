@@ -674,6 +674,8 @@ export interface components {
         CustomCommandUiItem: {
             /** Args */
             args?: components["schemas"]["CustomCommandUiArg"][];
+            /** Confirm */
+            confirm?: string | null;
             /** Group */
             group?: string | null;
             /** Id */

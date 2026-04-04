@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **Confirmation dialog for custom commands**: `CUSTOM_COMMAND_UI` items with a `confirm` field now show a Yes/No `p-dialog` before sending the command. Generic — any fixture command can opt in by setting `confirm` in `fixture_data.py`. "No" cancels silently; "Yes" sends the command. First use: TRIPTYCH_RM "Reset to defaults".
 - **`CopyToClipboardComponent`** (`src/app/shared/copy-to-clipboard/`): generic reusable component. Renders a small clipboard icon button; on click copies `[value]` to the clipboard and briefly shows a green check icon for 1.5 s. Used in the fixture dialog header to copy the fixture name.
 
 ### Fixed

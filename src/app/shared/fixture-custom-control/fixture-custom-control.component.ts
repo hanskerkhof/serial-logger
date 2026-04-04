@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
@@ -6,6 +6,7 @@ import { SelectModule } from 'primeng/select';
 import { SliderModule } from 'primeng/slider';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ColorPickerModule } from 'primeng/colorpicker';
+import { DialogModule } from 'primeng/dialog';
 import { CmdrCustomCommandUiArg, CmdrCustomCommandUiItem } from '../../api/cmdr-models';
 
 export type FixtureCustomControlValue = string | number | boolean;
@@ -60,6 +61,7 @@ interface SharedRgbArgRef {
     SliderModule,
     CheckboxModule,
     ColorPickerModule,
+    DialogModule,
   ],
   templateUrl: './fixture-custom-control.component.html',
   styleUrl: './fixture-custom-control.component.scss',
@@ -71,6 +73,8 @@ export class FixtureCustomControlComponent {
   readonly loading = input(false);
   readonly disabled = input(false);
   protected readonly controlsDisabled = computed(() => this.loading() || this.disabled());
+
+  protected readonly pendingConfirmCommand = signal<CmdrCustomCommandUiItem | null>(null);
 
   readonly argChanged = output<FixtureCustomArgChangedEvent>();
   readonly commandRunRequested = output<CmdrCustomCommandUiItem>();
@@ -246,7 +250,23 @@ export class FixtureCustomControlComponent {
   }
 
   protected onRunCommand(command: CmdrCustomCommandUiItem): void {
-    this.commandRunRequested.emit(command);
+    if (command.confirm) {
+      this.pendingConfirmCommand.set(command);
+    } else {
+      this.commandRunRequested.emit(command);
+    }
+  }
+
+  protected onConfirmYes(): void {
+    const command = this.pendingConfirmCommand();
+    this.pendingConfirmCommand.set(null);
+    if (command) {
+      this.commandRunRequested.emit(command);
+    }
+  }
+
+  protected onConfirmNo(): void {
+    this.pendingConfirmCommand.set(null);
   }
 
   protected numberInputWidthCh(arg: CmdrCustomCommandUiArg): number {

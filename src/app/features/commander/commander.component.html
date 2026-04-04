@@ -561,7 +561,7 @@
                   icon="pi pi-download"
                   iconPos="left"
                   [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
-                  [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable()"
+                  [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
                   (click)="startOtaUpdate(selectedFixtureName()!)"
                   class="commander__dialog-fw-update-btn"
                 ></button>

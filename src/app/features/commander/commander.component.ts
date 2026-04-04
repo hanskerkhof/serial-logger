@@ -212,6 +212,10 @@ export class CommanderComponent implements OnInit {
     () => this.health()?.commander?.['serial_hold_active'] === true &&
           this.health()?.commander?.['serial_hold_reason'] === 'manual_release',
   );
+  /** True when the API reports the serial port is held for any reason. */
+  protected readonly serialHoldActive = computed(
+    () => this.health()?.commander?.['serial_hold_active'] === true,
+  );
   /** True only when the API reports it can compile firmware (macOS only). Gates the OTA Update button. */
   protected readonly compileSupported = computed(() => this.health()?.compile_supported === true);
   protected readonly heartbeatState = computed<'healthy' | 'degraded' | 'offline'>(() => {

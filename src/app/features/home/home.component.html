@@ -4,9 +4,26 @@
     <p class="home__subtitle">Fixture control &amp; monitoring</p>
     <div class="home__divider"></div>
     <p class="home__message">Sign in to access the studio.</p>
-    <button class="home__login-btn" type="button" (click)="authService.login()">
-      <i class="pi pi-sign-in"></i>
-      Sign in
-    </button>
+
+    @if (authService.authMode() === 'lwl') {
+      <div class="home__form">
+        <label class="home__label" for="lwl-username">Username</label>
+        <input id="lwl-username" class="home__input" [(ngModel)]="username" autocomplete="username" />
+        <label class="home__label" for="lwl-password">Password</label>
+        <input id="lwl-password" class="home__input" type="password" [(ngModel)]="password" autocomplete="current-password" />
+      </div>
+      @if (loginError) {
+        <p class="home__error">{{ loginError }}</p>
+      }
+      <button class="home__login-btn" type="button" [disabled]="isSubmitting" (click)="onLoginClick()">
+        <i class="pi pi-sign-in"></i>
+        {{ isSubmitting ? 'Signing in...' : 'Sign in (LWL)' }}
+      </button>
+    } @else {
+      <button class="home__login-btn" type="button" (click)="onLoginClick()">
+        <i class="pi pi-sign-in"></i>
+        Sign in
+      </button>
+    }
   </div>
 </div>

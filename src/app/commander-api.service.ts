@@ -1,7 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { OAuthService } from 'angular-oauth2-oidc';
 import type {
   CmdrHealthResponse,
   CmdrExposedPlan,
@@ -16,6 +15,7 @@ import type {
   CmdrMessagesResponse,
   CmdrFixtureDocsListResponse,
 } from './api/cmdr-models';
+import { AuthService } from './auth/auth.service';
 
 // Re-export generated-type aliases under legacy names so existing component imports are unchanged.
 export type CommanderHealthResponse       = CmdrHealthResponse;
@@ -72,7 +72,7 @@ const localhostHosts = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 @Injectable({ providedIn: 'root' })
 export class CommanderApiService {
   private readonly http = inject(HttpClient);
-  private readonly oauthService = inject(OAuthService);
+  private readonly authService = inject(AuthService);
 
   readonly targets: readonly CommanderApiTarget[] = [
     { id: 'macbook', label: 'MacBook', url: 'http://100.88.15.68:8080' },
@@ -200,7 +200,7 @@ export class CommanderApiService {
     apiBaseUrl: string,
     handlers: CommanderStreamHandlers,
   ): () => void {
-    const accessToken = this.oauthService.getAccessToken();
+    const accessToken = this.authService.accessToken;
     const streamUrl = `${this.getRequestBaseUrl(apiBaseUrl)}/commander/stream${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ''}`;
     const source = new EventSource(streamUrl);
 
@@ -280,7 +280,7 @@ export class CommanderApiService {
 
   /** Returns `?token=<encoded>` when a valid access token exists, otherwise `''`. */
   tokenQueryParam(): string {
-    const token = this.oauthService.getAccessToken();
+    const token = this.authService.accessToken;
     return token ? `?token=${encodeURIComponent(token)}` : '';
   }
 

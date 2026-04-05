@@ -727,3 +727,103 @@
   50%       { opacity: 0; }
 }
 
+// ── Info tab ────────────────────────────────────────────────────────────────
+
+.commander__info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.75rem 2.5rem;
+  padding-top: 0.25rem;
+  align-items: start;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.commander__info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commander__info-section-title {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--p-text-muted-color);
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--p-surface-200);
+}
+
+.commander__info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+}
+
+.commander__info-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+
+  dt {
+    color: var(--p-text-muted-color);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  dd {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    word-break: break-all;
+  }
+
+  &--empty dd {
+    color: var(--p-text-muted-color);
+    font-style: italic;
+  }
+}
+
+.commander__info-mono {
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.commander__info-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &--ok   { background: #dcfce7; color: #166534; }
+  &--warn { background: #fef9c3; color: #854d0e; }
+  &--ahead { background: #ede9fe; color: #5b21b6; }
+
+  &--rssi-good      { background: #dcfce7; color: #166534; }
+  &--rssi-ok        { background: #d1fae5; color: #065f46; }
+  &--rssi-fair      { background: #fef9c3; color: #854d0e; }
+  &--rssi-poor      { background: #fee2e2; color: #991b1b; }
+  &--rssi-very-poor { background: #fecaca; color: #7f1d1d; }
+}
+
+.commander__info-empty {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+

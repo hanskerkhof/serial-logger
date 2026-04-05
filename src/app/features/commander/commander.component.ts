@@ -69,6 +69,7 @@ import {
   QrScannedCommandService,
   ScannedFixtureCommand,
 } from '../../shared/qr-scanner-demo/qr-scanned-command.service';
+import { DurationPipe } from '../../shared/pipes/duration.pipe';
 
 interface SelectOption {
   label: string;
@@ -92,7 +93,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -141,7 +142,7 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   protected readonly rebootConfirmPending = signal(false);
   protected readonly fixtureAckEnabled = signal(false);
-  protected readonly fixtureModalTab = signal<string>('status');
+  protected readonly fixtureModalTab = signal<string>('commands');
   /** Tracks cached per plan name — persists across modal opens within the session. */
   private readonly planTracksCache = signal<Map<string, { index: number; name: string; duration_ms: number }[]>>(new Map());
   /** Per-fixture docs reload key; bumping a key tells FixtureDocsComponent to re-fetch docs list/content. */
@@ -685,6 +686,46 @@ export class CommanderComponent implements OnInit {
     return raw as CmdrCustomCommandUiItem[];
   });
 
+  protected readonly selectedFixtureInfo = computed<{
+    identity: { fixtureName: string; planName: string; planGroup: string | null };
+    hardware: { fqbn: string | null; playerType: string | null; wifiMac: string | null };
+    firmware: { version: string | null; buildDate: string | null; buildTime: string | null; uptimeSeconds: number | null };
+    network: { universe: number | null; channel: number | null; rssiDbm: number | null; rssiQuality: string | null };
+    meta: { source: string; lastUpdatedAt: string };
+  } | null>(() => {
+    const f = this.selectedFixture();
+    if (!f) return null;
+    const r = f.raw;
+    return {
+      identity: {
+        fixtureName: f.fixture_name,
+        planName: f.plan_name,
+        planGroup: (r['plan_group'] as string | null | undefined) ?? null,
+      },
+      hardware: {
+        fqbn: (r['fqbn'] as string | null | undefined) ?? null,
+        playerType: (r['player_type'] as string | null | undefined) ?? null,
+        wifiMac: (r['wifi_mac_address'] as string | null | undefined) ?? (r['target_wifi_mac'] as string | null | undefined) ?? null,
+      },
+      firmware: {
+        version: (r['fw_version'] as string | null | undefined) ?? null,
+        buildDate: (r['build_date'] as string | null | undefined) ?? null,
+        buildTime: (r['build_time'] as string | null | undefined) ?? null,
+        uptimeSeconds: this.resolveUptimeSeconds(r),
+      },
+      network: {
+        universe: (r['universe'] as number | null | undefined) ?? null,
+        channel: (r['channel'] as number | null | undefined) ?? null,
+        rssiDbm: (r['rssi_dbm'] as number | null | undefined) ?? null,
+        rssiQuality: (r['rssi_quality'] as string | null | undefined) ?? null,
+      },
+      meta: {
+        source: f.source,
+        lastUpdatedAt: f.lastUpdatedAt,
+      },
+    };
+  });
+
   /** MAC (upper-case, colon-separated) → fixture name, built from the store. */
   protected readonly macToFixtureName = computed<Record<string, string>>(() => {
     const byName = this.fixtureStore.fixturesByName();
@@ -729,6 +770,29 @@ export class CommanderComponent implements OnInit {
   protected rssiDurationLabel(rssi: CmdrFixtureRssiReport): string {
     const ms = rssi.session_duration_ms;
     return ms ? `${Math.round(ms / 1000)}s session` : '';
+  }
+
+  /**
+   * Resolves fixture uptime as seconds from a raw fixture record.
+   * Prefers the numeric `uptime_seconds` field (single-fixture query path).
+   * Falls back to parsing the `uptime` string from the discovery path (e.g. "2918s").
+   */
+  private resolveUptimeSeconds(r: Record<string, unknown>): number | null {
+    const numeric = r['uptime_seconds'];
+    if (typeof numeric === 'number') return numeric;
+    const str = r['uptime'];
+    if (typeof str !== 'string' || !str.trim()) return null;
+    // Parse formats: "2918s", "4m 32s", "2h 10m 32s", "1d 2h 10m"
+    let total = 0;
+    const matches = str.matchAll(/(\d+)\s*([dhms])/g);
+    for (const [, n, unit] of matches) {
+      const v = parseInt(n, 10);
+      if (unit === 'd') total += v * 86400;
+      else if (unit === 'h') total += v * 3600;
+      else if (unit === 'm') total += v * 60;
+      else if (unit === 's') total += v;
+    }
+    return total > 0 ? total : null;
   }
 
   /** True when the selected fixture's FQBN is ESP8266-based (no RSSI session support). */
@@ -1375,7 +1439,7 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionTone.set('info');
     this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
-    this.fixtureModalTab.set('status');
+    this.fixtureModalTab.set('commands');
   }
 
   protected rebootFixture(): void {

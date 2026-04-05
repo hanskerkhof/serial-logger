@@ -688,16 +688,17 @@
       </section>
     </header>
     <div #dialogBody class="commander__dialog-body">
-      <p-tabs [value]="fixtureModalTab()" (valueChange)="fixtureModalTab.set($event?.toString() ?? 'status'); dialogBody.scrollTop = 0">
+      <p-tabs [value]="fixtureModalTab()" (valueChange)="fixtureModalTab.set($event?.toString() ?? 'commands'); dialogBody.scrollTop = 0">
         <p-tablist>
-          <p-tab value="status">Status</p-tab>
+          <p-tab value="commands">Commands</p-tab>
           <p-tab value="config">
             Config@if (!selectedFixtureConfig()) { <span class="commander__tab-no-data">· no data</span>}
           </p-tab>
           <p-tab value="docs">Docs</p-tab>
+          <p-tab value="info">Info</p-tab>
         </p-tablist>
         <p-tabpanels>
-          <p-tabpanel value="status">
+          <p-tabpanel value="commands">
             <app-fixture-plan-control
               [planControls]="selectedFixturePlanControls()"
               [planState]="selectedFixturePlanState()"
@@ -837,6 +838,148 @@
               [fixtureName]="fixtureModalTab() === 'docs' ? selectedFixtureName() : null"
               [reloadKey]="selectedFixtureDocsReloadKey()"
             />
+          </p-tabpanel>
+          <p-tabpanel value="info">
+            @if (selectedFixtureInfo(); as info) {
+              <div class="commander__info">
+
+                <section class="commander__info-section">
+                  <h4 class="commander__info-section-title">Identity</h4>
+                  <dl class="commander__info-list">
+                    <div class="commander__info-row">
+                      <dt>Fixture</dt>
+                      <dd>{{ info.identity.fixtureName }}</dd>
+                    </div>
+                    <div class="commander__info-row">
+                      <dt>Plan</dt>
+                      <dd>{{ info.identity.planName }}</dd>
+                    </div>
+                    @if (info.identity.planGroup) {
+                      <div class="commander__info-row">
+                        <dt>Group</dt>
+                        <dd>{{ info.identity.planGroup }}</dd>
+                      </div>
+                    }
+                  </dl>
+                </section>
+
+                <section class="commander__info-section">
+                  <h4 class="commander__info-section-title">Firmware</h4>
+                  <dl class="commander__info-list">
+                    @if (info.firmware.version) {
+                      <div class="commander__info-row">
+                        <dt>Version</dt>
+                        <dd>
+                          v{{ info.firmware.version }}
+                          @if (selectedFixtureFwStatus(); as fws) {
+                            @switch (fws.direction) {
+                              @case ('fixture-outdated') {
+                                <span class="commander__info-badge commander__info-badge--warn">outdated</span>
+                              }
+                              @case ('fixture-ahead') {
+                                <span class="commander__info-badge commander__info-badge--ahead">ahead of release</span>
+                              }
+                              @case ('up-to-date') {
+                                <span class="commander__info-badge commander__info-badge--ok">up to date</span>
+                              }
+                            }
+                          }
+                        </dd>
+                      </div>
+                    }
+                    @if (info.firmware.buildDate || info.firmware.buildTime) {
+                      <div class="commander__info-row">
+                        <dt>Built</dt>
+                        <dd>{{ info.firmware.buildDate ?? '' }}{{ info.firmware.buildDate && info.firmware.buildTime ? ' · ' : '' }}{{ info.firmware.buildTime ?? '' }}</dd>
+                      </div>
+                    }
+                    @if (info.firmware.uptimeSeconds !== null) {
+                      <div class="commander__info-row">
+                        <dt>Uptime</dt>
+                        <dd>{{ info.firmware.uptimeSeconds | duration }}</dd>
+                      </div>
+                    }
+                  </dl>
+                </section>
+
+                <section class="commander__info-section">
+                  <h4 class="commander__info-section-title">Hardware</h4>
+                  <dl class="commander__info-list">
+                    @if (info.hardware.fqbn) {
+                      <div class="commander__info-row">
+                        <dt>Board</dt>
+                        <dd class="commander__info-mono">{{ info.hardware.fqbn }}</dd>
+                      </div>
+                    }
+                    @if (info.hardware.playerType) {
+                      <div class="commander__info-row">
+                        <dt>Player</dt>
+                        <dd>{{ info.hardware.playerType }}</dd>
+                      </div>
+                    }
+                    @if (info.hardware.wifiMac) {
+                      <div class="commander__info-row">
+                        <dt>MAC</dt>
+                        <dd class="commander__info-mono">{{ info.hardware.wifiMac }}</dd>
+                      </div>
+                    }
+                  </dl>
+                </section>
+
+                <section class="commander__info-section">
+                  <h4 class="commander__info-section-title">Network</h4>
+                  <dl class="commander__info-list">
+                    @if (info.network.universe !== null) {
+                      <div class="commander__info-row">
+                        <dt>Universe</dt>
+                        <dd>{{ info.network.universe }}</dd>
+                      </div>
+                    }
+                    @if (info.network.channel !== null) {
+                      <div class="commander__info-row">
+                        <dt>Channel</dt>
+                        <dd>{{ info.network.channel }}</dd>
+                      </div>
+                    }
+                    @if (info.network.rssiDbm !== null || info.network.rssiQuality) {
+                      <div class="commander__info-row">
+                        <dt>Signal</dt>
+                        <dd>
+                          @if (info.network.rssiDbm !== null) { {{ info.network.rssiDbm }} dBm }
+                          @if (info.network.rssiQuality) {
+                            <span class="commander__info-badge commander__info-badge--rssi-{{ rssiQualityClass(info.network.rssiQuality) }}">
+                              {{ info.network.rssiQuality.replace('_', ' ') }}
+                            </span>
+                          }
+                        </dd>
+                      </div>
+                    }
+                    @if (info.network.universe === null && info.network.channel === null && info.network.rssiDbm === null && !info.network.rssiQuality) {
+                      <div class="commander__info-row commander__info-row--empty">
+                        <dd>No network data yet — run a query to populate.</dd>
+                      </div>
+                    }
+                  </dl>
+                </section>
+
+                <section class="commander__info-section">
+                  <h4 class="commander__info-section-title">Store</h4>
+                  <dl class="commander__info-list">
+                    <div class="commander__info-row">
+                      <dt>Last seen</dt>
+                      <dd>{{ selectedFixtureLastSeen() ?? info.meta.lastUpdatedAt }}</dd>
+                    </div>
+                    <div class="commander__info-row">
+                      <dt>Source</dt>
+                      <dd>{{ info.meta.source.replace(/_/g, ' ') }}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+              </div>
+            } @else {
+              <p class="commander__info-empty">No fixture selected.</p>
+            }
           </p-tabpanel>
         </p-tabpanels>
       </p-tabs>

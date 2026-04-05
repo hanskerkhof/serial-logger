@@ -39,7 +39,7 @@ export class FixtureDocsComponent {
     const name = this.fixtureName();
     const doc = this.selectedDoc();
     if (!name || !doc || !this.isImage()) return null;
-    return `${this.api.apiBaseUrl()}/fixtures/${encodeURIComponent(name)}/docs/${encodeURIComponent(doc)}`;
+    return `${this.api.apiBaseUrl()}/fixtures/${encodeURIComponent(name)}/docs/${encodeURIComponent(doc)}${this.api.tokenQueryParam()}`;
   });
 
   constructor() {

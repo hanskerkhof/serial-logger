@@ -1,6 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { OAuthService } from 'angular-oauth2-oidc';
 import type {
   CmdrHealthResponse,
   CmdrExposedPlan,
@@ -71,6 +72,7 @@ const localhostHosts = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 @Injectable({ providedIn: 'root' })
 export class CommanderApiService {
   private readonly http = inject(HttpClient);
+  private readonly oauthService = inject(OAuthService);
 
   readonly targets: readonly CommanderApiTarget[] = [
     { id: 'macbook', label: 'MacBook', url: 'http://100.88.15.68:8080' },
@@ -198,7 +200,9 @@ export class CommanderApiService {
     apiBaseUrl: string,
     handlers: CommanderStreamHandlers,
   ): () => void {
-    const source = new EventSource(`${this.getRequestBaseUrl(apiBaseUrl)}/commander/stream`);
+    const accessToken = this.oauthService.getAccessToken();
+    const streamUrl = `${this.getRequestBaseUrl(apiBaseUrl)}/commander/stream${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ''}`;
+    const source = new EventSource(streamUrl);
 
     const handleMessage = (event: MessageEvent, forcedType?: string) => {
       try {
@@ -272,6 +276,12 @@ export class CommanderApiService {
     this.persistApiBaseUrl(normalized);
 
     return true;
+  }
+
+  /** Returns `?token=<encoded>` when a valid access token exists, otherwise `''`. */
+  tokenQueryParam(): string {
+    const token = this.oauthService.getAccessToken();
+    return token ? `?token=${encodeURIComponent(token)}` : '';
   }
 
   private getInitialApiBaseUrl(): string {

@@ -15,6 +15,7 @@ import { HealthPollService } from './health-poll.service';
 import { ReleaseNotesComponent } from './shared/release-notes/release-notes.component';
 import { QrScannerDemoComponent } from './shared/qr-scanner-demo/qr-scanner-demo.component';
 import { QrScannedCommandService } from './shared/qr-scanner-demo/qr-scanned-command.service';
+import { AuthService } from './auth/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -31,9 +32,11 @@ export class AppComponent {
   @ViewChild('qrScannerDialog') private qrScannerDialogRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('healthPopover') protected healthPopoverRef!: Popover;
   @ViewChild('wsPopover') protected wsPopoverRef!: Popover;
+  @ViewChild('userPopover') protected userPopoverRef!: Popover;
 
   private readonly router = inject(Router);
   private readonly commanderApi = inject(CommanderApiService);
+  protected readonly authService = inject(AuthService);
   private readonly serialService = inject(SerialService);
   private readonly qrScannedCommandService = inject(QrScannedCommandService);
   protected readonly activeMode = signal<'direct' | 'commander'>(this.modeFromUrl(this.router.url));

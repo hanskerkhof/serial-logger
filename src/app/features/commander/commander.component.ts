@@ -1171,6 +1171,7 @@ export class CommanderComponent implements OnInit {
     const startedAt = performance.now();
     let successCount = 0;
     const failures: string[] = [];
+    let anyAuthFailure = false;
 
     let cancelled = false;
     try {
@@ -1189,6 +1190,9 @@ export class CommanderComponent implements OnInit {
         } catch (err: unknown) {
           console.warn('[cmdr][discover-fixtures] fixture query failed', { fixtureName, err });
           failures.push(fixtureName);
+          if (err instanceof HttpErrorResponse && err.status === 401) {
+            anyAuthFailure = true;
+          }
         } finally {
           this.discoverFixturesElapsedS.set((performance.now() - startedAt) / 1000);
         }
@@ -1216,7 +1220,7 @@ export class CommanderComponent implements OnInit {
         : `Query fixtures finished: ${successCount}/${total} queried${elapsedSuffix}`;
     const detail =
       failedCount > 0
-        ? `Failed: ${failures.slice(0, 5).join(', ')}${failedCount > 5 ? ', ...' : ''}`
+        ? `${anyAuthFailure ? 'Not authenticated — log in first. ' : ''}Failed: ${failures.slice(0, 5).join(', ')}${failedCount > 5 ? ', ...' : ''}`
         : undefined;
 
     this.messageService.add({ key: 'app', severity, summary, detail, life: 6000 });
@@ -2353,6 +2357,10 @@ export class CommanderComponent implements OnInit {
 
       if (err.status === 0) {
         return `${prefix}: unreachable`;
+      }
+
+      if (err.status === 401) {
+        return `${prefix}: not authenticated — enable auth in .env.cmdr or log in first`;
       }
 
       return `${prefix} (HTTP ${err.status}): ${detailText}`;

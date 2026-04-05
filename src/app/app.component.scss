@@ -149,6 +149,98 @@
   height: 0.45rem;
   border-radius: 50%;
   background: var(--p-primary-color, #6366f1);
+
+  &--warn {
+    background: #f59e0b;
+    width: 0.5rem;
+    height: 0.5rem;
+    top: 0;
+    right: 0;
+  }
+}
+
+// User avatar button
+.app-shell__user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--p-surface-200, #e5e7eb);
+  color: var(--p-text-muted-color, #6b7280);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0;
+
+  &:hover {
+    background: var(--p-surface-300, #d1d5db);
+    color: var(--p-text-color, #1f2937);
+  }
+
+  &--logged-in {
+    background: var(--p-primary-color, #6366f1);
+    color: #fff;
+
+    &:hover {
+      background: var(--p-primary-600, #4f46e5);
+      color: #fff;
+    }
+  }
+
+  &--guest {
+    background: var(--p-surface-200, #e5e7eb);
+    color: #f59e0b;
+    border: 1.5px solid #f59e0b;
+
+    &:hover {
+      background: #fef3c7;
+      color: #d97706;
+    }
+  }
+}
+
+// User popover content
+.user-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 11rem;
+  font-size: 0.85rem;
+}
+
+.user-pop__name {
+  font-weight: 600;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--p-surface-200, #e5e7eb);
+
+  &--muted {
+    font-weight: 400;
+    color: var(--p-text-muted-color, #9ca3af);
+  }
+}
+
+.user-pop__logout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0.35rem 0;
+  font-size: 0.85rem;
+  color: var(--p-text-color, #374151);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  border-radius: 0.25rem;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--p-primary-color, #6366f1);
+  }
 }
 
 // Health popover content

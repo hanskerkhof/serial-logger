@@ -160,6 +160,40 @@
           </p-tablist>
         </p-tabs>
 
+        <!-- User avatar / login -->
+        <button
+          class="app-shell__user-avatar"
+          [class.app-shell__user-avatar--logged-in]="authService.isLoggedIn"
+          [class.app-shell__user-avatar--guest]="!authService.isLoggedIn && authService.authRequired()"
+          (click)="userPopoverRef.toggle($event)"
+          type="button"
+          [title]="authService.isLoggedIn ? (authService.userName ?? 'User') : 'Not logged in — click to sign in'"
+        >
+          @if (authService.isLoggedIn && authService.userName) {
+            {{ authService.userName.charAt(0).toUpperCase() }}
+          } @else {
+            <i class="pi pi-user"></i>
+          }
+          @if (!authService.isLoggedIn && authService.authRequired()) {
+            <span class="app-shell__icon-badge app-shell__icon-badge--warn" aria-hidden="true"></span>
+          }
+        </button>
+        <p-popover #userPopover>
+          <div class="user-pop">
+            @if (authService.isLoggedIn) {
+              <div class="user-pop__name">{{ authService.userName }}</div>
+              <button class="user-pop__logout" type="button" (click)="authService.logout()">
+                <i class="pi pi-sign-out"></i> Log out
+              </button>
+            } @else {
+              <div class="user-pop__name user-pop__name--muted">Not logged in</div>
+              <button class="user-pop__logout" type="button" (click)="authService.login()">
+                <i class="pi pi-sign-in"></i> Log in
+              </button>
+            }
+          </div>
+        </p-popover>
+
       </div>
     </ng-template>
   </p-toolbar>

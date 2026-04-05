@@ -1,20 +1,30 @@
+import { APP_INITIALIZER, isDevMode } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
-import { isDevMode } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideServiceWorker } from '@angular/service-worker';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 import { provideMarkdown } from 'ngx-markdown';
+import { provideOAuthClient } from 'angular-oauth2-oidc';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
+import { AuthService } from './app/auth/auth.service';
+import { authHttpInterceptor } from './app/auth/auth-http-interceptor';
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideAnimationsAsync(),
+    provideAnimations(),
     provideRouter(routes),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([authHttpInterceptor])),
+    provideOAuthClient(),
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (auth: AuthService) => () => auth.initialize(),
+      deps: [AuthService],
+      multi: true,
+    },
     providePrimeNG({
       theme: {
         preset: Aura,

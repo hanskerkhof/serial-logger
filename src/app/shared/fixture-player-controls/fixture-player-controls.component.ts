@@ -106,7 +106,7 @@ export class FixturePlayerControlsComponent {
   protected readonly trackOptions = computed(() => {
     const tracks = this.planTracks();
     if (!tracks) return null;
-    return tracks.map(t => ({
+    return [...tracks].sort((a, b) => a.index - b.index).map(t => ({
       label: `${t.index} \u2014 ${t.name} (${(t.duration_ms / 1000).toFixed(1)}s)`,
       value: t.index,
     }));

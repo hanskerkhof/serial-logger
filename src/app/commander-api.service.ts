@@ -14,6 +14,7 @@ import type {
   CmdrQueryResponse,
   CmdrMessagesResponse,
   CmdrFixtureDocsListResponse,
+  CmdrFixturePlanStatusResponse,
 } from './api/cmdr-models';
 import { AuthService } from './auth/auth.service';
 import { SKIP_AUTH_HEADER } from './auth/auth-http-interceptor';
@@ -120,6 +121,22 @@ export class CommanderApiService {
       });
     }
     return this.http.get<CmdrVersionsResponse>(baseUrl);
+  }
+
+  getFixturePlanStatus(
+    fixtureName: string,
+    options?: { preferQueryTokenAuth?: boolean },
+  ): Observable<CmdrFixturePlanStatusResponse> {
+    const baseUrl = `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/plan-status`;
+    const preferQueryTokenAuth = options?.preferQueryTokenAuth === true;
+    const token = preferQueryTokenAuth ? this.authService.accessToken : null;
+    if (preferQueryTokenAuth && token) {
+      const url = `${baseUrl}?token=${encodeURIComponent(token)}`;
+      return this.http.get<CmdrFixturePlanStatusResponse>(url, {
+        context: new HttpContext().set(SKIP_AUTH_HEADER, true),
+      });
+    }
+    return this.http.get<CmdrFixturePlanStatusResponse>(baseUrl);
   }
 
   getFixtureDiscovery(listenSeconds = 60): Observable<CmdrDiscoveryResponse> {

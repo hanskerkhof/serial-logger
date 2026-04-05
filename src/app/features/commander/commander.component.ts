@@ -50,6 +50,7 @@ import {
   CmdrPlanControls,
   CmdrPlayerCapabilities,
   CmdrRelayStateItem,
+  CmdrFixturePlanStatusResponse,
   CmdrVersionsResponse,
 } from '../../api/cmdr-models';
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
@@ -1467,10 +1468,35 @@ export class CommanderComponent implements OnInit {
   }
 
   protected runModalFixtureUpdate(): void {
-    this.runModalFixtureQueryInternal({
-      refreshTracksAndDocs: false,
-      successVerb: 'Update complete',
+    const selected = this.selectedFixture();
+    const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) {
+      this.modalQueryError.set('No fixture selected.');
+      return;
+    }
+
+    this.modalQuerySub?.unsubscribe();
+    this.modalQueryLoading.set(true);
+    this.modalQueryError.set(null);
+    const startedAt = performance.now();
+
+    this.modalQuerySub = this.commanderApi.getFixturePlanStatus(fixture, {
       preferQueryTokenAuth: true,
+    }).subscribe({
+      next: (result) => {
+        this.modalQuerySub = null;
+        this.modalQueryLoading.set(false);
+        const durationMs = performance.now() - startedAt;
+        this.applyFixturePlanStatusResult(fixture, result);
+        this.setFixtureModalFeedback(`Update fixture complete for ${fixture}`, 'success', durationMs);
+      },
+      error: (err: unknown) => {
+        this.modalQuerySub = null;
+        const text = this.formatError('Fixture update failed', err);
+        const compact = text.length > 180 ? `${text.slice(0, 177)}...` : text;
+        this.modalQueryError.set(compact);
+        this.modalQueryLoading.set(false);
+      },
     });
   }
 
@@ -1535,6 +1561,24 @@ export class CommanderComponent implements OnInit {
     }
 
     this.prefetchFixtureDocs(requestedFixtureName);
+  }
+
+  private applyFixturePlanStatusResult(
+    fixtureName: string,
+    result: CmdrFixturePlanStatusResponse,
+  ): void {
+    const existing = this.fixtureStore.fixturesByName()[fixtureName];
+    if (!existing) return;
+    const nextRaw: Record<string, unknown> = {
+      ...(existing.raw ?? {}),
+      plan_state: result.summary?.plan_state ?? null,
+    };
+    this.fixtureStore.upsertFixtures([{
+      ...existing,
+      raw: nextRaw,
+      lastUpdatedAt: new Date().toISOString(),
+      source: 'fixture_query',
+    }]);
   }
 
   private queryFixtureByName(fixtureName: string): void {

@@ -1,7 +1,13 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpContextToken, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
+
+/**
+ * Per-request flag to skip Authorization header injection by this interceptor.
+ * Used by fast-path requests that carry auth via `?token=...` query param.
+ */
+export const SKIP_AUTH_HEADER = new HttpContextToken<boolean>(() => false);
 
 /**
  * Attaches a Bearer token to outgoing requests that target any configured CMDR API origin.
@@ -11,8 +17,9 @@ import { AuthService } from './auth.service';
 export const authHttpInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const token = authService.accessToken;
+  const skipAuthHeader = req.context.get(SKIP_AUTH_HEADER);
 
-  const outgoing = token
+  const outgoing = token && !skipAuthHeader
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : req;
 

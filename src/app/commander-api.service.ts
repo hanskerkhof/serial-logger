@@ -1,5 +1,5 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import type {
   CmdrHealthResponse,
@@ -16,6 +16,7 @@ import type {
   CmdrFixtureDocsListResponse,
 } from './api/cmdr-models';
 import { AuthService } from './auth/auth.service';
+import { SKIP_AUTH_HEADER } from './auth/auth-http-interceptor';
 
 // Re-export generated-type aliases under legacy names so existing component imports are unchanged.
 export type CommanderHealthResponse       = CmdrHealthResponse;
@@ -105,10 +106,20 @@ export class CommanderApiService {
     return new WebSocket(`${base}/health/ws`);
   }
 
-  getFixtureVersion(fixtureName: string): Observable<CmdrVersionsResponse> {
-    return this.http.get<CmdrVersionsResponse>(
-      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/version`,
-    );
+  getFixtureVersion(
+    fixtureName: string,
+    options?: { preferQueryTokenAuth?: boolean },
+  ): Observable<CmdrVersionsResponse> {
+    const baseUrl = `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/version`;
+    const preferQueryTokenAuth = options?.preferQueryTokenAuth === true;
+    const token = preferQueryTokenAuth ? this.authService.accessToken : null;
+    if (preferQueryTokenAuth && token) {
+      const url = `${baseUrl}?token=${encodeURIComponent(token)}`;
+      return this.http.get<CmdrVersionsResponse>(url, {
+        context: new HttpContext().set(SKIP_AUTH_HEADER, true),
+      });
+    }
+    return this.http.get<CmdrVersionsResponse>(baseUrl);
   }
 
   getFixtureDiscovery(listenSeconds = 60): Observable<CmdrDiscoveryResponse> {

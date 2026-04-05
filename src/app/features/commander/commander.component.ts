@@ -1458,6 +1458,28 @@ export class CommanderComponent implements OnInit {
   }
 
   protected runModalFixtureQuery(onComplete?: (result: CmdrVersionsResponse) => void): void {
+    this.runModalFixtureQueryInternal({
+      refreshTracksAndDocs: true,
+      successVerb: 'Query complete',
+      preferQueryTokenAuth: false,
+      onComplete,
+    });
+  }
+
+  protected runModalFixtureUpdate(): void {
+    this.runModalFixtureQueryInternal({
+      refreshTracksAndDocs: false,
+      successVerb: 'Update complete',
+      preferQueryTokenAuth: true,
+    });
+  }
+
+  private runModalFixtureQueryInternal(options: {
+    refreshTracksAndDocs: boolean;
+    successVerb: 'Query complete' | 'Update complete';
+    preferQueryTokenAuth: boolean;
+    onComplete?: (result: CmdrVersionsResponse) => void;
+  }): void {
     const selected = this.selectedFixture();
     const fixture = (selected?.fixture_name ?? this.fixtureName()).trim();
     if (!fixture) {
@@ -1470,7 +1492,9 @@ export class CommanderComponent implements OnInit {
     this.modalQueryError.set(null);
     const startedAt = performance.now();
 
-    this.modalQuerySub = this.commanderApi.getFixtureVersion(fixture).subscribe({
+    this.modalQuerySub = this.commanderApi.getFixtureVersion(fixture, {
+      preferQueryTokenAuth: options.preferQueryTokenAuth,
+    }).subscribe({
       next: (result) => {
         this.modalQuerySub = null;
         const durationMs = performance.now() - startedAt;
@@ -1482,11 +1506,13 @@ export class CommanderComponent implements OnInit {
         this.modalQueryLoading.set(false);
         const fwVersion = result.summary?.fw_version;
         const message = fwVersion
-          ? `Query complete for ${fixture} · fw v${fwVersion}`
-          : `Query complete for ${fixture}`;
+          ? `${options.successVerb} for ${fixture} · fw v${fwVersion}`
+          : `${options.successVerb} for ${fixture}`;
         this.setFixtureModalFeedback(message, 'success', durationMs);
-        onComplete?.(result);
-        this.refreshTracksAndDocsAfterQuery(fixture, result);
+        options.onComplete?.(result);
+        if (options.refreshTracksAndDocs) {
+          this.refreshTracksAndDocsAfterQuery(fixture, result);
+        }
       },
       error: (err: unknown) => {
         this.modalQuerySub = null;

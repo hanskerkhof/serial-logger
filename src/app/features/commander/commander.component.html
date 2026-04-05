@@ -588,6 +588,18 @@
         <button
           pButton
           type="button"
+          label="Update fixture"
+          icon="pi pi-refresh"
+          iconPos="right"
+          severity="secondary"
+          size="small"
+          [loading]="modalQueryLoading()"
+          (click)="runModalFixtureUpdate()"
+          [disabled]="modalQueryLoading() || commanderUnavailable()"
+        ></button>
+        <button
+          pButton
+          type="button"
           label="Run query"
           icon="pi pi-play"
           iconPos="right"

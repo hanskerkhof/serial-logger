@@ -22,6 +22,7 @@ import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
 import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService, MenuItem } from 'primeng/api';
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { TabsModule } from 'primeng/tabs';
@@ -65,7 +66,7 @@ import {
 import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
 import { FixtureDocsComponent } from '../../shared/fixture-docs/fixture-docs.component';
 import { CopyToClipboardComponent } from '../../shared/copy-to-clipboard/copy-to-clipboard.component';
-import { HealthPollService } from '../../health-poll.service';
+import { DiscoveryWsMessage, HealthPollService, PlanStateWsMessage } from '../../health-poll.service';
 import {
   QrScannedCommandService,
   ScannedFixtureCommand,
@@ -94,7 +95,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -119,6 +120,8 @@ export class CommanderComponent implements OnInit {
   protected readonly sidebarRefreshingPlan = signal<string | null>(null);
   protected readonly sidebarRefreshingPlanGroup = signal<string | null>(null);
   protected readonly discoveryLoading = signal(false);
+  protected readonly discoveryWsLoading = signal(false);
+  protected readonly discoveryWsSessionId = signal<string | null>(null);
   protected readonly discoverFixturesLoading = signal(false);
   protected readonly discoverFixturesCurrentFixture = signal<string | null>(null);
   protected readonly discoverFixturesElapsedS = signal<number>(0);
@@ -201,9 +204,12 @@ export class CommanderComponent implements OnInit {
   });
   protected readonly manualCommand = signal('');
   protected readonly customCommandValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
+  private readonly customCommandDirtyState = signal<Record<string, true>>({});
+  protected readonly discoveryLockedByOtherTab = signal(false);
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
   protected readonly fixtureModalVisible = signal(false);
+  protected readonly fixtureModalPollingEnabled = signal(true);
   private modalQuerySub: Subscription | null = null;
   /** Fixture names that have been auto-queried on first modal open this session. */
   private readonly autoQueriedFixtures = new Set<string>();
@@ -212,7 +218,12 @@ export class CommanderComponent implements OnInit {
   protected readonly rawCommandResult = signal<RawCommandResponse | null>(null);
   protected readonly rawCommandError = signal<string | null>(null);
   protected readonly backendBusy = computed(
-    () => this.discoveryLoading() || this.fixtureQueryLoading() || this.planQueryLoading() || this.planGroupQueryLoading(),
+    () =>
+      this.discoveryLoading() ||
+      this.discoveryWsLoading() ||
+      this.fixtureQueryLoading() ||
+      this.planQueryLoading() ||
+      this.planGroupQueryLoading(),
   );
   protected readonly commanderUnavailable = computed(
     () => this.loading() || !!this.healthError() || this.health()?.commander?.detected !== true,
@@ -253,6 +264,10 @@ export class CommanderComponent implements OnInit {
 
   // Ensures auto-discovery on empty store fires at most once per session.
   private _autoDiscoveryTriggered = false;
+  private readonly discoveryLockStorageKey = 'cmdr.discovery.lock.v1';
+  private readonly discoveryLockTtlMs = 5 * 60 * 1000;
+  private readonly discoveryTabId =
+    globalThis.crypto?.randomUUID?.() ?? `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   private readonly commanderApi = inject(CommanderApiService);
   private readonly fixtureStore = inject(FixtureStoreService);
@@ -329,6 +344,7 @@ export class CommanderComponent implements OnInit {
       this.fixtureStore.selectedFixtureName();
       const commands = untracked(() => this.selectedFixtureCustomCommands());
       this.customCommandValues.set(this.buildInitialCustomCommandValues(commands));
+      this.customCommandDirtyState.set({});
       // Reset any optimistic plan state when switching fixtures.
       untracked(() => this.optimisticPlanState.set(null));
     });
@@ -339,6 +355,17 @@ export class CommanderComponent implements OnInit {
       this.selectedFixture();
       const commands = this.selectedFixtureCustomCommands();
       this.syncStateBackedCustomCommandValues(commands);
+    });
+
+    effect(() => {
+      const visible = this.fixtureModalVisible();
+      const liveUpdate = this.fixtureModalPollingEnabled();
+      const selectedName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+      if (!visible || !liveUpdate || !selectedName) {
+        this.healthService.unsubscribePlanState();
+        return;
+      }
+      this.healthService.subscribePlanState(selectedName);
     });
 
     effect(() => {
@@ -551,8 +578,26 @@ export class CommanderComponent implements OnInit {
     {
       label: 'Full discovery + fixtures',
       icon: 'pi pi-list',
-      disabled: this.backendBusy() || this.commanderUnavailable() || this.discoveryLoading() || this.discoverFixturesLoading(),
+      disabled:
+        this.backendBusy() ||
+        this.commanderUnavailable() ||
+        this.discoveryLoading() ||
+        this.discoveryWsLoading() ||
+        this.discoverFixturesLoading(),
       command: () => this.runFullDiscoveryThenFixtures(),
+    },
+  ]);
+  protected readonly fullDiscoveryWsMenuItems = computed<MenuItem[]>(() => [
+    {
+      label: 'Full discovery (WS) + fixtures',
+      icon: 'pi pi-list',
+      disabled:
+        this.backendBusy() ||
+        this.commanderUnavailable() ||
+        this.discoveryLoading() ||
+        this.discoveryWsLoading() ||
+        this.discoverFixturesLoading(),
+      command: () => this.runFullDiscoveryWsThenFixtures(),
     },
   ]);
 
@@ -937,6 +982,13 @@ export class CommanderComponent implements OnInit {
 
   ngOnInit(): void {
     this.customUrl.set(this.activeApiUrl());
+    this.refreshDiscoveryLockState();
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key && event.key !== this.discoveryLockStorageKey) return;
+      this.refreshDiscoveryLockState();
+    };
+    window.addEventListener('storage', onStorage);
 
     // Register endpoints to re-fetch automatically on API recovery
     this.recoveryCallbacks.push(
@@ -973,11 +1025,116 @@ export class CommanderComponent implements OnInit {
     const qrScanSub = this.qrScannedCommandService.scannedCommand$.subscribe((scanned) => {
       this.executeScannedFixtureCommand(scanned);
     });
+    const planStateSub = this.healthService.planState$.subscribe((msg: PlanStateWsMessage) => {
+      const fixtureName = String(msg.fixture_name || '').trim();
+      if (!fixtureName) return;
+      const selectedName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+      if (!selectedName || fixtureName !== selectedName) return;
+      if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
+      const result = {
+        ok: true,
+        service: 'health_ws',
+        fixture_name: fixtureName,
+        summary: {
+          fixture_name: fixtureName,
+          plan_state: (msg.summary?.plan_state as Record<string, unknown> | null | undefined) ?? null,
+          source: String(msg.summary?.source ?? 'ws_live'),
+          fsps: (msg.summary?.fsps as Record<string, unknown> | null | undefined) ?? null,
+        },
+        issued_commands: [],
+        timing: (msg.timing as Record<string, unknown> | null | undefined) ?? null,
+      } as CmdrFixturePlanStatusResponse;
+      this.modalQueryError.set(null);
+      this.applyFixturePlanStatusResult(fixtureName, result);
+    });
+    const planStateErrorSub = this.healthService.planStateError$.subscribe((msg) => {
+      if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
+      const reason = String(msg.reason || '').trim().toLowerCase();
+      if (reason === 'overloaded') {
+        const active = Number(msg.active_subscribers ?? 0);
+        const max = Number(msg.max_subscribers ?? 0);
+        this.modalQueryError.set(
+          `Live update busy: ${active}/${max} subscribers in use. Use "Update fixture" or try again later.`,
+        );
+      }
+    });
+    const discoverySub = this.healthService.discovery$.subscribe((msg: DiscoveryWsMessage) => {
+      const eventType = String(msg.type || '').trim();
+      if (!eventType) return;
+      if (eventType === 'discovery_rejected') {
+        this.discoveryWsThenFixturesPending = false;
+        this.discoveryWsLoading.set(false);
+        this.releaseDiscoveryLock();
+        this.messageService.add({
+          key: 'app',
+          severity: 'warn',
+          summary: 'Full discovery already in progress (another window/request).',
+          life: 5000,
+        });
+        return;
+      }
+      if (eventType === 'discovery_started') {
+        const sid = String(msg['session_id'] ?? '').trim();
+        if (sid) this.discoveryWsSessionId.set(sid);
+        this.discoveryWsLoading.set(true);
+        return;
+      }
+      if (eventType === 'discovery_fixture_upsert') {
+        const fixture = msg['fixture'];
+        if (!fixture || typeof fixture !== 'object') return;
+        const syntheticResult = {
+          summary: {
+            fixtures: [fixture as Record<string, unknown>],
+          },
+        } as CommanderQueryResponse;
+        this.ingestQueryResult(syntheticResult, 'discovery_query');
+        return;
+      }
+      if (eventType === 'discovery_completed') {
+        const shouldQueryFixtures = this.discoveryWsThenFixturesPending;
+        this.discoveryWsThenFixturesPending = false;
+        const summary = msg['summary'] as Record<string, unknown> | null | undefined;
+        if (summary && typeof summary === 'object') {
+          const syntheticResult = { summary } as CommanderQueryResponse;
+          const stats = this.ingestQueryResult(syntheticResult, 'discovery_query');
+          this.showQueryResultToast(stats, undefined, true);
+        } else {
+          this.messageService.add({
+            key: 'app',
+            severity: 'success',
+            summary: 'Full Discovery (WS) completed',
+            life: 3000,
+          });
+        }
+        this.discoveryWsLoading.set(false);
+        this.releaseDiscoveryLock();
+        if (shouldQueryFixtures) {
+          setTimeout(() => this.runSidebarFixtureDiscovery(), 0);
+        }
+        return;
+      }
+      if (eventType === 'discovery_failed') {
+        this.discoveryWsThenFixturesPending = false;
+        const errorText =
+          typeof msg['error'] === 'string' && msg['error'].trim().length > 0
+            ? msg['error'].trim()
+            : 'unknown error';
+        this.discoveryWsLoading.set(false);
+        this.releaseDiscoveryLock();
+        this.showErrorToast(`Full discovery (WS) failed: ${errorText}`);
+      }
+    });
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
       failedSub.unsubscribe();
       pollSub.unsubscribe();
       qrScanSub.unsubscribe();
+      planStateSub.unsubscribe();
+      planStateErrorSub.unsubscribe();
+      discoverySub.unsubscribe();
+      this.stopFixtureModalPolling();
+      window.removeEventListener('storage', onStorage);
+      this.releaseDiscoveryLock();
     });
   }
 
@@ -990,7 +1147,7 @@ export class CommanderComponent implements OnInit {
           this.fixtureStore.fixtureCount() === 0 &&
           this.healthService.health()?.commander?.detected === true
         ) {
-          this.runFullDiscoveryThenFixtures();
+          this.runFullDiscoveryWsThenFixtures();
         }
       }, 3000);
     }
@@ -1077,11 +1234,76 @@ export class CommanderComponent implements OnInit {
     this.doFullDiscovery(() => this.runSidebarFixtureDiscovery());
   }
 
+  protected runFullDiscoveryWs(): void {
+    this.discoveryWsThenFixturesPending = false;
+    this.doFullDiscoveryWs();
+  }
+
+  protected runFullDiscoveryWsThenFixtures(): void {
+    this.discoveryWsThenFixturesPending = true;
+    this.doFullDiscoveryWs();
+  }
+
   private discoverySubscription: Subscription | null = null;
   private discoverFixturesCancelRequested = false;
+  private discoveryWsThenFixturesPending = false;
+
+  private parseDiscoveryLock(raw: string | null): { owner: string; startedAtMs: number } | null {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as { owner?: unknown; startedAtMs?: unknown };
+      const owner = typeof parsed.owner === 'string' ? parsed.owner.trim() : '';
+      const startedAtMs = typeof parsed.startedAtMs === 'number' ? parsed.startedAtMs : Number.NaN;
+      if (!owner || !Number.isFinite(startedAtMs)) return null;
+      return { owner, startedAtMs };
+    } catch {
+      return null;
+    }
+  }
+
+  private isDiscoveryLockFresh(lock: { owner: string; startedAtMs: number } | null): boolean {
+    if (!lock) return false;
+    return Date.now() - lock.startedAtMs < this.discoveryLockTtlMs;
+  }
+
+  private hasDiscoveryLockFromAnotherTab(): boolean {
+    const lock = this.parseDiscoveryLock(localStorage.getItem(this.discoveryLockStorageKey));
+    return this.isDiscoveryLockFresh(lock) && lock?.owner !== this.discoveryTabId;
+  }
+
+  private refreshDiscoveryLockState(): void {
+    this.discoveryLockedByOtherTab.set(this.hasDiscoveryLockFromAnotherTab());
+  }
+
+  private claimDiscoveryLock(): void {
+    const payload = {
+      owner: this.discoveryTabId,
+      startedAtMs: Date.now(),
+    };
+    localStorage.setItem(this.discoveryLockStorageKey, JSON.stringify(payload));
+    this.refreshDiscoveryLockState();
+  }
+
+  private releaseDiscoveryLock(): void {
+    const lock = this.parseDiscoveryLock(localStorage.getItem(this.discoveryLockStorageKey));
+    if (lock?.owner === this.discoveryTabId) {
+      localStorage.removeItem(this.discoveryLockStorageKey);
+    }
+    this.refreshDiscoveryLockState();
+  }
 
   private doFullDiscovery(then?: () => void): void {
+    if (this.hasDiscoveryLockFromAnotherTab()) {
+      this.messageService.add({
+        key: 'app',
+        severity: 'info',
+        summary: 'Another window lock detected. Verifying with API…',
+        life: 2500,
+      });
+      this.refreshDiscoveryLockState();
+    }
     if (!this.checkApiReachable()) return;
+    this.claimDiscoveryLock();
     this.discoveryLoading.set(true);
     this.error.set(null);
     const startedAt = performance.now();
@@ -1094,13 +1316,69 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'discovery_query');
         this.discoveryLoading.set(false);
+        this.releaseDiscoveryLock();
         this.showQueryResultToast(stats, durationS, true);
         if (then) setTimeout(then, 0);
       },
       error: (err: unknown) => {
         this.discoverySubscription = null;
-        this.showErrorToast(this.formatError('Full discovery failed', err));
         this.discoveryLoading.set(false);
+        this.releaseDiscoveryLock();
+        if (err instanceof HttpErrorResponse && err.status === 409) {
+          this.messageService.add({
+            key: 'app',
+            severity: 'warn',
+            summary: 'Full discovery already in progress (another window/request).',
+            life: 5000,
+          });
+          this.refreshDiscoveryLockState();
+          return;
+        }
+        this.showErrorToast(this.formatError('Full discovery failed', err));
+      },
+    });
+  }
+
+  private doFullDiscoveryWs(): void {
+    if (this.hasDiscoveryLockFromAnotherTab()) {
+      this.messageService.add({
+        key: 'app',
+        severity: 'info',
+        summary: 'Another window lock detected. Verifying with API…',
+        life: 2500,
+      });
+      this.refreshDiscoveryLockState();
+    }
+    if (!this.checkApiReachable()) return;
+    this.claimDiscoveryLock();
+    this.discoveryWsLoading.set(true);
+    this.discoveryWsSessionId.set(null);
+    this.error.set(null);
+    this.commanderApi.startFixtureDiscoveryWs().subscribe({
+      next: (result) => {
+        this.discoveryWsSessionId.set(String(result.session_id || '').trim() || null);
+        this.messageService.add({
+          key: 'app',
+          severity: 'info',
+          summary: 'Full Discovery (WS) started',
+          life: 2500,
+        });
+      },
+      error: (err: unknown) => {
+        this.discoveryWsThenFixturesPending = false;
+        this.discoveryWsLoading.set(false);
+        this.releaseDiscoveryLock();
+        if (err instanceof HttpErrorResponse && err.status === 409) {
+          this.messageService.add({
+            key: 'app',
+            severity: 'warn',
+            summary: 'Full discovery already in progress (another window/request).',
+            life: 5000,
+          });
+          this.refreshDiscoveryLockState();
+          return;
+        }
+        this.showErrorToast(this.formatError('Full discovery (WS) failed to start', err));
       },
     });
   }
@@ -1110,7 +1388,16 @@ export class CommanderComponent implements OnInit {
       this.discoverySubscription.unsubscribe();
       this.discoverySubscription = null;
       this.discoveryLoading.set(false);
+      this.discoveryWsLoading.set(false);
+      this.discoveryWsThenFixturesPending = false;
+      this.releaseDiscoveryLock();
       this.messageService.add({ key: 'app', severity: 'info', summary: 'Full discovery cancelled', life: 3000 });
+    } else if (this.discoveryWsLoading()) {
+      // WS discovery runs server-side; this cancels local waiting state only.
+      this.discoveryWsLoading.set(false);
+      this.discoveryWsThenFixturesPending = false;
+      this.releaseDiscoveryLock();
+      this.messageService.add({ key: 'app', severity: 'info', summary: 'Stopped waiting for Full Discovery (WS)', life: 3000 });
     } else if (this.discoverFixturesLoading()) {
       this.discoverFixturesCancelRequested = true;
     }
@@ -1419,9 +1706,8 @@ export class CommanderComponent implements OnInit {
 
   protected onFixtureDialogVisibleChange(visible: boolean): void {
     this.fixtureModalVisible.set(visible);
-    if (!visible) {
-      this.resetFixtureModalState();
-    }
+    if (!visible) this.resetFixtureModalState();
+    if (visible) this.startFixtureModalPolling();
   }
 
   private loadTracksForPlan(planName: string, forceRefresh = false): void {
@@ -1437,6 +1723,7 @@ export class CommanderComponent implements OnInit {
   private resetFixtureModalState(): void {
     this.modalQuerySub?.unsubscribe();
     this.modalQuerySub = null;
+    this.stopFixtureModalPolling();
     this.modalQueryLoading.set(false);
     this.modalQueryError.set(null);
     this.fixtureActionMessage.set(null);
@@ -1445,6 +1732,7 @@ export class CommanderComponent implements OnInit {
     this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
     this.fixtureModalTab.set('commands');
+    this.customCommandDirtyState.set({});
   }
 
   protected rebootFixture(): void {
@@ -1498,6 +1786,26 @@ export class CommanderComponent implements OnInit {
         this.modalQueryLoading.set(false);
       },
     });
+  }
+
+  protected onFixtureModalPollingToggle(value: boolean): void {
+    this.fixtureModalPollingEnabled.set(!!value);
+    if (this.fixtureModalPollingEnabled()) {
+      this.startFixtureModalPolling();
+    } else {
+      this.stopFixtureModalPolling();
+    }
+  }
+
+  private startFixtureModalPolling(): void {
+    if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) return;
+    this.healthService.subscribePlanState(fixture);
+  }
+
+  private stopFixtureModalPolling(): void {
+    this.healthService.unsubscribePlanState();
   }
 
   private runModalFixtureQueryInternal(options: {
@@ -1722,6 +2030,9 @@ export class CommanderComponent implements OnInit {
         [commandId]: commandValues,
       };
     });
+    if (this.hasStatePath(arg)) {
+      this.markCustomCommandArgDirty(commandId, arg.name);
+    }
   }
 
   protected onCustomCommandSliderRelease(command: CmdrCustomCommandUiItem): void {
@@ -1755,13 +2066,17 @@ export class CommanderComponent implements OnInit {
 
     const commandValues = this.hydrateCommandValues(command, this.customCommandValues()[command.id] ?? {});
     const wireCommand = this.buildCommandFromTemplate(wireTemplate, commandValues);
-    this.sendCommand(fixture, wireCommand);
+    this.sendCommand(fixture, wireCommand, 'default', () => {
+      // Command accepted: release draft lock so live plan_state can update controls again.
+      this.clearCustomCommandDirtyForCommand(command.id);
+    });
   }
 
   private openFixtureModal(): void {
     if (!this.fixtureModalVisible()) {
       this.fixtureAckEnabled.set(false);
       this.fixtureModalVisible.set(true);
+      this.startFixtureModalPolling();
     }
   }
 
@@ -2244,6 +2559,7 @@ export class CommanderComponent implements OnInit {
 
         for (const arg of command.args ?? []) {
           if (!this.hasStatePath(arg)) continue;
+          if (this.isCustomCommandArgDirty(command.id, arg.name)) continue;
           const desired = this.defaultValueForArg(arg);
           if (commandValues[arg.name] === desired) continue;
           if (!commandChanged) {
@@ -2369,6 +2685,37 @@ export class CommanderComponent implements OnInit {
   private hasStatePath(arg: CmdrCustomCommandUiArg): boolean {
     const statePath = (arg as { state_path?: unknown }).state_path;
     return typeof statePath === 'string' && statePath.trim().length > 0;
+  }
+
+  private customCommandDirtyKey(commandId: string, argName: string): string {
+    return `${commandId}::${argName}`;
+  }
+
+  private isCustomCommandArgDirty(commandId: string, argName: string): boolean {
+    return this.customCommandDirtyState()[this.customCommandDirtyKey(commandId, argName)] === true;
+  }
+
+  private markCustomCommandArgDirty(commandId: string, argName: string): void {
+    const key = this.customCommandDirtyKey(commandId, argName);
+    this.customCommandDirtyState.update((current) => {
+      if (current[key] === true) return current;
+      return { ...current, [key]: true };
+    });
+  }
+
+  private clearCustomCommandDirtyForCommand(commandId: string): void {
+    const prefix = `${commandId}::`;
+    this.customCommandDirtyState.update((current) => {
+      const keys = Object.keys(current);
+      if (!keys.some((key) => key.startsWith(prefix))) return current;
+      const next: Record<string, true> = {};
+      for (const key of keys) {
+        if (!key.startsWith(prefix)) {
+          next[key] = true;
+        }
+      }
+      return next;
+    });
   }
 
   private readSelectOptions(

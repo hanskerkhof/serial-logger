@@ -311,6 +311,25 @@
   }
 }
 
+.commander__dialog-poll-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color, #6b7280);
+
+  span {
+    color: var(--p-text-color, #111827);
+    font-weight: 500;
+  }
+
+  small {
+    font-size: 0.67rem;
+    color: var(--p-text-muted-color, #6b7280);
+    white-space: nowrap;
+  }
+}
+
 .commander__query-panel {
   display: flex;
   flex-direction: column;
@@ -826,4 +845,3 @@
   font-style: italic;
   padding: 0.5rem 0;
 }
-

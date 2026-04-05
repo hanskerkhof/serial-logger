@@ -145,6 +145,13 @@ export class CommanderApiService {
     );
   }
 
+  startFixtureDiscoveryWs(listenSeconds = 60): Observable<{ ok: boolean; status: string; mode: string; session_id: string; listen_seconds: number }> {
+    return this.http.post<{ ok: boolean; status: string; mode: string; session_id: string; listen_seconds: number }>(
+      `${this.getRequestBaseUrl()}/fixtures/discovery/ws-start?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
+      {},
+    );
+  }
+
   getPlanVersions(planName: string): Observable<CmdrVersionsResponse> {
     return this.http.get<CmdrVersionsResponse>(
       `${this.getRequestBaseUrl()}/plans/${encodeURIComponent(planName)}/versions`,

@@ -2,6 +2,41 @@ import { Injectable, Signal, computed, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { CommanderApiService, CommanderHealthResponse } from './commander-api.service';
 
+export interface PlanStateWsMessage {
+  type: 'plan_state';
+  fixture_name: string;
+  summary?: {
+    fixture_name?: string;
+    plan_state?: unknown;
+    source?: string;
+    fsps?: unknown;
+  };
+  timing?: unknown;
+  interval_ms?: number;
+  utc?: string;
+}
+
+export interface PlanStateWsErrorMessage {
+  type: 'plan_state_error';
+  reason: string;
+  detail?: string;
+  fixture_name?: string;
+  active_subscribers?: number;
+  max_subscribers?: number;
+  utc?: string;
+}
+
+export interface DiscoveryWsMessage {
+  type:
+    | 'discovery_started'
+    | 'discovery_fixture_upsert'
+    | 'discovery_progress'
+    | 'discovery_completed'
+    | 'discovery_failed'
+    | 'discovery_rejected';
+  [key: string]: unknown;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HealthPollService {
   private static readonly HEALTH_POLL_MS = 30_000;
@@ -48,11 +83,18 @@ export class HealthPollService {
   readonly healthFailed$ = new Subject<void>();
   /** Emits every 30 s for SW update checks (independent of WS state). */
   readonly pollCycle$ = new Subject<void>();
+  /** Emits live fixture plan-state updates pushed over /health/ws. */
+  readonly planState$ = new Subject<PlanStateWsMessage>();
+  /** Emits backend push errors for plan-state subscriptions (e.g. overload). */
+  readonly planStateError$ = new Subject<PlanStateWsErrorMessage>();
+  /** Emits live discovery events pushed over /health/ws. */
+  readonly discovery$ = new Subject<DiscoveryWsMessage>();
 
   private _ws: WebSocket | null = null;
   private _wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
   private _wsRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private _started = false;
+  private _planStateFixtureName: string | null = null;
 
   constructor() {
     // Single 1 s clock ticker drives both nextHealthPollCountdown and secondsSinceHealthCheck.
@@ -80,6 +122,18 @@ export class HealthPollService {
       this._healthRefreshing.set(true);
       this._ws.send(JSON.stringify({ type: 'ping' }));
     }
+  }
+
+  subscribePlanState(fixtureName: string): void {
+    const normalized = String(fixtureName || '').trim();
+    if (!normalized) return;
+    this._planStateFixtureName = normalized;
+    this._sendPlanStateSubscribe();
+  }
+
+  unsubscribePlanState(): void {
+    this._planStateFixtureName = null;
+    this._sendWsMessage({ type: 'plan_state_unsubscribe' });
   }
 
   /**
@@ -112,6 +166,7 @@ export class HealthPollService {
       // Reset backoff on successful connection; payload arrives via onmessage.
       this._wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
       this._nextHealthPollAt.set(0); // no pending reconnect countdown
+      this._sendPlanStateSubscribe();
     };
 
     ws.onmessage = (ev: MessageEvent) => {
@@ -125,6 +180,21 @@ export class HealthPollService {
       if (data?.['type'] === 'heartbeat') {
         // Heartbeat keeps "X s ago" counter fresh — no UI state change needed.
         this._lastHealthAt.set(Date.now());
+        return;
+      }
+      if (data?.['type'] === 'plan_state') {
+        this.planState$.next(data as unknown as PlanStateWsMessage);
+        return;
+      }
+      if (data?.['type'] === 'plan_state_error') {
+        this.planStateError$.next(data as unknown as PlanStateWsErrorMessage);
+        return;
+      }
+      if (data?.['type'] === 'plan_state_subscribed' || data?.['type'] === 'plan_state_unsubscribed') {
+        return;
+      }
+      if (typeof data?.['type'] === 'string' && data['type'].startsWith('discovery_')) {
+        this.discovery$.next(data as DiscoveryWsMessage);
         return;
       }
       const wasOffline = this._healthError() !== null;
@@ -160,5 +230,20 @@ export class HealthPollService {
       this._wsRetryDelayMs * 2,
       HealthPollService.HEALTH_MAX_RETRY_MS,
     );
+  }
+
+  private _sendPlanStateSubscribe(): void {
+    const fixture = this._planStateFixtureName;
+    if (!fixture) return;
+    this._sendWsMessage({ type: 'plan_state_subscribe', fixture_name: fixture });
+  }
+
+  private _sendWsMessage(payload: unknown): void {
+    if (this._ws?.readyState !== WebSocket.OPEN) return;
+    try {
+      this._ws.send(JSON.stringify(payload));
+    } catch {
+      // best effort only
+    }
   }
 }

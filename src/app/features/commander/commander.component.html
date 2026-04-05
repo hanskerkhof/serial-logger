@@ -40,11 +40,21 @@
         [label]="discoveryButtonLabel()"
         icon="pi pi-play"
         iconPos="right"
-        severity="primary"
+        severity="secondary"
         size="small"
         [model]="fullDiscoveryMenuItems()"
         (onClick)="runFullDiscovery()"
         [disabled]="backendBusy() || commanderUnavailable() || discoveryLoading() || discoverFixturesLoading()"
+      ></p-splitbutton>
+      <p-splitbutton
+        [label]="discoveryWsLoading() ? 'Full Discovery (WS)…' : 'Full Discovery (WS)'"
+        [icon]="discoveryWsLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-bolt'"
+        iconPos="right"
+        severity="success"
+        size="small"
+        [model]="fullDiscoveryWsMenuItems()"
+        (onClick)="runFullDiscoveryWs()"
+        [disabled]="backendBusy() || commanderUnavailable() || discoveryWsLoading()"
       ></p-splitbutton>
       <p-splitbutton
         [label]="discoverFixturesButtonLabel()"
@@ -584,6 +594,15 @@
           />
           <span>Require fixture ACK</span>
           <small>Slower but confirms fixture-level ACK.</small>
+        </label>
+        <label class="commander__dialog-poll-toggle">
+          <span>Live update</span>
+          <p-toggleswitch
+            [ngModel]="fixtureModalPollingEnabled()"
+            (ngModelChange)="onFixtureModalPollingToggle(!!$event)"
+            [disabled]="commanderUnavailable()"
+          />
+          <small>{{ fixtureModalPollingEnabled() ? 'On (500 ms)' : 'Off' }}</small>
         </label>
         <button
           pButton

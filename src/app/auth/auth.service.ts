@@ -117,7 +117,14 @@ export class AuthService {
       body: JSON.stringify({ username, password }),
     });
     if (!resp.ok) {
-      const detail = await resp.text();
+      let detail = '';
+      try {
+        const payload = await resp.json() as { detail?: string };
+        detail = (payload.detail ?? '').trim();
+      } catch {
+        const raw = (await resp.text()).trim();
+        detail = raw;
+      }
       return { ok: false, error: detail || `Login failed (${resp.status})` };
     }
 

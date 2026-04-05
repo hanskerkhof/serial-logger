@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../auth/auth.service';
@@ -13,10 +13,11 @@ import { AuthService } from '../../auth/auth.service';
 export class HomeComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  protected username = '';
-  protected password = '';
-  protected loginError: string | null = null;
-  protected isSubmitting = false;
+  protected readonly username = signal('');
+  protected readonly password = signal('');
+  protected readonly showPassword = signal(false);
+  protected readonly loginError = signal<string | null>(null);
+  protected readonly isSubmitting = signal(false);
 
   ngOnInit(): void {
     // If auth is not required or user is already logged in, go straight to the app.
@@ -26,23 +27,27 @@ export class HomeComponent implements OnInit {
   }
 
   protected async onLoginClick(): Promise<void> {
-    this.loginError = null;
+    this.loginError.set(null);
     if (this.authService.authMode() === 'lwl') {
-      this.isSubmitting = true;
+      this.isSubmitting.set(true);
       try {
-        const result = await this.authService.loginWithPassword(this.username.trim(), this.password);
+        const result = await this.authService.loginWithPassword(this.username().trim(), this.password());
         if (!result.ok) {
-          this.loginError = result.error ?? 'Login failed';
+          this.loginError.set(result.error ?? 'Login failed');
           return;
         }
-        this.password = '';
+        this.password.set('');
         await this.router.navigate(['/commander'], { replaceUrl: true });
       } finally {
-        this.isSubmitting = false;
+        this.isSubmitting.set(false);
       }
       return;
     }
 
     this.authService.login();
+  }
+
+  protected togglePasswordVisibility(): void {
+    this.showPassword.update((current) => !current);
   }
 }

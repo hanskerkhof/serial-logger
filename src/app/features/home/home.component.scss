@@ -73,6 +73,28 @@
   font-size: 0.92rem;
 }
 
+.home__password-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.home__input--password {
+  padding-right: 2.2rem;
+}
+
+.home__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--p-text-muted-color, #6b7280);
+  cursor: pointer;
+  padding: 0.2rem;
+  line-height: 1;
+}
+
 .home__error {
   margin: 0;
   color: #b91c1c;

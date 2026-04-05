@@ -65,6 +65,10 @@ import { FixtureConfigControlComponent } from '../../shared/fixture-config-contr
 import { FixtureDocsComponent } from '../../shared/fixture-docs/fixture-docs.component';
 import { CopyToClipboardComponent } from '../../shared/copy-to-clipboard/copy-to-clipboard.component';
 import { HealthPollService } from '../../health-poll.service';
+import {
+  QrScannedCommandService,
+  ScannedFixtureCommand,
+} from '../../shared/qr-scanner-demo/qr-scanned-command.service';
 
 interface SelectOption {
   label: string;
@@ -253,6 +257,7 @@ export class CommanderComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly swUpdate = inject(SwUpdate);
+  private readonly qrScannedCommandService = inject(QrScannedCommandService);
 
   protected readonly now = signal(Date.now());
   protected readonly heartbeatLabel = computed(() => {
@@ -900,10 +905,14 @@ export class CommanderComponent implements OnInit {
     const pollSub = this.healthService.pollCycle$.subscribe(() => {
       if (!this.loading() && this.swUpdate.isEnabled) this.swUpdate.checkForUpdate();
     });
+    const qrScanSub = this.qrScannedCommandService.scannedCommand$.subscribe((scanned) => {
+      this.executeScannedFixtureCommand(scanned);
+    });
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
       failedSub.unsubscribe();
       pollSub.unsubscribe();
+      qrScanSub.unsubscribe();
     });
   }
 
@@ -1861,7 +1870,7 @@ export class CommanderComponent implements OnInit {
     fixture: string,
     command: string,
     mode: SendCommandMode = 'default',
-    onSuccess?: () => void,
+    onSuccess?: (result: FixturePlanActionResponse, durationMs: number) => void,
   ): void {
     const wireCommand = this.buildModalWireCommand(fixture, command, mode);
 
@@ -1897,7 +1906,7 @@ export class CommanderComponent implements OnInit {
           durationMs,
         );
         this.fixtureActionLoading.set(false);
-        onSuccess?.();
+        onSuccess?.(result, durationMs);
       },
       error: (err: unknown) => {
         const durationMs = performance.now() - startedAt;
@@ -1910,6 +1919,81 @@ export class CommanderComponent implements OnInit {
         this.fixtureActionLoading.set(false);
       },
     });
+  }
+
+  private executeScannedFixtureCommand(scanned: ScannedFixtureCommand): void {
+    const fixture = scanned.fixtureName;
+    const mode: SendCommandMode = scanned.requiresAck ? 'force_ack' : 'force_no_ack';
+
+    this.sendCommand(fixture, scanned.wireCommand, mode, (result, durationMs) => {
+      const response = result as Record<string, unknown>;
+      const commandResult =
+        response['command_result'] && typeof response['command_result'] === 'object'
+          ? (response['command_result'] as Record<string, unknown>)
+          : null;
+      const accepted = commandResult?.['accepted'] !== false;
+      if (!accepted) {
+        this.messageService.add({
+          key: 'app',
+          severity: 'warn',
+          summary: `Scanned command not accepted for ${fixture}`,
+          detail: scanned.wireCommand,
+          life: 5000,
+        });
+        return;
+      }
+
+      const acceptedLabel = scanned.requiresAck ? 'Fixture ACK confirmed' : 'Dispatch accepted';
+      const roundTripMs = this.extractCommandRoundTripMs(response, durationMs);
+      this.messageService.add({
+        key: 'app',
+        severity: 'success',
+        summary: `${acceptedLabel} for ${fixture}`,
+        detail: `Round-trip: ${Math.round(roundTripMs)} ms`,
+        life: 4500,
+      });
+    });
+  }
+
+  private extractCommandRoundTripMs(response: Record<string, unknown>, fallbackMs: number): number {
+    const commandResult =
+      response['command_result'] && typeof response['command_result'] === 'object'
+        ? (response['command_result'] as Record<string, unknown>)
+        : null;
+
+    const timingCandidates: unknown[] = [
+      response['round_trip_ms'],
+      response['roundtrip_ms'],
+      commandResult?.['round_trip_ms'],
+      commandResult?.['roundtrip_ms'],
+    ];
+
+    const commandTiming = commandResult?.['timing'];
+    if (commandTiming && typeof commandTiming === 'object') {
+      const timing = commandTiming as Record<string, unknown>;
+      timingCandidates.push(
+        timing['round_trip_ms'],
+        timing['roundtrip_ms'],
+        timing['duration_ms'],
+        timing['elapsed_ms'],
+      );
+    }
+
+    for (const candidate of timingCandidates) {
+      const parsed = this.readNumber(candidate);
+      if (parsed !== null) return parsed;
+    }
+
+    return fallbackMs;
+  }
+
+  private readNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
   }
 
   private buildModalWireCommand(fixture: string, command: string, mode: SendCommandMode): string {

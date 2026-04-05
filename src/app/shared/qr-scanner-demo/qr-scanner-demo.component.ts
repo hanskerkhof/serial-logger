@@ -4,6 +4,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  EventEmitter,
+  Output,
   ViewChild,
   inject,
   signal,
@@ -19,6 +21,7 @@ import QrScanner from 'qr-scanner';
 })
 export class QrScannerDemoComponent implements AfterViewInit {
   @ViewChild('videoEl') private videoElementRef?: ElementRef<HTMLVideoElement>;
+  @Output() readonly qrValueDetected = new EventEmitter<string>();
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -26,6 +29,7 @@ export class QrScannerDemoComponent implements AfterViewInit {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastDetectedQrText = signal<string | null>(null);
   private scanner: QrScanner | null = null;
+  private hasEmittedValue = false;
 
   constructor() {
     this.destroyRef.onDestroy(() => {
@@ -53,7 +57,12 @@ export class QrScannerDemoComponent implements AfterViewInit {
         videoElement,
         (decoded) => {
           const value = decoded.data.trim();
-          if (value) this.lastDetectedQrText.set(value);
+          if (!value) return;
+          this.lastDetectedQrText.set(value);
+          if (this.hasEmittedValue) return;
+          this.hasEmittedValue = true;
+          this.qrValueDetected.emit(value);
+          this.stopScanner();
         },
         {
           preferredCamera: 'environment',

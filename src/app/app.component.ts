@@ -14,6 +14,7 @@ import { CmdrMessage, CmdrHealthResponse } from './api/cmdr-models';
 import { HealthPollService } from './health-poll.service';
 import { ReleaseNotesComponent } from './shared/release-notes/release-notes.component';
 import { QrScannerDemoComponent } from './shared/qr-scanner-demo/qr-scanner-demo.component';
+import { QrScannedCommandService } from './shared/qr-scanner-demo/qr-scanned-command.service';
 
 @Component({
   selector: 'app-root',
@@ -34,6 +35,7 @@ export class AppComponent {
   private readonly router = inject(Router);
   private readonly commanderApi = inject(CommanderApiService);
   private readonly serialService = inject(SerialService);
+  private readonly qrScannedCommandService = inject(QrScannedCommandService);
   protected readonly activeMode = signal<'direct' | 'commander'>(this.modeFromUrl(this.router.url));
   protected readonly appVersion = APP_VERSION;
   protected readonly buildDate = BUILD_DATE;
@@ -218,6 +220,32 @@ export class AppComponent {
 
   protected closeQrScannerDialog(): void {
     this.showQrScannerDialog.set(false);
+  }
+
+  protected onQrValueDetected(value: string): void {
+    const parsed = this.qrScannedCommandService.parse(value);
+    if (parsed) {
+      this.qrScannedCommandService.publish(parsed);
+      this.closeQrScannerDialog();
+      return;
+    }
+
+    const externalUrl = this.parseExternalHttpUrl(value);
+    if (!externalUrl) return;
+    window.open(externalUrl, '_blank', 'noopener,noreferrer');
+    this.closeQrScannerDialog();
+  }
+
+  private parseExternalHttpUrl(rawValue: string): string | null {
+    const trimmed = rawValue.trim();
+    if (!trimmed) return null;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+      return parsed.toString();
+    } catch {
+      return null;
+    }
   }
 
   protected loadOlderReleaseNotesPage(): void {

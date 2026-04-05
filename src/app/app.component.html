@@ -240,7 +240,7 @@
   <h2 class="update-dialog__header">QR Scanner Demo</h2>
   <div class="update-dialog__body qr-scanner-dialog__body">
     @if (showQrScannerDialog()) {
-      <app-qr-scanner-demo />
+      <app-qr-scanner-demo (qrValueDetected)="onQrValueDetected($event)" />
     }
   </div>
   <div class="update-dialog__footer">

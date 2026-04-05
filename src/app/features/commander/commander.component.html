@@ -687,8 +687,8 @@
         }
       </section>
     </header>
-    <div class="commander__dialog-body">
-      <p-tabs [value]="fixtureModalTab()" (valueChange)="fixtureModalTab.set($event?.toString() ?? 'status')">
+    <div #dialogBody class="commander__dialog-body">
+      <p-tabs [value]="fixtureModalTab()" (valueChange)="fixtureModalTab.set($event?.toString() ?? 'status'); dialogBody.scrollTop = 0">
         <p-tablist>
           <p-tab value="status">Status</p-tab>
           <p-tab value="config">

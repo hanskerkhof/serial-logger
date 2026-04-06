@@ -21,14 +21,20 @@ type AuthStatusResponse = {
   client_id?: string;
 };
 
-function resolveApiBaseUrl(): string {
+function getApiBaseCandidates(): string[] {
+  const candidates: string[] = [];
   try {
     const stored = localStorage.getItem(API_URL_STORAGE_KEY);
-    if (stored) return stored.replace(/\/+$/, '');
+    if (stored) candidates.push(stored.replace(/\/+$/, ''));
   } catch {
     // localStorage unavailable (SSR / private mode edge case)
   }
-  return API_URL_FALLBACKS[0] ?? 'http://localhost:8080';
+  candidates.push(...API_URL_FALLBACKS.map((url) => url.replace(/\/+$/, '')));
+  return Array.from(new Set(candidates.filter(Boolean)));
+}
+
+function resolveApiBaseUrl(): string {
+  return getApiBaseCandidates()[0] ?? 'http://localhost:8080';
 }
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -50,36 +56,65 @@ export class AuthService {
 
   readonly authRequired = signal<boolean>(true);
   readonly authMode = signal<AuthMode | null>(null);
+  readonly authEndpointError = signal<string | null>(null);
 
   async initialize(): Promise<void> {
     let oidcConfig = { ...authConfig };
+    let statusResolved = false;
+    let resolvedMode: AuthMode | null = null;
+    let attemptedEndpoint: string | null = null;
+    this.authEndpointError.set(null);
     try {
-      const apiBase = resolveApiBaseUrl();
-      const resp = await fetch(`${apiBase}/auth/status`);
-      if (resp.ok) {
-        const data = (await resp.json()) as AuthStatusResponse;
-        if (!data.enabled) {
-          this.authRequired.set(false);
-          this.authMode.set(null);
-          return;
-        }
-        this.authRequired.set(true);
-        const mode = (data.mode ?? 'zitadel') as AuthMode;
-        this.authMode.set(mode);
+      for (const apiBase of getApiBaseCandidates()) {
+        attemptedEndpoint = apiBase;
+        try {
+          const resp = await fetch(`${apiBase}/auth/status`);
+          if (!resp.ok) continue;
+          const data = (await resp.json()) as AuthStatusResponse;
+          try {
+            localStorage.setItem(API_URL_STORAGE_KEY, apiBase);
+          } catch {
+            // ignore storage failures
+          }
+          if (!data.enabled) {
+            this.authRequired.set(false);
+            this.authMode.set(null);
+            return;
+          }
+          this.authRequired.set(true);
+          const mode = (data.mode ?? 'lwl') as AuthMode;
+          this.authMode.set(mode);
+          resolvedMode = mode;
+          statusResolved = true;
 
-        if (mode === 'lwl') {
-          // Keep Light Weight Login token flow local, no OIDC bootstrap needed.
-          if (!this.isLwlSessionValid()) this.clearLwlSession();
-          return;
-        }
+          if (mode === 'lwl') {
+            // Keep Light Weight Login token flow local, no OIDC bootstrap needed.
+            if (!this.isLwlSessionValid()) this.clearLwlSession();
+            return;
+          }
 
-        if (data.issuer) oidcConfig = { ...oidcConfig, issuer: data.issuer };
-        if (data.client_id) oidcConfig = { ...oidcConfig, clientId: data.client_id };
+          if (data.issuer) oidcConfig = { ...oidcConfig, issuer: data.issuer };
+          if (data.client_id) oidcConfig = { ...oidcConfig, clientId: data.client_id };
+          break;
+        } catch {
+          // try next candidate
+        }
       }
     } catch {
-      // API unreachable at startup — preserve historical behavior.
-      this.authMode.set('zitadel');
+      // handled below
     }
+
+    if (!statusResolved) {
+      // When API status probing fails, prefer LWL fallback over OIDC redirect loops.
+      this.authRequired.set(true);
+      this.authMode.set('lwl');
+      if (!this.isLwlSessionValid()) this.clearLwlSession();
+      const endpointLabel = attemptedEndpoint ?? resolveApiBaseUrl();
+      this.authEndpointError.set(`API endpoint unavailable: ${endpointLabel}`);
+      return;
+    }
+
+    if (resolvedMode !== 'zitadel') return;
 
     this.oauthService.configure(oidcConfig);
     try {
@@ -110,32 +145,67 @@ export class AuthService {
     if (!this.authRequired()) return { ok: true };
     if (this.authMode() !== 'lwl') return { ok: false, error: 'LWL login not enabled' };
 
-    const apiBase = resolveApiBaseUrl();
-    const resp = await fetch(`${apiBase}/auth/lwl-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    if (!resp.ok) {
-      let detail = '';
+    const bases = getApiBaseCandidates();
+    let lastError = 'Login failed';
+    let sawTransportError = false;
+    let lastAttemptedBase: string | null = null;
+    this.authEndpointError.set(null);
+    for (const apiBase of bases) {
+      lastAttemptedBase = apiBase;
+      let resp: Response;
       try {
-        const payload = await resp.json() as { detail?: string };
-        detail = (payload.detail ?? '').trim();
+        resp = await fetch(`${apiBase}/auth/lwl-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
       } catch {
-        const raw = (await resp.text()).trim();
-        detail = raw;
+        sawTransportError = true;
+        continue;
       }
-      return { ok: false, error: detail || `Login failed (${resp.status})` };
+      if (!resp.ok) {
+        let detail = '';
+        try {
+          const payload = await resp.json() as { detail?: string };
+          detail = (payload.detail ?? '').trim();
+        } catch {
+          const raw = (await resp.text()).trim();
+          const looksLikeHtml = /<!doctype|<html/i.test(raw);
+          detail = looksLikeHtml ? '' : raw;
+        }
+        lastError = detail || `Login failed (${resp.status})`;
+        // On auth failure, don't keep trying other hosts.
+        if (resp.status === 401 || resp.status === 403) {
+          this.authEndpointError.set(null);
+          return { ok: false, error: lastError };
+        }
+        const endpointError = `LWL login endpoint failed (${resp.status}): ${apiBase}/auth/lwl-login`;
+        this.authEndpointError.set(endpointError);
+        lastError = endpointError;
+        continue;
+      }
+
+      const data = await resp.json() as { access_token?: string; user_name?: string };
+      const token = (data.access_token ?? '').trim();
+      const userName = (data.user_name ?? username).trim();
+      if (!token) return { ok: false, error: 'Login response missing token' };
+      localStorage.setItem(LWL_TOKEN_STORAGE_KEY, token);
+      localStorage.setItem(LWL_USER_STORAGE_KEY, userName);
+      this.authEndpointError.set(null);
+      try {
+        localStorage.setItem(API_URL_STORAGE_KEY, apiBase);
+      } catch {
+        // ignore storage failures
+      }
+      return { ok: true };
     }
-
-    const data = await resp.json() as { access_token?: string; user_name?: string };
-    const token = (data.access_token ?? '').trim();
-    const userName = (data.user_name ?? username).trim();
-    if (!token) return { ok: false, error: 'Login response missing token' };
-
-    localStorage.setItem(LWL_TOKEN_STORAGE_KEY, token);
-    localStorage.setItem(LWL_USER_STORAGE_KEY, userName);
-    return { ok: true };
+    if (sawTransportError) {
+      const endpointLabel = `${lastAttemptedBase ?? resolveApiBaseUrl()}/auth/lwl-login`;
+      const endpointError = `LWL login endpoint unavailable: ${endpointLabel}`;
+      this.authEndpointError.set(endpointError);
+      lastError = endpointError;
+    }
+    return { ok: false, error: lastError };
   }
 
   logout(): void {

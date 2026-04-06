@@ -4,6 +4,9 @@
     <p class="home__subtitle">Fixture control &amp; monitoring</p>
     <div class="home__divider"></div>
     <p class="home__message">Sign in to access the studio.</p>
+    @if (authService.authEndpointError()) {
+      <p class="home__error home__error--endpoint">{{ authService.authEndpointError() }}</p>
+    }
 
     @if (authService.authMode() === 'lwl') {
       <div class="home__form">

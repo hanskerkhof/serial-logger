@@ -33,11 +33,15 @@ export class HomeComponent implements OnInit {
       try {
         const result = await this.authService.loginWithPassword(this.username().trim(), this.password());
         if (!result.ok) {
-          this.loginError.set(result.error ?? 'Login failed');
+          this.loginError.set(this.authService.authEndpointError() ?? result.error ?? 'Login failed');
           return;
         }
         this.password.set('');
         await this.router.navigate(['/commander'], { replaceUrl: true });
+      } catch {
+        this.loginError.set(
+          this.authService.authEndpointError() ?? 'LWL login endpoint unavailable. Please check API URL/connectivity.',
+        );
       } finally {
         this.isSubmitting.set(false);
       }

@@ -419,14 +419,24 @@ export class CommanderComponent implements OnInit {
     effect(() => {
       const visible = this.fixtureModalVisible();
       const liveUpdate = this.fixtureModalPollingEnabled();
+      const commanderUnavailable = this.commanderUnavailable() || this.serialHoldActive();
       // Subscribe by selected fixture identity only; avoid resubscribing on every
       // fixture raw-data update (plan_state ticks), which causes WS chatter.
       const selectedName = (this.fixtureStore.selectedFixtureName() ?? this.fixtureName()).trim();
-      if (!visible || !liveUpdate || !selectedName) {
+      if (!visible || !liveUpdate || !selectedName || commanderUnavailable) {
         this.healthService.unsubscribePlanState();
         return;
       }
       this.healthService.subscribePlanState(selectedName);
+    });
+
+    effect(() => {
+      const visible = this.fixtureModalVisible();
+      const liveUpdate = this.fixtureModalPollingEnabled();
+      const commanderUnavailable = this.commanderUnavailable() || this.serialHoldActive();
+      if (!visible || !liveUpdate || !commanderUnavailable) return;
+      this.fixtureModalPollingEnabled.set(false);
+      this.stopFixtureModalPolling();
     });
 
     effect(() => {
@@ -1873,6 +1883,11 @@ export class CommanderComponent implements OnInit {
   }
 
   protected onFixtureModalPollingToggle(value: boolean): void {
+    if (value && (this.commanderUnavailable() || this.serialHoldActive())) {
+      this.fixtureModalPollingEnabled.set(false);
+      this.stopFixtureModalPolling();
+      return;
+    }
     this.fixtureModalPollingEnabled.set(!!value);
     if (this.fixtureModalPollingEnabled()) {
       this.startFixtureModalPolling();

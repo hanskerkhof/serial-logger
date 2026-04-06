@@ -95,6 +95,7 @@ export class HealthPollService {
   private _wsRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private _started = false;
   private _planStateFixtureName: string | null = null;
+  private _planStateSubscribedFixtureName: string | null = null;
 
   constructor() {
     // Single 1 s clock ticker drives both nextHealthPollCountdown and secondsSinceHealthCheck.
@@ -127,12 +128,17 @@ export class HealthPollService {
   subscribePlanState(fixtureName: string): void {
     const normalized = String(fixtureName || '').trim();
     if (!normalized) return;
+    if (this._planStateFixtureName === normalized && this._planStateSubscribedFixtureName === normalized) {
+      return;
+    }
     this._planStateFixtureName = normalized;
     this._sendPlanStateSubscribe();
   }
 
   unsubscribePlanState(): void {
+    if (!this._planStateFixtureName && !this._planStateSubscribedFixtureName) return;
     this._planStateFixtureName = null;
+    this._planStateSubscribedFixtureName = null;
     this._sendWsMessage({ type: 'plan_state_unsubscribe' });
   }
 
@@ -166,6 +172,7 @@ export class HealthPollService {
       // Reset backoff on successful connection; payload arrives via onmessage.
       this._wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
       this._nextHealthPollAt.set(0); // no pending reconnect countdown
+      this._planStateSubscribedFixtureName = null;
       this._sendPlanStateSubscribe();
     };
 
@@ -212,6 +219,7 @@ export class HealthPollService {
     ws.onclose = () => {
       if (ws !== this._ws) return; // stale socket — don't overwrite healthy state
       this._ws = null;
+      this._planStateSubscribedFixtureName = null;
       this._healthRefreshing.set(false);
       this._healthError.set('API unreachable');
       this.healthFailed$.next();
@@ -235,7 +243,11 @@ export class HealthPollService {
   private _sendPlanStateSubscribe(): void {
     const fixture = this._planStateFixtureName;
     if (!fixture) return;
+    if (this._planStateSubscribedFixtureName === fixture && this._ws?.readyState === WebSocket.OPEN) {
+      return;
+    }
     this._sendWsMessage({ type: 'plan_state_subscribe', fixture_name: fixture });
+    this._planStateSubscribedFixtureName = fixture;
   }
 
   private _sendWsMessage(payload: unknown): void {

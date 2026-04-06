@@ -17,6 +17,21 @@
 @if (commands().length > 0) {
   <section class="fixture-custom-control" aria-label="Custom commands">
     <h4 class="fixture-custom-control__title">Custom Commands</h4>
+    @for (statusCommand of inlineStatusCommands(); track statusCommand.id) {
+      <div class="fixture-custom-control__status-row" aria-label="Custom command status row">
+        @for (arg of statusCommand.args ?? []; track arg.name) {
+          @if (isStatusDotArg(arg)) {
+            <span
+              class="fixture-custom-control__status-dot"
+              [class.fixture-custom-control__status-dot--on]="statusDotOn(statusCommand.id, arg)"
+            ></span>
+          } @else if (isStatusDisplayArg(arg)) {
+            <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
+            <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+          }
+        }
+      </div>
+    }
     @if (hasSharedRgb()) {
       <div class="fixture-custom-control__card fixture-custom-control__card--full">
         <div class="fixture-custom-control__command-row">

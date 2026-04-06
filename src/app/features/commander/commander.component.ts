@@ -23,6 +23,7 @@ import { PanelModule } from 'primeng/panel';
 import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, MenuItem } from 'primeng/api';
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { TabsModule } from 'primeng/tabs';
@@ -82,6 +83,14 @@ type CustomCommandValue = string | number | boolean;
 type FixtureModalFeedbackTone = 'info' | 'success' | 'warn' | 'error';
 type SendCommandMode = 'default' | 'force_ack' | 'force_no_ack';
 
+interface LiveUpdateTimingSample {
+  phase: string | null;
+  queryElapsedMs: number | null;
+  sincePrevEmitMs: number | null;
+  targetIntervalMs: number | null;
+  headroomMs: number | null;
+}
+
 function compareVersions(a: string, b: string): number {
   const seg = (s: string) => s.replace(/^v/, '').split('.').map(Number);
   const [as_, bs_] = [seg(a), seg(b)];
@@ -95,7 +104,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -204,12 +213,18 @@ export class CommanderComponent implements OnInit {
   });
   protected readonly manualCommand = signal('');
   protected readonly customCommandValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
+  private readonly customCommandStateBackedOptimisticValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
   private readonly customCommandDirtyState = signal<Record<string, true>>({});
   protected readonly discoveryLockedByOtherTab = signal(false);
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
   protected readonly fixtureModalVisible = signal(false);
   protected readonly fixtureModalPollingEnabled = signal(true);
+  protected readonly liveTimingMovingAverageEnabled = signal(
+    localStorage.getItem('cmdr.liveTiming.movingAvg') === '1',
+  );
+  private readonly liveTimingSamplesByFixture = signal<Map<string, LiveUpdateTimingSample[]>>(new Map());
+  private readonly fixtureManualRefreshAtByName = signal<Map<string, number>>(new Map());
   private modalQuerySub: Subscription | null = null;
   /** Fixture names that have been auto-queried on first modal open this session. */
   private readonly autoQueriedFixtures = new Set<string>();
@@ -296,6 +311,43 @@ export class CommanderComponent implements OnInit {
     return this.relativeTime(f.lastUpdatedAt);
   });
 
+  protected readonly selectedFixtureLastSeenAgoShort = computed<string>(() => {
+    const fixture = this.selectedFixture();
+    if (!fixture) return '--';
+    const manual = this.fixtureManualRefreshAtByName().get(fixture.fixture_name) ?? null;
+    const fallback = fixture.lastUpdatedAt ? new Date(fixture.lastUpdatedAt).getTime() : NaN;
+    const ms = manual ?? fallback;
+    if (!Number.isFinite(ms)) return '--';
+    const seconds = Math.max(0, Math.floor((this.now() - ms) / 1000));
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h`;
+  });
+
+  protected readonly runQueryButtonLabel = computed<string>(
+    () => `Run query (ago: ${this.selectedFixtureLastSeenAgoShort()})`,
+  );
+
+  protected readonly previousFixtureName = computed<string | null>(() => {
+    const all = this.allFixturesOrdered();
+    if (all.length <= 1) return null;
+    const current = this.selectedFixture();
+    const idx = current ? all.findIndex((f) => f.fixture_name === current.fixture_name) : -1;
+    const prev = all[(idx - 1 + all.length) % all.length];
+    return prev?.fixture_name ?? null;
+  });
+
+  protected readonly nextFixtureName = computed<string | null>(() => {
+    const all = this.allFixturesOrdered();
+    if (all.length <= 1) return null;
+    const current = this.selectedFixture();
+    const idx = current ? all.findIndex((f) => f.fixture_name === current.fixture_name) : -1;
+    const next = all[(idx + 1 + all.length) % all.length];
+    return next?.fixture_name ?? null;
+  });
+
   protected relativeTime(ts: number | string | unknown): string | null {
     if (ts === null || ts === undefined) return null;
     let ms: number;
@@ -336,6 +388,12 @@ export class CommanderComponent implements OnInit {
     effect(() =>
       localStorage.setItem('cmdr.discovery.timings', JSON.stringify(this.discoveryTimings())),
     );
+    effect(() =>
+      localStorage.setItem(
+        'cmdr.liveTiming.movingAvg',
+        this.liveTimingMovingAverageEnabled() ? '1' : '0',
+      ),
+    );
     effect(() => {
       // Track only fixture identity so that re-queries (which update raw fixture data
       // including state_path-resolved defaults) don't overwrite the user's locally
@@ -344,6 +402,7 @@ export class CommanderComponent implements OnInit {
       this.fixtureStore.selectedFixtureName();
       const commands = untracked(() => this.selectedFixtureCustomCommands());
       this.customCommandValues.set(this.buildInitialCustomCommandValues(commands));
+      this.customCommandStateBackedOptimisticValues.set({});
       this.customCommandDirtyState.set({});
       // Reset any optimistic plan state when switching fixtures.
       untracked(() => this.optimisticPlanState.set(null));
@@ -360,7 +419,9 @@ export class CommanderComponent implements OnInit {
     effect(() => {
       const visible = this.fixtureModalVisible();
       const liveUpdate = this.fixtureModalPollingEnabled();
-      const selectedName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+      // Subscribe by selected fixture identity only; avoid resubscribing on every
+      // fixture raw-data update (plan_state ticks), which causes WS chatter.
+      const selectedName = (this.fixtureStore.selectedFixtureName() ?? this.fixtureName()).trim();
       if (!visible || !liveUpdate || !selectedName) {
         this.healthService.unsubscribePlanState();
         return;
@@ -679,6 +740,28 @@ export class CommanderComponent implements OnInit {
     if (optimistic !== null) return optimistic;
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     return (ps?.['plan_state'] as string) || null;
+  });
+
+  protected readonly selectedFixtureLiveUpdateTimingLabel = computed<string | null>(() => {
+    const timing = this.selectedFixture()?.raw['plan_state_timing'] as Record<string, unknown> | null | undefined;
+    const fixtureName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    const liveSample = this.parseLiveUpdateTimingSample(timing);
+    const samples = fixtureName ? (this.liveTimingSamplesByFixture().get(fixtureName) ?? []) : [];
+    const useAvg = this.liveTimingMovingAverageEnabled();
+    const avg = useAvg ? this.averageLiveUpdateTimingSamples(samples) : null;
+    const sourceSample = avg ?? liveSample;
+    if (!sourceSample) return null;
+    const phase = sourceSample.phase;
+    const queryElapsedMs = sourceSample.queryElapsedMs;
+    const sincePrevEmitMs = sourceSample.sincePrevEmitMs;
+    const headroomMs = sourceSample.headroomMs;
+    const parts: string[] = [];
+    if (useAvg && samples.length > 0) parts.push(`avg${samples.length}`);
+    if (phase) parts.push(phase);
+    if (queryElapsedMs !== null) parts.push(`Q ${queryElapsedMs.toFixed(1)} ms`);
+    if (sincePrevEmitMs !== null) parts.push(`Δ ${sincePrevEmitMs.toFixed(1)} ms`);
+    if (headroomMs !== null) parts.push(`H ${headroomMs.toFixed(1)} ms`);
+    return parts.length > 0 ? parts.join(' · ') : null;
   });
 
   protected readonly selectedFixturePlayer = computed<CmdrPlayerCapabilities | null>(() => {
@@ -1776,6 +1859,7 @@ export class CommanderComponent implements OnInit {
         this.modalQueryLoading.set(false);
         const durationMs = performance.now() - startedAt;
         this.applyFixturePlanStatusResult(fixture, result);
+        this.markFixtureManualRefreshNow(fixture);
         this.setFixtureModalFeedback(`Update fixture complete for ${fixture}`, 'success', durationMs);
       },
       error: (err: unknown) => {
@@ -1837,6 +1921,7 @@ export class CommanderComponent implements OnInit {
         // the correct name even when the API summary reports a different
         // fixture_name (CMDR alias vs fixture self-identity).
         this.ingestQueryResult(result, 'fixture_query', fixture);
+        this.markFixtureManualRefreshNow(fixture);
         this.modalQueryLoading.set(false);
         const fwVersion = result.summary?.fw_version;
         const message = fwVersion
@@ -1880,7 +1965,9 @@ export class CommanderComponent implements OnInit {
     const nextRaw: Record<string, unknown> = {
       ...(existing.raw ?? {}),
       plan_state: result.summary?.plan_state ?? null,
+      plan_state_timing: (result.timing as Record<string, unknown> | null | undefined) ?? null,
     };
+    this.recordLiveTimingSample(fixtureName, nextRaw['plan_state_timing'] as Record<string, unknown> | null | undefined);
     this.fixtureStore.upsertFixtures([{
       ...existing,
       raw: nextRaw,
@@ -1894,6 +1981,7 @@ export class CommanderComponent implements OnInit {
       next: (result) => {
         this.queryResult.set(result);
         this.ingestQueryResult(result, 'fixture_query', fixtureName);
+        this.markFixtureManualRefreshNow(fixtureName);
         this.refreshTracksAndDocsAfterQuery(fixtureName, result);
       },
       error: (err: unknown) => {
@@ -2067,6 +2155,7 @@ export class CommanderComponent implements OnInit {
     const commandValues = this.hydrateCommandValues(command, this.customCommandValues()[command.id] ?? {});
     const wireCommand = this.buildCommandFromTemplate(wireTemplate, commandValues);
     this.sendCommand(fixture, wireCommand, 'default', () => {
+      this.applyOptimisticStateBackedValues(command, commandValues);
       // Command accepted: release draft lock so live plan_state can update controls again.
       this.clearCustomCommandDirtyForCommand(command.id);
     });
@@ -2449,6 +2538,83 @@ export class CommanderComponent implements OnInit {
     return null;
   }
 
+  private parseLiveUpdateTimingSample(
+    timing: Record<string, unknown> | null | undefined,
+  ): LiveUpdateTimingSample | null {
+    if (!timing || typeof timing !== 'object') return null;
+    const phase = typeof timing['phase'] === 'string' ? String(timing['phase']) : null;
+    const queryElapsedMs = this.readNumber(timing['query_elapsed_ms']);
+    const sincePrevEmitMs = this.readNumber(timing['since_prev_emit_ms']);
+    const targetIntervalMs = this.readNumber(timing['target_interval_ms']);
+    const headroomMs =
+      queryElapsedMs !== null && targetIntervalMs !== null
+        ? targetIntervalMs - queryElapsedMs
+        : null;
+    if (
+      phase === null &&
+      queryElapsedMs === null &&
+      sincePrevEmitMs === null &&
+      targetIntervalMs === null &&
+      headroomMs === null
+    ) {
+      return null;
+    }
+    return {
+      phase,
+      queryElapsedMs,
+      sincePrevEmitMs,
+      targetIntervalMs,
+      headroomMs,
+    };
+  }
+
+  private markFixtureManualRefreshNow(fixtureName: string): void {
+    const key = fixtureName.trim();
+    if (!key) return;
+    const nowMs = Date.now();
+    this.fixtureManualRefreshAtByName.update((current) => {
+      const next = new Map(current);
+      next.set(key, nowMs);
+      return next;
+    });
+  }
+
+  private averageLiveUpdateTimingSamples(samples: LiveUpdateTimingSample[]): LiveUpdateTimingSample | null {
+    if (samples.length === 0) return null;
+    const averageOf = (values: Array<number | null>): number | null => {
+      const filtered = values.filter((value): value is number => value !== null);
+      if (filtered.length === 0) return null;
+      const sum = filtered.reduce((acc, value) => acc + value, 0);
+      return sum / filtered.length;
+    };
+    const latest = samples[samples.length - 1] ?? null;
+    if (!latest) return null;
+    return {
+      phase: latest.phase,
+      queryElapsedMs: averageOf(samples.map((sample) => sample.queryElapsedMs)),
+      sincePrevEmitMs: averageOf(samples.map((sample) => sample.sincePrevEmitMs)),
+      targetIntervalMs: averageOf(samples.map((sample) => sample.targetIntervalMs)),
+      headroomMs: averageOf(samples.map((sample) => sample.headroomMs)),
+    };
+  }
+
+  private recordLiveTimingSample(
+    fixtureName: string,
+    timing: Record<string, unknown> | null | undefined,
+  ): void {
+    const key = fixtureName.trim();
+    if (!key) return;
+    const sample = this.parseLiveUpdateTimingSample(timing);
+    if (!sample) return;
+    const maxSamples = 10;
+    this.liveTimingSamplesByFixture.update((current) => {
+      const next = new Map(current);
+      const samples = [...(next.get(key) ?? []), sample];
+      next.set(key, samples.slice(-maxSamples));
+      return next;
+    });
+  }
+
   private buildModalWireCommand(fixture: string, command: string, mode: SendCommandMode): string {
     const trimmedCommand = command.trim();
     const normalized = this.normalizeToWireTcmd(fixture, trimmedCommand);
@@ -2549,6 +2715,10 @@ export class CommanderComponent implements OnInit {
   }
 
   private syncStateBackedCustomCommandValues(commands: CmdrCustomCommandUiItem[]): void {
+    const optimisticByCommand = this.customCommandStateBackedOptimisticValues();
+    let optimisticChanged = false;
+    const nextOptimisticByCommand: Record<string, Record<string, CustomCommandValue>> = { ...optimisticByCommand };
+
     this.customCommandValues.update((current) => {
       let changed = false;
       const next: Record<string, Record<string, CustomCommandValue>> = { ...current };
@@ -2560,13 +2730,20 @@ export class CommanderComponent implements OnInit {
         for (const arg of command.args ?? []) {
           if (!this.hasStatePath(arg)) continue;
           if (this.isCustomCommandArgDirty(command.id, arg.name)) continue;
-          const desired = this.defaultValueForArg(arg);
+          const optimisticValue = this.getOptimisticStateBackedValue(command.id, arg.name);
+          const desired = optimisticValue ?? this.defaultValueForArg(arg);
           if (commandValues[arg.name] === desired) continue;
           if (!commandChanged) {
             commandValues = { ...commandValues };
             commandChanged = true;
           }
           commandValues[arg.name] = desired;
+
+          const metadataDesired = this.defaultValueForArg(arg);
+          if (optimisticValue !== undefined && metadataDesired === desired) {
+            this.clearOptimisticStateBackedValue(command.id, arg.name, nextOptimisticByCommand);
+            optimisticChanged = true;
+          }
         }
 
         if (commandChanged) {
@@ -2577,6 +2754,10 @@ export class CommanderComponent implements OnInit {
 
       return changed ? next : current;
     });
+
+    if (optimisticChanged) {
+      this.customCommandStateBackedOptimisticValues.set(nextOptimisticByCommand);
+    }
   }
 
   private hydrateCommandValues(
@@ -2627,6 +2808,18 @@ export class CommanderComponent implements OnInit {
   }
 
   private defaultValueForArg(arg: CmdrCustomCommandUiArg): CustomCommandValue {
+    const liveStateValue = this.resolveStateBackedArgValue(arg);
+    const control = String(arg.control ?? '').toLowerCase();
+    if (control === 'dot') {
+      return this.toBoolean(liveStateValue ?? arg.default ?? false);
+    }
+    if (control === 'display') {
+      const value = liveStateValue ?? arg.default;
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') return value;
+      return '';
+    }
     if (arg.control === 'checkbox') {
       return this.toBoolean(arg.default ?? false);
     }
@@ -2636,12 +2829,15 @@ export class CommanderComponent implements OnInit {
         return options[0].value;
       }
       const fallback = options.length > 0 ? options[0].value : '';
-      return this.normalizeSelectValue(arg, arg.default, fallback);
+      return this.normalizeSelectValue(arg, liveStateValue ?? arg.default, fallback);
     }
     if (arg.control === 'slider' || arg.control === 'number') {
       const fallback = typeof arg.min === 'number' ? arg.min : 0;
-      return this.toNumber(arg.default, fallback);
+      return this.toNumber(liveStateValue ?? arg.default, fallback);
     }
+    if (typeof liveStateValue === 'string') return liveStateValue;
+    if (typeof liveStateValue === 'number' && Number.isFinite(liveStateValue)) return liveStateValue;
+    if (typeof liveStateValue === 'boolean') return liveStateValue;
     if (typeof arg.default === 'string') return arg.default;
     return '';
   }
@@ -2679,7 +2875,41 @@ export class CommanderComponent implements OnInit {
         if (matched) return matched.value;
       }
     }
+    if (typeof rawValue === 'number' || typeof rawValue === 'string' || typeof rawValue === 'boolean') {
+      const canonicalRaw = String(rawValue).trim();
+      const matched = options.find((option) => String(option.value).trim() === canonicalRaw);
+      if (matched) return matched.value;
+    }
     return fallback;
+  }
+
+  private resolveStateBackedArgValue(arg: CmdrCustomCommandUiArg): unknown {
+    const statePathRaw = (arg as { state_path?: unknown }).state_path;
+    if (typeof statePathRaw !== 'string') return undefined;
+    const statePath = statePathRaw.trim();
+    if (!statePath) return undefined;
+
+    const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
+    const state = ps?.['state'];
+    if (!state || typeof state !== 'object') return undefined;
+
+    let current: unknown = state;
+    for (const segmentRaw of statePath.split('.')) {
+      const segment = segmentRaw.trim();
+      if (!segment) return undefined;
+      if (Array.isArray(current)) {
+        const index = Number(segment);
+        if (!Number.isInteger(index) || index < 0 || index >= current.length) return undefined;
+        current = current[index];
+        continue;
+      }
+      if (current && typeof current === 'object') {
+        current = (current as Record<string, unknown>)[segment];
+        continue;
+      }
+      return undefined;
+    }
+    return current;
   }
 
   private hasStatePath(arg: CmdrCustomCommandUiArg): boolean {
@@ -2733,6 +2963,52 @@ export class CommanderComponent implements OnInit {
       options.push({ label, value });
     }
     return options;
+  }
+
+  private applyOptimisticStateBackedValues(
+    command: CmdrCustomCommandUiItem,
+    commandValues: Record<string, CustomCommandValue>,
+  ): void {
+    const updates: Record<string, CustomCommandValue> = {};
+    for (const arg of command.args ?? []) {
+      if (!this.hasStatePath(arg)) continue;
+      const value = commandValues[arg.name];
+      if (value === undefined) continue;
+      updates[arg.name] = value;
+    }
+    if (Object.keys(updates).length === 0) return;
+    this.customCommandStateBackedOptimisticValues.update((current) => ({
+      ...current,
+      [command.id]: {
+        ...(current[command.id] ?? {}),
+        ...updates,
+      },
+    }));
+  }
+
+  private getOptimisticStateBackedValue(
+    commandId: string,
+    argName: string,
+  ): CustomCommandValue | undefined {
+    const byCommand = this.customCommandStateBackedOptimisticValues()[commandId];
+    if (!byCommand) return undefined;
+    return byCommand[argName];
+  }
+
+  private clearOptimisticStateBackedValue(
+    commandId: string,
+    argName: string,
+    target: Record<string, Record<string, CustomCommandValue>>,
+  ): void {
+    const byCommand = target[commandId];
+    if (!byCommand || !(argName in byCommand)) return;
+    const nextByCommand = { ...byCommand };
+    delete nextByCommand[argName];
+    if (Object.keys(nextByCommand).length === 0) {
+      delete target[commandId];
+      return;
+    }
+    target[commandId] = nextByCommand;
   }
 
   private toNumber(rawValue: unknown, fallback: number): number {

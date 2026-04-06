@@ -81,10 +81,18 @@
   opacity: 0.6;
 }
 
+.commander__dialog-run-query-btn {
+  min-width: 12rem;
+  max-width: 12rem;
+  width: 12rem;
+}
+
 .commander__dialog-fixture-nav {
   display: flex;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .commander__dialog-fixture-select {
@@ -288,6 +296,31 @@
   gap: 0.5rem;
 }
 
+.commander__dialog-header-actions {
+  justify-content: space-between;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.commander__dialog-live-timing-row {
+  min-height: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.commander__dialog-live-timing-placeholder {
+  visibility: hidden;
+  line-height: 1;
+}
+
+.commander__dialog-header-actions > .commander__dialog-ack-toggle,
+.commander__dialog-header-actions > .commander__dialog-poll-toggle,
+.commander__dialog-header-actions > .commander__dialog-poll-timing-toggle,
+.commander__dialog-header-actions > .commander__dialog-poll-timing {
+  flex: 0 0 auto;
+}
+
 .commander__dialog-ack-toggle {
   display: inline-flex;
   align-items: center;
@@ -327,6 +360,27 @@
     font-size: 0.67rem;
     color: var(--p-text-muted-color, #6b7280);
     white-space: nowrap;
+  }
+}
+
+.commander__dialog-poll-timing {
+  font-size: 0.67rem;
+  color: var(--p-text-muted-color, #6b7280);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.commander__dialog-poll-timing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.67rem;
+  color: var(--p-text-muted-color, #6b7280);
+  white-space: nowrap;
+
+  input[type='checkbox'] {
+    margin: 0;
   }
 }
 
@@ -411,11 +465,27 @@
   min-height: 20rem; // header + 8 lines of body text + footer
   display: flex;
   flex-direction: column;
+  padding: var(--p-overlay-modal-padding, 1.25rem);
+  box-sizing: border-box;
+  gap: 0.75rem;
 }
 
 .commander__dialog-header {
-  flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.commander__dialog-header-top {
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.commander__dialog-close-btn {
+  margin-left: auto;
 }
 
 .commander__dialog-body {
@@ -436,7 +506,7 @@
 }
 
 .commander__dialog-feedback {
-  min-height: 3.1rem;
+  min-height: 4.3rem;
   margin: 0.25rem 0 0.35rem;
   padding: 0.4rem 0.65rem;
   border-radius: 0.45rem;
@@ -450,8 +520,7 @@
 }
 
 .commander__dialog-feedback--header {
-  flex: 1 0 100%;
-  margin: 0.25rem 0 0;
+  margin: 0.15rem 0 0;
 }
 
 .commander__dialog-feedback-message,
@@ -483,6 +552,11 @@
   right: 0.65rem;
   opacity: 0.75;
   font-variant-numeric: tabular-nums;
+}
+
+.commander__dialog-ack-toggle--feedback {
+  margin-top: 0.2rem;
+  align-self: flex-start;
 }
 
 .commander__dialog-feedback-message--placeholder,
@@ -633,6 +707,25 @@
 
   .commander__sidebar {
     position: static;
+  }
+
+  .commander__dialog {
+    padding: 1rem;
+    gap: 0.6rem;
+  }
+
+  .commander__dialog-header-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .commander__dialog-header-meta {
+    justify-content: space-between;
+  }
+
+  .commander__dialog-header-actions {
+    justify-content: flex-start;
   }
 }
 

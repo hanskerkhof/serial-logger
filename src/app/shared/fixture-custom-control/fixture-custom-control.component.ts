@@ -146,6 +146,7 @@ export class FixtureCustomControlComponent {
     const groups: GroupedCommandGroup[] = [];
 
     for (const cmd of this.commands()) {
+      if (this.isInlineStatusCommand(cmd)) continue;
       const explicitGroup = (cmd.group ?? '').trim();
       const fallbackVolumeGroup = !explicitGroup && isVolumeCommand(cmd);
       const fallbackPlayTracksGroup = !explicitGroup && isPlayTracksCommand(cmd);
@@ -178,12 +179,43 @@ export class FixtureCustomControlComponent {
     return groups;
   });
 
+  protected readonly inlineStatusCommands = computed<CmdrCustomCommandUiItem[]>(() =>
+    this.commands().filter((command) => this.isInlineStatusCommand(command)),
+  );
+
   protected commandArgValue(commandId: string, arg: CmdrCustomCommandUiArg): FixtureCustomControlValue {
     const commandValues = this.values()[commandId];
     if (commandValues && arg.name in commandValues) {
       return commandValues[arg.name];
     }
     return this.defaultValueForArg(arg);
+  }
+
+  protected isStatusDotArg(arg: CmdrCustomCommandUiArg): boolean {
+    return String(arg.control ?? '').toLowerCase() === 'dot';
+  }
+
+  protected isStatusDisplayArg(arg: CmdrCustomCommandUiArg): boolean {
+    return String(arg.control ?? '').toLowerCase() === 'display';
+  }
+
+  protected statusDotOn(commandId: string, arg: CmdrCustomCommandUiArg): boolean {
+    return this.toBooleanLike(this.commandArgValue(commandId, arg));
+  }
+
+  protected statusDisplaySuffix(arg: CmdrCustomCommandUiArg): string {
+    const suffix = (arg as unknown as { suffix?: unknown }).suffix;
+    return typeof suffix === 'string' ? suffix : '';
+  }
+
+  protected statusDisplayText(commandId: string, arg: CmdrCustomCommandUiArg): string {
+    const value = this.commandArgValue(commandId, arg);
+    const explicitSuffix = this.statusDisplaySuffix(arg);
+    if (explicitSuffix) return `${value}${explicitSuffix}`;
+    if (typeof value === 'number' && this.isSecondsLikeArgName(arg.name)) {
+      return `${value}s`;
+    }
+    return `${value}`;
   }
 
   protected selectOptions(arg: CmdrCustomCommandUiArg): SelectOption[] {
@@ -335,6 +367,11 @@ export class FixtureCustomControlComponent {
     return command.send_on_release === true;
   }
 
+  private isInlineStatusCommand(command: CmdrCustomCommandUiItem): boolean {
+    const group = String(command.group ?? '').trim().toLowerCase();
+    return group === 'status' || group === 'inline_status' || group === 'inline status';
+  }
+
   private volumeGroupEntries(group: GroupedCommandGroup): VolumeSliderEntry[] {
     const entries: VolumeSliderEntry[] = [];
     for (const command of group.commands) {
@@ -368,6 +405,21 @@ export class FixtureCustomControlComponent {
 
   private isVolumeSliderArg(arg: CmdrCustomCommandUiArg): boolean {
     return (arg.control ?? 'number') === 'slider';
+  }
+
+  private toBooleanLike(rawValue: unknown): boolean {
+    if (typeof rawValue === 'boolean') return rawValue;
+    if (typeof rawValue === 'number') return rawValue !== 0;
+    if (typeof rawValue === 'string') {
+      const lowered = rawValue.trim().toLowerCase();
+      return lowered === '1' || lowered === 'true' || lowered === 'yes' || lowered === 'on';
+    }
+    return false;
+  }
+
+  private isSecondsLikeArgName(name: string): boolean {
+    const normalized = String(name || '').trim().toLowerCase();
+    return normalized.endsWith('sec') || normalized.endsWith('secs') || normalized.endsWith('seconds');
   }
 
   private computeMasterChanges(group: GroupedCommandGroup, rawValue: unknown): FixtureCustomArgChangedEvent[] {

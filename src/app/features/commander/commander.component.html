@@ -470,7 +470,7 @@
       [closeOnEscape]="true"
       [showHeader]="false"
       styleClass="commander__fixture-dialog"
-      [style]="{ width: 'min(72rem, 96vw)', maxHeight: '90vh' }"
+      [style]="{ width: 'min(72rem, 96vw)', height: '90vh', maxHeight: '90vh' }"
       [contentStyle]="{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }"
     >
       <ng-container [ngTemplateOutlet]="fixtureDetail" />
@@ -479,79 +479,99 @@
   <ng-template #fixtureDetail>
     <div class="commander__dialog">
     <header class="commander__dialog-header">
-      <div class="commander__dialog-fixture-nav">
-        <button
-          pButton
-          type="button"
-          icon="pi pi-chevron-left"
-          [text]="true"
-          [rounded]="true"
-          severity="secondary"
-          size="small"
+      <div class="commander__dialog-header-top">
+        <div class="commander__dialog-fixture-nav">
+          <button
+            pButton
+            type="button"
+            icon="pi pi-chevron-left"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
           (click)="navigateFixture(-1)"
           [disabled]="allFixturesOrdered().length <= 1"
-          title="Previous fixture"
+          [pTooltip]="previousFixtureName() ? 'Previous: ' + previousFixtureName() : 'Previous fixture'"
+          tooltipPosition="bottom"
+          [tooltipDisabled]="allFixturesOrdered().length <= 1"
           aria-label="Previous fixture"
         ></button>
 
-        <div class="commander__dialog-fixture-select">
-          <p-select
-            [options]="allFixtureSelectOptions()"
-            [ngModel]="selectedFixture()?.fixture_name"
-            (ngModelChange)="onDialogFixtureSelectChange($event)"
-            optionLabel="label"
-            optionValue="value"
-            [group]="true"
-            optionGroupLabel="label"
-            optionGroupChildren="items"
-            [filter]="true"
-            filterBy="label"
-            scrollHeight="360px"
-            [filterValue]="dialogFixtureFilter()"
-            (onFilter)="dialogFixtureFilter.set($event.filter)"
-            (onHide)="dialogFixtureFilter.set(null)"
-            styleClass="commander__fixture-select-input"
-          >
-            <ng-template pTemplate="filtericon">
-              @if (dialogFixtureFilter()) {
-                <i
-                  class="pi pi-times commander__fixture-filter-clear"
-                  role="button"
-                  tabindex="0"
-                  aria-label="Clear filter"
-                  (click)="dialogFixtureFilter.set(null); $event.stopPropagation()"
-                ></i>
-              } @else {
-                <i class="pi pi-search"></i>
-              }
-            </ng-template>
-          </p-select>
-          @if (selectedFixture()?.fixture_name) {
-            <app-copy-to-clipboard [value]="selectedFixture()!.fixture_name" />
-          }
-          @if (selectedFixtureFwStatus(); as fws) {
-            <span class="commander__dialog-fw-version">v{{ fws.fw }}</span>
-          }
-          @if (selectedFixture()?.plan_name && pinnedPlans().has(selectedFixture()!.plan_name)) {
-            <i class="pi pi-bookmark-fill commander__dialog-pinned-icon" title="Plan is pinned"></i>
-          }
-        </div>
+          <div class="commander__dialog-fixture-select">
+            <p-select
+              [options]="allFixtureSelectOptions()"
+              [ngModel]="selectedFixture()?.fixture_name"
+              (ngModelChange)="onDialogFixtureSelectChange($event)"
+              optionLabel="label"
+              optionValue="value"
+              [group]="true"
+              optionGroupLabel="label"
+              optionGroupChildren="items"
+              [filter]="true"
+              filterBy="label"
+              scrollHeight="360px"
+              [filterValue]="dialogFixtureFilter()"
+              (onFilter)="dialogFixtureFilter.set($event.filter)"
+              (onHide)="dialogFixtureFilter.set(null)"
+              styleClass="commander__fixture-select-input"
+            >
+              <ng-template pTemplate="filtericon">
+                @if (dialogFixtureFilter()) {
+                  <i
+                    class="pi pi-times commander__fixture-filter-clear"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Clear filter"
+                    (click)="dialogFixtureFilter.set(null); $event.stopPropagation()"
+                  ></i>
+                } @else {
+                  <i class="pi pi-search"></i>
+                }
+              </ng-template>
+            </p-select>
+            @if (selectedFixture()?.fixture_name) {
+              <app-copy-to-clipboard [value]="selectedFixture()!.fixture_name" />
+            }
+            @if (selectedFixtureFwStatus(); as fws) {
+              <span class="commander__dialog-fw-version">v{{ fws.fw }}</span>
+            }
+            @if (selectedFixture()?.plan_name && pinnedPlans().has(selectedFixture()!.plan_name)) {
+              <i class="pi pi-bookmark-fill commander__dialog-pinned-icon" title="Plan is pinned"></i>
+            }
+          </div>
 
-        <button
-          pButton
-          type="button"
-          icon="pi pi-chevron-right"
-          [text]="true"
-          [rounded]="true"
-          severity="secondary"
-          size="small"
+          <button
+            pButton
+            type="button"
+            icon="pi pi-chevron-right"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
           (click)="navigateFixture(1)"
           [disabled]="allFixturesOrdered().length <= 1"
-          title="Next fixture"
-          aria-label="Next fixture"
-        ></button>
+          [pTooltip]="nextFixtureName() ? 'Next: ' + nextFixtureName() : 'Next fixture'"
+          tooltipPosition="bottom"
+            [tooltipDisabled]="allFixturesOrdered().length <= 1"
+            aria-label="Next fixture"
+          ></button>
+
+          <button
+            pButton
+            type="button"
+            class="commander__dialog-close-btn"
+            icon="pi pi-times"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            (click)="closeFixtureModal()"
+            aria-label="Close"
+          ></button>
+        </div>
       </div>
       @if (selectedFixtureFwStatus(); as fws) {
+        @if (fws.direction !== 'up-to-date') {
         <span
           class="commander__dialog-fw-status"
           [class.commander__dialog-fw-status--outdated]="fws.direction === 'fixture-outdated'"
@@ -580,21 +600,9 @@
             @case ('fixture-ahead') { API outdated · release: v{{ fws.release }} }
           }
         </span>
-      }
-      @if (selectedFixtureLastSeen(); as lastSeen) {
-        <span class="commander__dialog-last-seen">Last seen: {{ lastSeen }}</span>
+        }
       }
       <div class="commander__dialog-header-actions">
-        <label class="commander__dialog-ack-toggle">
-          <input
-            type="checkbox"
-            [ngModel]="fixtureAckEnabled()"
-            (ngModelChange)="fixtureAckEnabled.set(!!$event)"
-            [disabled]="fixtureActionLoading() || commanderUnavailable()"
-          />
-          <span>Require fixture ACK</span>
-          <small>Slower but confirms fixture-level ACK.</small>
-        </label>
         <label class="commander__dialog-poll-toggle">
           <span>Live update</span>
           <p-toggleswitch
@@ -619,7 +627,7 @@
         <button
           pButton
           type="button"
-          label="Run query"
+          [label]="runQueryButtonLabel()"
           icon="pi pi-play"
           iconPos="right"
           severity="secondary"
@@ -627,6 +635,7 @@
           [loading]="modalQueryLoading()"
           (click)="runModalFixtureQuery()"
           [disabled]="modalQueryLoading() || commanderUnavailable()"
+          class="commander__dialog-run-query-btn"
         ></button>
         @if (!rebootConfirmPending()) {
           <button
@@ -664,18 +673,21 @@
           ></button>
         }
       </div>
-      <button
-        pButton
-        type="button"
-        class="commander__dialog-close-btn"
-        icon="pi pi-times"
-        [text]="true"
-        [rounded]="true"
-        severity="secondary"
-        size="small"
-        (click)="closeFixtureModal()"
-        aria-label="Close"
-      ></button>
+      <div class="commander__dialog-live-timing-row">
+        @if (fixtureModalPollingEnabled() && selectedFixtureLiveUpdateTimingLabel(); as timingLabel) {
+          <label class="commander__dialog-poll-timing-toggle">
+            <input
+              type="checkbox"
+              [ngModel]="liveTimingMovingAverageEnabled()"
+              (ngModelChange)="liveTimingMovingAverageEnabled.set(!!$event)"
+            />
+            <span>Avg</span>
+          </label>
+          <small class="commander__dialog-poll-timing">{{ timingLabel }}</small>
+        } @else {
+          <span class="commander__dialog-live-timing-placeholder">&nbsp;</span>
+        }
+      </div>
       <section
         class="commander__dialog-feedback commander__dialog-feedback--header"
         [class]="
@@ -716,6 +728,16 @@
         } @else {
           <p class="commander__dialog-feedback-duration commander__dialog-feedback-duration--placeholder">&nbsp;</p>
         }
+        <label class="commander__dialog-ack-toggle commander__dialog-ack-toggle--feedback">
+          <input
+            type="checkbox"
+            [ngModel]="fixtureAckEnabled()"
+            (ngModelChange)="fixtureAckEnabled.set(!!$event)"
+            [disabled]="fixtureActionLoading() || commanderUnavailable()"
+          />
+          <span>Require fixture ACK</span>
+          <small>Slower but confirms fixture-level ACK.</small>
+        </label>
       </section>
     </header>
     <div #dialogBody class="commander__dialog-body">

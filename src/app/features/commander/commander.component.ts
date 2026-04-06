@@ -143,9 +143,11 @@ export class CommanderComponent implements OnInit {
   protected readonly discoveryWsIdentifyCount = signal<number>(0);
   protected readonly discoveryWsConfigCount = signal<number>(0);
   protected readonly discoveryWsCapabilitiesCount = signal<number>(0);
+  protected readonly discoveryWsPlanStateCount = signal<number>(0);
   protected readonly discoveryWsFixturesWithIdentify = signal<number>(0);
   protected readonly discoveryWsFixturesWithConfig = signal<number>(0);
   protected readonly discoveryWsFixturesWithCapabilities = signal<number>(0);
+  protected readonly discoveryWsFixturesWithPlanState = signal<number>(0);
   protected readonly discoveryWsFixturesReportsComplete = signal<number>(0);
   protected readonly discoveryTimingDialogVisible = signal(false);
   private readonly discoveryTimingRowsByFixture = signal<Map<string, number>>(new Map());
@@ -257,7 +259,8 @@ export class CommanderComponent implements OnInit {
     const identify = this.discoveryWsFixturesWithIdentify();
     const config = this.discoveryWsFixturesWithConfig();
     const capabilities = this.discoveryWsFixturesWithCapabilities();
-    return `Stage coverage: ID ${identify} · CFG ${config} · CAP ${capabilities} · PS n/a`;
+    const planState = this.discoveryWsFixturesWithPlanState();
+    return `Stage coverage: ID ${identify} · CFG ${config} · CAP ${capabilities} · PS ${planState}`;
   });
   protected readonly discoveryTimingRows = computed<DiscoveryTimingRow[]>(() => {
     const rows: DiscoveryTimingRow[] = [];
@@ -1351,9 +1354,11 @@ export class CommanderComponent implements OnInit {
         this.discoveryWsIdentifyCount.set(0);
         this.discoveryWsConfigCount.set(0);
         this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsPlanStateCount.set(0);
         this.discoveryWsFixturesWithIdentify.set(0);
         this.discoveryWsFixturesWithConfig.set(0);
         this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesWithPlanState.set(0);
         this.discoveryWsFixturesReportsComplete.set(0);
         this.discoveryWsUpsertedFixtureNames.clear();
         this.discoveryTimingRowsByFixture.set(new Map());
@@ -1374,18 +1379,22 @@ export class CommanderComponent implements OnInit {
           const identify = Number(counts['identify']);
           const config = Number(counts['config']);
           const capabilities = Number(counts['capabilities']);
+          const planState = Number(counts['plan_state']);
           const fixturesWithIdentify = Number(counts['fixtures_with_identify']);
           const fixturesWithConfig = Number(counts['fixtures_with_config']);
           const fixturesWithCapabilities = Number(counts['fixtures_with_capabilities']);
+          const fixturesWithPlanState = Number(counts['fixtures_with_plan_state']);
           const fixturesReportsComplete = Number(counts['fixtures_reports_complete']);
           if (Number.isFinite(seen) && seen >= 0) this.discoveryWsFixturesSeen.set(Math.floor(seen));
           if (Number.isFinite(complete) && complete >= 0) this.discoveryWsFixturesComplete.set(Math.floor(complete));
           if (Number.isFinite(identify) && identify >= 0) this.discoveryWsIdentifyCount.set(Math.floor(identify));
           if (Number.isFinite(config) && config >= 0) this.discoveryWsConfigCount.set(Math.floor(config));
           if (Number.isFinite(capabilities) && capabilities >= 0) this.discoveryWsCapabilitiesCount.set(Math.floor(capabilities));
+          if (Number.isFinite(planState) && planState >= 0) this.discoveryWsPlanStateCount.set(Math.floor(planState));
           if (Number.isFinite(fixturesWithIdentify) && fixturesWithIdentify >= 0) this.discoveryWsFixturesWithIdentify.set(Math.floor(fixturesWithIdentify));
           if (Number.isFinite(fixturesWithConfig) && fixturesWithConfig >= 0) this.discoveryWsFixturesWithConfig.set(Math.floor(fixturesWithConfig));
           if (Number.isFinite(fixturesWithCapabilities) && fixturesWithCapabilities >= 0) this.discoveryWsFixturesWithCapabilities.set(Math.floor(fixturesWithCapabilities));
+          if (Number.isFinite(fixturesWithPlanState) && fixturesWithPlanState >= 0) this.discoveryWsFixturesWithPlanState.set(Math.floor(fixturesWithPlanState));
           if (Number.isFinite(fixturesReportsComplete) && fixturesReportsComplete >= 0) this.discoveryWsFixturesReportsComplete.set(Math.floor(fixturesReportsComplete));
         }
         return;
@@ -1411,18 +1420,22 @@ export class CommanderComponent implements OnInit {
           const identify = Number(counts['identify']);
           const config = Number(counts['config']);
           const capabilities = Number(counts['capabilities']);
+          const planState = Number(counts['plan_state']);
           const fixturesWithIdentify = Number(counts['fixtures_with_identify']);
           const fixturesWithConfig = Number(counts['fixtures_with_config']);
           const fixturesWithCapabilities = Number(counts['fixtures_with_capabilities']);
+          const fixturesWithPlanState = Number(counts['fixtures_with_plan_state']);
           const fixturesReportsComplete = Number(counts['fixtures_reports_complete']);
           if (Number.isFinite(seen) && seen >= 0) this.discoveryWsFixturesSeen.set(Math.floor(seen));
           if (Number.isFinite(complete) && complete >= 0) this.discoveryWsFixturesComplete.set(Math.floor(complete));
           if (Number.isFinite(identify) && identify >= 0) this.discoveryWsIdentifyCount.set(Math.floor(identify));
           if (Number.isFinite(config) && config >= 0) this.discoveryWsConfigCount.set(Math.floor(config));
           if (Number.isFinite(capabilities) && capabilities >= 0) this.discoveryWsCapabilitiesCount.set(Math.floor(capabilities));
+          if (Number.isFinite(planState) && planState >= 0) this.discoveryWsPlanStateCount.set(Math.floor(planState));
           if (Number.isFinite(fixturesWithIdentify) && fixturesWithIdentify >= 0) this.discoveryWsFixturesWithIdentify.set(Math.floor(fixturesWithIdentify));
           if (Number.isFinite(fixturesWithConfig) && fixturesWithConfig >= 0) this.discoveryWsFixturesWithConfig.set(Math.floor(fixturesWithConfig));
           if (Number.isFinite(fixturesWithCapabilities) && fixturesWithCapabilities >= 0) this.discoveryWsFixturesWithCapabilities.set(Math.floor(fixturesWithCapabilities));
+          if (Number.isFinite(fixturesWithPlanState) && fixturesWithPlanState >= 0) this.discoveryWsFixturesWithPlanState.set(Math.floor(fixturesWithPlanState));
           if (Number.isFinite(fixturesReportsComplete) && fixturesReportsComplete >= 0) this.discoveryWsFixturesReportsComplete.set(Math.floor(fixturesReportsComplete));
         }
         const syntheticResult = {
@@ -1509,9 +1522,11 @@ export class CommanderComponent implements OnInit {
         this.discoveryWsIdentifyCount.set(0);
         this.discoveryWsConfigCount.set(0);
         this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsPlanStateCount.set(0);
         this.discoveryWsFixturesWithIdentify.set(0);
         this.discoveryWsFixturesWithConfig.set(0);
         this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesWithPlanState.set(0);
         this.discoveryWsFixturesReportsComplete.set(0);
         this.discoveryTimingRowsByFixture.set(new Map());
         this.discoveryTimingLastSweepElapsedMs.set(null);
@@ -1534,9 +1549,11 @@ export class CommanderComponent implements OnInit {
         this.discoveryWsIdentifyCount.set(0);
         this.discoveryWsConfigCount.set(0);
         this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsPlanStateCount.set(0);
         this.discoveryWsFixturesWithIdentify.set(0);
         this.discoveryWsFixturesWithConfig.set(0);
         this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesWithPlanState.set(0);
         this.discoveryWsFixturesReportsComplete.set(0);
         this.discoveryTimingRowsByFixture.set(new Map());
         this.discoveryTimingLastSweepElapsedMs.set(null);
@@ -1791,9 +1808,11 @@ export class CommanderComponent implements OnInit {
         this.discoveryWsIdentifyCount.set(0);
         this.discoveryWsConfigCount.set(0);
         this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsPlanStateCount.set(0);
         this.discoveryWsFixturesWithIdentify.set(0);
         this.discoveryWsFixturesWithConfig.set(0);
         this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesWithPlanState.set(0);
         this.discoveryWsFixturesReportsComplete.set(0);
         this.discoveryWsUpsertedFixtureNames.clear();
         this._discoveryWsStartedAtMs = null;
@@ -1822,9 +1841,11 @@ export class CommanderComponent implements OnInit {
       this.discoveryWsIdentifyCount.set(0);
       this.discoveryWsConfigCount.set(0);
       this.discoveryWsCapabilitiesCount.set(0);
+      this.discoveryWsPlanStateCount.set(0);
       this.discoveryWsFixturesWithIdentify.set(0);
       this.discoveryWsFixturesWithConfig.set(0);
       this.discoveryWsFixturesWithCapabilities.set(0);
+      this.discoveryWsFixturesWithPlanState.set(0);
       this.discoveryWsFixturesReportsComplete.set(0);
       this.discoveryWsUpsertedFixtureNames.clear();
       this.discoveryWsThenFixturesPending = false;
@@ -1845,9 +1866,11 @@ export class CommanderComponent implements OnInit {
       this.discoveryWsIdentifyCount.set(0);
       this.discoveryWsConfigCount.set(0);
       this.discoveryWsCapabilitiesCount.set(0);
+      this.discoveryWsPlanStateCount.set(0);
       this.discoveryWsFixturesWithIdentify.set(0);
       this.discoveryWsFixturesWithConfig.set(0);
       this.discoveryWsFixturesWithCapabilities.set(0);
+      this.discoveryWsFixturesWithPlanState.set(0);
       this.discoveryWsFixturesReportsComplete.set(0);
       this._discoveryWsStartedAtMs = null;
       this.discoveryWsThenFixturesPending = false;

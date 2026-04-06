@@ -145,9 +145,20 @@ export class CommanderApiService {
     );
   }
 
-  startFixtureDiscoveryWs(listenSeconds = 60): Observable<{ ok: boolean; status: string; mode: string; session_id: string; listen_seconds: number }> {
+  startFixtureDiscoveryWs(listenSeconds = 24): Observable<{ ok: boolean; status: string; mode: string; session_id: string; listen_seconds: number }> {
     return this.http.post<{ ok: boolean; status: string; mode: string; session_id: string; listen_seconds: number }>(
       `${this.getRequestBaseUrl()}/fixtures/discovery/ws-start?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
+      {},
+    );
+  }
+
+  cancelFixtureDiscoveryWs(sessionId?: string | null): Observable<{ ok: boolean; status: string; session_id?: string; active?: boolean; cancelled?: boolean }> {
+    const suffix =
+      sessionId && String(sessionId).trim().length > 0
+        ? `?session_id=${encodeURIComponent(String(sessionId).trim())}`
+        : '';
+    return this.http.post<{ ok: boolean; status: string; session_id?: string; active?: boolean; cancelled?: boolean }>(
+      `${this.getRequestBaseUrl()}/fixtures/discovery/ws-cancel${suffix}`,
       {},
     );
   }

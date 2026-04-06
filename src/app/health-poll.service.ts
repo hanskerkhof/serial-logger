@@ -33,7 +33,9 @@ export interface DiscoveryWsMessage {
     | 'discovery_progress'
     | 'discovery_completed'
     | 'discovery_failed'
-    | 'discovery_rejected';
+    | 'discovery_rejected'
+    | 'discovery_cancel_requested'
+    | 'discovery_cancelled';
   [key: string]: unknown;
 }
 

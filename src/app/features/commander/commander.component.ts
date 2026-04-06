@@ -28,6 +28,7 @@ import { MessageService, MenuItem } from 'primeng/api';
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { TabsModule } from 'primeng/tabs';
 import { DrawerModule } from 'primeng/drawer';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { NgTemplateOutlet } from '@angular/common';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import { FIXTURE_DETAIL_DRAWER } from '../../feature-flags';
@@ -91,6 +92,11 @@ interface LiveUpdateTimingSample {
   headroomMs: number | null;
 }
 
+interface DiscoveryTimingRow {
+  fixtureName: string;
+  completeMs: number;
+}
+
 function compareVersions(a: string, b: string): number {
   const seg = (s: string) => s.replace(/^v/, '').split('.').map(Number);
   const [as_, bs_] = [seg(a), seg(b)];
@@ -104,7 +110,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -131,10 +137,39 @@ export class CommanderComponent implements OnInit {
   protected readonly discoveryLoading = signal(false);
   protected readonly discoveryWsLoading = signal(false);
   protected readonly discoveryWsSessionId = signal<string | null>(null);
+  protected readonly discoveryWsLatestFixture = signal<string | null>(null);
+  protected readonly discoveryWsFixturesSeen = signal<number>(0);
+  protected readonly discoveryWsFixturesComplete = signal<number>(0);
+  protected readonly discoveryWsIdentifyCount = signal<number>(0);
+  protected readonly discoveryWsConfigCount = signal<number>(0);
+  protected readonly discoveryWsCapabilitiesCount = signal<number>(0);
+  protected readonly discoveryWsFixturesWithIdentify = signal<number>(0);
+  protected readonly discoveryWsFixturesWithConfig = signal<number>(0);
+  protected readonly discoveryWsFixturesWithCapabilities = signal<number>(0);
+  protected readonly discoveryWsFixturesReportsComplete = signal<number>(0);
+  protected readonly discoveryTimingDialogVisible = signal(false);
+  private readonly discoveryTimingRowsByFixture = signal<Map<string, number>>(new Map());
+  private readonly discoveryTimingLastSweepElapsedMs = signal<number | null>(null);
+  private readonly discoveryWsUpsertedFixtureNames = new Set<string>();
   protected readonly discoverFixturesLoading = signal(false);
   protected readonly discoverFixturesCurrentFixture = signal<string | null>(null);
   protected readonly discoverFixturesElapsedS = signal<number>(0);
   protected readonly discoverFixturesLastDurationS = signal<number | null>(null);
+  protected readonly discoverFixturesTotal = signal<number>(0);
+  protected readonly discoverFixturesProcessed = signal<number>(0);
+  protected readonly discoverFixturesProgressPct = computed(() => {
+    const total = this.discoverFixturesTotal();
+    if (total <= 0) return 0;
+    const processed = this.discoverFixturesProcessed();
+    return Math.max(0, Math.min(100, (processed / total) * 100));
+  });
+  protected readonly discoverFixturesProgressLabel = computed(() => {
+    const processed = this.discoverFixturesProcessed();
+    const total = this.discoverFixturesTotal();
+    const current = this.discoverFixturesCurrentFixture();
+    if (total <= 0) return 'Preparing fixture query...';
+    return current ? `${processed}/${total} · ${current}` : `${processed}/${total}`;
+  });
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
   protected readonly fixtureName = signal(localStorage.getItem('cmdr.selectedFixture') ?? 'CLIGNOTEUR1');
@@ -198,6 +233,56 @@ export class CommanderComponent implements OnInit {
     if (last === null) return 'Full Discovery';
     if (cnt < 2) return `Full Discovery · ${last.toFixed(1)}s`;
     return `Full Discovery · ${last.toFixed(1)}s · avg ${avg!.toFixed(1)}s`;
+  });
+  protected readonly discoveryWsButtonLabel = computed(() => {
+    const last = this.discoveryLastS();
+    const avg = this.discoveryAvgS();
+    const cnt = this.discoveryTimings().length;
+    if (this.discoveryWsLoading()) {
+      return avg !== null ? `Full Discovery (WS) · ~${avg.toFixed(1)}s` : 'Full Discovery (WS)…';
+    }
+    if (last === null) return 'Full Discovery (WS)';
+    if (cnt < 2) return `Full Discovery (WS) · ${last.toFixed(1)}s`;
+    return `Full Discovery (WS) · ${last.toFixed(1)}s · avg ${avg!.toFixed(1)}s`;
+  });
+  protected readonly discoveryWsProgressLabel = computed<string>(() => {
+    const seen = this.discoveryWsFixturesSeen();
+    const complete = this.discoveryWsFixturesComplete();
+    const reportsComplete = this.discoveryWsFixturesReportsComplete();
+    if (seen > 0) return `Fixtures ${reportsComplete}/${seen} report-complete · ${complete}/${seen} upserted`;
+    if (reportsComplete > 0) return `Fixtures ${reportsComplete} report-complete`;
+    return `Completed ${complete} fixtures`;
+  });
+  protected readonly discoveryWsReportsLabel = computed<string>(() => {
+    const identify = this.discoveryWsFixturesWithIdentify();
+    const config = this.discoveryWsFixturesWithConfig();
+    const capabilities = this.discoveryWsFixturesWithCapabilities();
+    return `Stage coverage: ID ${identify} · CFG ${config} · CAP ${capabilities} · PS n/a`;
+  });
+  protected readonly discoveryTimingRows = computed<DiscoveryTimingRow[]>(() => {
+    const rows: DiscoveryTimingRow[] = [];
+    this.discoveryTimingRowsByFixture().forEach((completeMs, fixtureName) => {
+      rows.push({ fixtureName, completeMs });
+    });
+    rows.sort((a, b) => b.completeMs - a.completeMs);
+    return rows;
+  });
+  protected readonly discoveryTimingTopRows = computed<DiscoveryTimingRow[]>(() =>
+    this.discoveryTimingRows().slice(0, 12),
+  );
+  protected readonly discoveryTimingAvailable = computed<boolean>(() =>
+    this.discoveryTimingRows().length > 0,
+  );
+  protected readonly discoveryTimingSummary = computed(() => {
+    const rows = this.discoveryTimingRows();
+    const sweepElapsedMs = this.discoveryTimingLastSweepElapsedMs();
+    const slowest = rows.length > 0 ? rows[0] : null;
+    return {
+      responders: rows.length,
+      sweepElapsedMs,
+      slowestFixture: slowest?.fixtureName ?? null,
+      slowestMs: slowest?.completeMs ?? null,
+    };
   });
   protected readonly discoverFixturesButtonLabel = computed(() => {
     if (this.discoverFixturesLoading()) {
@@ -275,7 +360,14 @@ export class CommanderComponent implements OnInit {
   // Tracks whether we've been through at least one unavailable state this session
   // so the "back online" toast only fires on recovery, never on initial load.
   private _wasUnavailable = false;
+  private _offlineToastShown = false;
   private _unavailableToastTimer: ReturnType<typeof setTimeout> | null = null;
+  private _progressToastClearTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly progressToastHoldMs = 5000;
+  private _activeProgressToastMode: 'progress_full_ws' | 'progress_full' | 'progress_fixtures' | 'progress_query' | null = null;
+  private _discoveryWsStartedAtMs: number | null = null;
+  private _skipNextProgressHold = false;
+  private _discoveryInProgressToastLastAtMs = 0;
 
   // Ensures auto-discovery on empty store fires at most once per session.
   private _autoDiscoveryTriggered = false;
@@ -329,7 +421,6 @@ export class CommanderComponent implements OnInit {
   protected readonly runQueryButtonLabel = computed<string>(
     () => `Run query (ago: ${this.selectedFixtureLastSeenAgoShort()})`,
   );
-
   protected readonly previousFixtureName = computed<string | null>(() => {
     const all = this.allFixturesOrdered();
     if (all.length <= 1) return null;
@@ -366,6 +457,23 @@ export class CommanderComponent implements OnInit {
     const diffM = Math.floor(diffS / 60);
     if (diffM < 60) return `${diffM}m ago`;
     return `${Math.floor(diffM / 60)}h ago`;
+  }
+
+  protected isProgressToastMode(mode: unknown): boolean {
+    return typeof mode === 'string' && mode.startsWith('progress_');
+  }
+
+  protected shouldShowCompletedProgress(mode: unknown): boolean {
+    if (mode === 'progress_full_ws') return !this.discoveryWsLoading();
+    if (mode === 'progress_full') return !this.discoveryLoading();
+    return false;
+  }
+
+  protected isProgressCancelable(mode: unknown): boolean {
+    if (mode === 'progress_full_ws') return this.discoveryWsLoading();
+    if (mode === 'progress_full') return this.discoveryLoading();
+    if (mode === 'progress_fixtures') return this.discoverFixturesLoading();
+    return false;
   }
 
   protected formatDurationSeconds(totalSeconds: number | null | undefined): string | null {
@@ -431,15 +539,6 @@ export class CommanderComponent implements OnInit {
     });
 
     effect(() => {
-      const visible = this.fixtureModalVisible();
-      const liveUpdate = this.fixtureModalPollingEnabled();
-      const commanderUnavailable = this.commanderUnavailable() || this.serialHoldActive();
-      if (!visible || !liveUpdate || !commanderUnavailable) return;
-      this.fixtureModalPollingEnabled.set(false);
-      this.stopFixtureModalPolling();
-    });
-
-    effect(() => {
       const unavailable = this.commanderUnavailable();
       const stillLoading = this.loading();
       // Read healthRefreshing reactively: when _connect() fires after the backoff and sets
@@ -448,7 +547,6 @@ export class CommanderComponent implements OnInit {
       // setTimeout: p-toast subscribes to MessageService during view init,
       // after this constructor effect fires — defer so the message isn't lost.
       setTimeout(() => {
-        this.messageService.clear('cmdr-offline');
         if (unavailable && !stillLoading && !refreshing) {
           // Debounce: only alarm after persistent unavailability.
           // Brief WS reconnects (sleep/wake) resolve in ~3 s — 5 s grace avoids false positives.
@@ -456,9 +554,16 @@ export class CommanderComponent implements OnInit {
             this._unavailableToastTimer = setTimeout(() => {
               this._unavailableToastTimer = null;
               // Snapshot at fire time: skip if WS has already started reconnecting.
-              if (this.commanderUnavailable() && !this.loading() && !this.healthRefreshing()) {
+              if (this.commanderUnavailable() && !this.loading() && !this.healthRefreshing() && !this._offlineToastShown) {
                 this._wasUnavailable = true;
-                this.messageService.add({ key: 'cmdr-offline', severity: 'warn', summary: 'Commander unavailable', sticky: true });
+                this._offlineToastShown = true;
+                this.messageService.add({
+                  key: 'app',
+                  severity: 'warn',
+                  summary: 'Commander unavailable',
+                  sticky: true,
+                  data: { mode: 'offline' },
+                });
               }
             }, 5000);
           }
@@ -471,6 +576,10 @@ export class CommanderComponent implements OnInit {
           if (!unavailable && this._wasUnavailable) {
             // Recovery: only toast if the 5 s timer actually fired and showed "unavailable".
             this._wasUnavailable = false;
+            if (this._offlineToastShown) {
+              this.messageService.clear('app');
+              this._offlineToastShown = false;
+            }
             // Clear stale modal errors from the outage so the feedback strip resets.
             this.modalQueryError.set(null);
             this.fixtureActionMessage.set(null);
@@ -481,6 +590,7 @@ export class CommanderComponent implements OnInit {
               summary: 'Commander available',
               detail: 'Connection restored.',
               life: 4000,
+              data: { mode: 'normal' },
             });
           }
         }
@@ -489,26 +599,97 @@ export class CommanderComponent implements OnInit {
 
     effect(() => {
       const isDiscovery = this.discoveryLoading();
+      const isDiscoveryWs = this.discoveryWsLoading();
       const isFixtureDiscovery = this.discoverFixturesLoading();
       const isFixtureQuery = this.fixtureQueryLoading();
       const isQuery = isFixtureQuery || this.planQueryLoading() || this.planGroupQueryLoading();
-      // Only clear the progress channel — 'app' completion toasts manage their own lifetime via `life`.
-      this.messageService.clear('app-progress');
-      if (isDiscovery) {
+      const hasProgress = isDiscoveryWs || isDiscovery || isFixtureDiscovery || isQuery;
+
+      if (this._progressToastClearTimer !== null) {
+        clearTimeout(this._progressToastClearTimer);
+        this._progressToastClearTimer = null;
+      }
+
+      if (!hasProgress) {
+        if (this._skipNextProgressHold) {
+          this._skipNextProgressHold = false;
+          this._activeProgressToastMode = null;
+          return;
+        }
+        // Hold the running toast briefly so completion toasts can stack below it first.
+        this._progressToastClearTimer = setTimeout(() => {
+          this._progressToastClearTimer = null;
+          this.messageService.clear('app');
+          this._activeProgressToastMode = null;
+        }, this.progressToastHoldMs);
+        return;
+      }
+      if (isDiscoveryWs) {
+        if (this._activeProgressToastMode !== 'progress_full_ws') {
+          const avg = this.discoveryAvgS();
+          const summary =
+            avg !== null
+              ? `Full Discovery (WS) · ~${avg.toFixed(1)}s`
+              : 'Full Discovery (WS) running';
+          this.messageService.clear('app');
+          this.messageService.add({
+            key: 'app',
+            severity: 'contrast',
+            summary,
+            sticky: true,
+            closable: false,
+            data: { mode: 'progress_full_ws', cancellable: 'full_ws', indeterminate: true },
+          });
+          this._activeProgressToastMode = 'progress_full_ws';
+        }
+      } else if (isDiscovery) {
         const avg = this.discoveryAvgS();
         const summary =
           avg !== null
             ? `Running full discovery… · ~${avg.toFixed(1)}s`
             : 'Running full discovery…';
-        this.messageService.add({ key: 'app-progress', severity: 'warn', summary, sticky: true, closable: false, data: { cancellable: 'full' } });
+        if (this._activeProgressToastMode !== 'progress_full') {
+          this.messageService.clear('app');
+          this.messageService.add({
+            key: 'app',
+            severity: 'contrast',
+            summary,
+            sticky: true,
+            closable: false,
+            data: { mode: 'progress_full', cancellable: 'full', indeterminate: true },
+          });
+          this._activeProgressToastMode = 'progress_full';
+        }
       } else if (isFixtureDiscovery) {
-        this.messageService.add({ key: 'app-progress', severity: 'warn', summary: 'Discovering fixtures…', sticky: true, closable: false, data: { cancellable: 'fixtures' } });
+        if (this._activeProgressToastMode !== 'progress_fixtures') {
+          this.messageService.clear('app');
+          this.messageService.add({
+            key: 'app',
+            severity: 'contrast',
+            summary: 'Querying fixtures',
+            sticky: true,
+            closable: false,
+            data: { mode: 'progress_fixtures', cancellable: 'fixtures' },
+          });
+          this._activeProgressToastMode = 'progress_fixtures';
+        }
       } else if (isQuery) {
         const fixtureName = this.fixtureName().trim();
         const summary = isFixtureQuery && fixtureName
           ? `Running query for ${fixtureName}...`
           : 'Running query…';
-        this.messageService.add({ key: 'app-progress', severity: 'warn', summary, sticky: true, closable: false });
+        if (this._activeProgressToastMode !== 'progress_query') {
+          this.messageService.clear('app');
+          this.messageService.add({
+            key: 'app',
+            severity: 'contrast',
+            summary,
+            sticky: true,
+            closable: false,
+            data: { mode: 'progress_query', indeterminate: true },
+          });
+          this._activeProgressToastMode = 'progress_query';
+        }
       }
     });
   }
@@ -989,7 +1170,7 @@ export class CommanderComponent implements OnInit {
       if (releaseVersion && fixtureVersion === releaseVersion) {
         this.messageService.add({
           key: 'app',
-          severity: 'info',
+          severity: 'contrast',
           summary: 'Already up to date',
           detail: `${fixtureName} is already on v${fixtureVersion}`,
           life: 5000,
@@ -1147,7 +1328,7 @@ export class CommanderComponent implements OnInit {
         const active = Number(msg.active_subscribers ?? 0);
         const max = Number(msg.max_subscribers ?? 0);
         this.modalQueryError.set(
-          `Live update busy: ${active}/${max} subscribers in use. Use "Update fixture" or try again later.`,
+          `Live update busy: ${active}/${max} subscribers in use. Use "Refresh plan state" or try again later.`,
         );
       }
     });
@@ -1158,23 +1339,92 @@ export class CommanderComponent implements OnInit {
         this.discoveryWsThenFixturesPending = false;
         this.discoveryWsLoading.set(false);
         this.releaseDiscoveryLock();
-        this.messageService.add({
-          key: 'app',
-          severity: 'warn',
-          summary: 'Full discovery already in progress (another window/request).',
-          life: 5000,
-        });
+        this.showDiscoveryAlreadyInProgressToast();
         return;
       }
       if (eventType === 'discovery_started') {
         const sid = String(msg['session_id'] ?? '').trim();
         if (sid) this.discoveryWsSessionId.set(sid);
+        this.discoveryWsLatestFixture.set(null);
+        this.discoveryWsFixturesSeen.set(0);
+        this.discoveryWsFixturesComplete.set(0);
+        this.discoveryWsIdentifyCount.set(0);
+        this.discoveryWsConfigCount.set(0);
+        this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsFixturesWithIdentify.set(0);
+        this.discoveryWsFixturesWithConfig.set(0);
+        this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesReportsComplete.set(0);
+        this.discoveryWsUpsertedFixtureNames.clear();
+        this.discoveryTimingRowsByFixture.set(new Map());
+        this.discoveryTimingLastSweepElapsedMs.set(null);
+        this._discoveryWsStartedAtMs = performance.now();
         this.discoveryWsLoading.set(true);
+        return;
+      }
+      if (eventType === 'discovery_progress') {
+        const sweepElapsedMs = Number(msg['elapsed_ms']);
+        if (Number.isFinite(sweepElapsedMs) && sweepElapsedMs >= 0) {
+          this.discoveryTimingLastSweepElapsedMs.set(Math.floor(sweepElapsedMs));
+        }
+        const counts = (msg['counts'] as Record<string, unknown> | null | undefined) ?? null;
+        if (counts) {
+          const seen = Number(counts['fixtures_seen']);
+          const complete = Number(counts['fixtures_complete']);
+          const identify = Number(counts['identify']);
+          const config = Number(counts['config']);
+          const capabilities = Number(counts['capabilities']);
+          const fixturesWithIdentify = Number(counts['fixtures_with_identify']);
+          const fixturesWithConfig = Number(counts['fixtures_with_config']);
+          const fixturesWithCapabilities = Number(counts['fixtures_with_capabilities']);
+          const fixturesReportsComplete = Number(counts['fixtures_reports_complete']);
+          if (Number.isFinite(seen) && seen >= 0) this.discoveryWsFixturesSeen.set(Math.floor(seen));
+          if (Number.isFinite(complete) && complete >= 0) this.discoveryWsFixturesComplete.set(Math.floor(complete));
+          if (Number.isFinite(identify) && identify >= 0) this.discoveryWsIdentifyCount.set(Math.floor(identify));
+          if (Number.isFinite(config) && config >= 0) this.discoveryWsConfigCount.set(Math.floor(config));
+          if (Number.isFinite(capabilities) && capabilities >= 0) this.discoveryWsCapabilitiesCount.set(Math.floor(capabilities));
+          if (Number.isFinite(fixturesWithIdentify) && fixturesWithIdentify >= 0) this.discoveryWsFixturesWithIdentify.set(Math.floor(fixturesWithIdentify));
+          if (Number.isFinite(fixturesWithConfig) && fixturesWithConfig >= 0) this.discoveryWsFixturesWithConfig.set(Math.floor(fixturesWithConfig));
+          if (Number.isFinite(fixturesWithCapabilities) && fixturesWithCapabilities >= 0) this.discoveryWsFixturesWithCapabilities.set(Math.floor(fixturesWithCapabilities));
+          if (Number.isFinite(fixturesReportsComplete) && fixturesReportsComplete >= 0) this.discoveryWsFixturesReportsComplete.set(Math.floor(fixturesReportsComplete));
+        }
         return;
       }
       if (eventType === 'discovery_fixture_upsert') {
         const fixture = msg['fixture'];
         if (!fixture || typeof fixture !== 'object') return;
+        const fixtureName = String((fixture as { fixture_name?: unknown }).fixture_name ?? '').trim();
+        if (fixtureName) {
+          this.discoveryWsLatestFixture.set(fixtureName);
+          this.discoveryWsUpsertedFixtureNames.add(fixtureName);
+          if (this._discoveryWsStartedAtMs !== null) {
+            const completeMs = performance.now() - this._discoveryWsStartedAtMs;
+            const next = new Map(this.discoveryTimingRowsByFixture());
+            next.set(fixtureName, completeMs);
+            this.discoveryTimingRowsByFixture.set(next);
+          }
+        }
+        const counts = (msg['counts'] as Record<string, unknown> | null | undefined) ?? null;
+        if (counts) {
+          const seen = Number(counts['fixtures_seen']);
+          const complete = Number(counts['fixtures_complete']);
+          const identify = Number(counts['identify']);
+          const config = Number(counts['config']);
+          const capabilities = Number(counts['capabilities']);
+          const fixturesWithIdentify = Number(counts['fixtures_with_identify']);
+          const fixturesWithConfig = Number(counts['fixtures_with_config']);
+          const fixturesWithCapabilities = Number(counts['fixtures_with_capabilities']);
+          const fixturesReportsComplete = Number(counts['fixtures_reports_complete']);
+          if (Number.isFinite(seen) && seen >= 0) this.discoveryWsFixturesSeen.set(Math.floor(seen));
+          if (Number.isFinite(complete) && complete >= 0) this.discoveryWsFixturesComplete.set(Math.floor(complete));
+          if (Number.isFinite(identify) && identify >= 0) this.discoveryWsIdentifyCount.set(Math.floor(identify));
+          if (Number.isFinite(config) && config >= 0) this.discoveryWsConfigCount.set(Math.floor(config));
+          if (Number.isFinite(capabilities) && capabilities >= 0) this.discoveryWsCapabilitiesCount.set(Math.floor(capabilities));
+          if (Number.isFinite(fixturesWithIdentify) && fixturesWithIdentify >= 0) this.discoveryWsFixturesWithIdentify.set(Math.floor(fixturesWithIdentify));
+          if (Number.isFinite(fixturesWithConfig) && fixturesWithConfig >= 0) this.discoveryWsFixturesWithConfig.set(Math.floor(fixturesWithConfig));
+          if (Number.isFinite(fixturesWithCapabilities) && fixturesWithCapabilities >= 0) this.discoveryWsFixturesWithCapabilities.set(Math.floor(fixturesWithCapabilities));
+          if (Number.isFinite(fixturesReportsComplete) && fixturesReportsComplete >= 0) this.discoveryWsFixturesReportsComplete.set(Math.floor(fixturesReportsComplete));
+        }
         const syntheticResult = {
           summary: {
             fixtures: [fixture as Record<string, unknown>],
@@ -1184,22 +1434,67 @@ export class CommanderComponent implements OnInit {
         return;
       }
       if (eventType === 'discovery_completed') {
+        const sweepElapsedMs = Number(msg['elapsed_ms']);
+        if (Number.isFinite(sweepElapsedMs) && sweepElapsedMs >= 0) {
+          this.discoveryTimingLastSweepElapsedMs.set(Math.floor(sweepElapsedMs));
+        }
         const shouldQueryFixtures = this.discoveryWsThenFixturesPending;
         this.discoveryWsThenFixturesPending = false;
+        this.discoveryWsLatestFixture.set(null);
+        const durationS =
+          this._discoveryWsStartedAtMs !== null
+            ? (performance.now() - this._discoveryWsStartedAtMs) / 1000
+            : undefined;
+        if (durationS !== undefined) this.addDiscoveryTiming(durationS);
+        this._discoveryWsStartedAtMs = null;
         const summary = msg['summary'] as Record<string, unknown> | null | undefined;
         if (summary && typeof summary === 'object') {
-          const syntheticResult = { summary } as CommanderQueryResponse;
-          const stats = this.ingestQueryResult(syntheticResult, 'discovery_query');
-          this.showQueryResultToast(stats, undefined, true);
+          const fixturesRaw = Array.isArray(summary['fixtures']) ? (summary['fixtures'] as unknown[]) : [];
+          const missingFixtures = fixturesRaw.filter((item) => {
+            if (!item || typeof item !== 'object') return true;
+            const name = String((item as { fixture_name?: unknown }).fixture_name ?? '').trim();
+            if (!name) return true;
+            return !this.discoveryWsUpsertedFixtureNames.has(name);
+          }) as Record<string, unknown>[];
+          let stats: { added: number; updated: number } | null = null;
+          if (missingFixtures.length > 0) {
+            const syntheticResult = {
+              summary: {
+                ...summary,
+                fixtures: missingFixtures,
+              },
+            } as CommanderQueryResponse;
+            stats = this.ingestQueryResult(syntheticResult, 'discovery_query');
+          }
+          if (stats) {
+            this.showQueryResultToast(stats, durationS, true);
+          } else {
+            const avg = this.discoveryAvgS();
+            const cnt = this.discoveryTimings().length;
+            const durationSuffix = durationS !== undefined ? ` - ${durationS.toFixed(1)}s` : '';
+            const avgSuffix = cnt >= 2 && avg !== null ? ` - avg ${avg.toFixed(1)}s` : '';
+            const streamedCount = this.discoveryWsUpsertedFixtureNames.size;
+            this.messageService.add({
+              key: 'app',
+              severity: 'success',
+              summary: `${streamedCount} updated${durationSuffix}${avgSuffix}`,
+              life: 3000,
+            });
+          }
         } else {
+          const avg = this.discoveryAvgS();
+          const cnt = this.discoveryTimings().length;
+          const durationSuffix = durationS !== undefined ? ` - ${durationS.toFixed(1)}s` : '';
+          const avgSuffix = cnt >= 2 && avg !== null ? ` - avg ${avg.toFixed(1)}s` : '';
           this.messageService.add({
             key: 'app',
             severity: 'success',
-            summary: 'Full Discovery (WS) completed',
+            summary: `Full Discovery (WS) completed${durationSuffix}${avgSuffix}`,
             life: 3000,
           });
         }
         this.discoveryWsLoading.set(false);
+        this.discoveryWsUpsertedFixtureNames.clear();
         this.releaseDiscoveryLock();
         if (shouldQueryFixtures) {
           setTimeout(() => this.runSidebarFixtureDiscovery(), 0);
@@ -1208,6 +1503,20 @@ export class CommanderComponent implements OnInit {
       }
       if (eventType === 'discovery_failed') {
         this.discoveryWsThenFixturesPending = false;
+        this.discoveryWsLatestFixture.set(null);
+        this.discoveryWsFixturesSeen.set(0);
+        this.discoveryWsFixturesComplete.set(0);
+        this.discoveryWsIdentifyCount.set(0);
+        this.discoveryWsConfigCount.set(0);
+        this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsFixturesWithIdentify.set(0);
+        this.discoveryWsFixturesWithConfig.set(0);
+        this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesReportsComplete.set(0);
+        this.discoveryTimingRowsByFixture.set(new Map());
+        this.discoveryTimingLastSweepElapsedMs.set(null);
+        this.discoveryWsUpsertedFixtureNames.clear();
+        this._discoveryWsStartedAtMs = null;
         const errorText =
           typeof msg['error'] === 'string' && msg['error'].trim().length > 0
             ? msg['error'].trim()
@@ -1215,6 +1524,27 @@ export class CommanderComponent implements OnInit {
         this.discoveryWsLoading.set(false);
         this.releaseDiscoveryLock();
         this.showErrorToast(`Full discovery (WS) failed: ${errorText}`);
+        return;
+      }
+      if (eventType === 'discovery_cancelled') {
+        this.discoveryWsThenFixturesPending = false;
+        this.discoveryWsLatestFixture.set(null);
+        this.discoveryWsFixturesSeen.set(0);
+        this.discoveryWsFixturesComplete.set(0);
+        this.discoveryWsIdentifyCount.set(0);
+        this.discoveryWsConfigCount.set(0);
+        this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsFixturesWithIdentify.set(0);
+        this.discoveryWsFixturesWithConfig.set(0);
+        this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesReportsComplete.set(0);
+        this.discoveryTimingRowsByFixture.set(new Map());
+        this.discoveryTimingLastSweepElapsedMs.set(null);
+        this.discoveryWsUpsertedFixtureNames.clear();
+        this._discoveryWsStartedAtMs = null;
+        this.discoveryWsLoading.set(false);
+        this.releaseDiscoveryLock();
+        return;
       }
     });
     this.destroyRef.onDestroy(() => {
@@ -1228,6 +1558,11 @@ export class CommanderComponent implements OnInit {
       this.stopFixtureModalPolling();
       window.removeEventListener('storage', onStorage);
       this.releaseDiscoveryLock();
+      if (this._progressToastClearTimer !== null) {
+        clearTimeout(this._progressToastClearTimer);
+        this._progressToastClearTimer = null;
+      }
+      this._activeProgressToastMode = null;
     });
   }
 
@@ -1389,7 +1724,7 @@ export class CommanderComponent implements OnInit {
     if (this.hasDiscoveryLockFromAnotherTab()) {
       this.messageService.add({
         key: 'app',
-        severity: 'info',
+        severity: 'contrast',
         summary: 'Another window lock detected. Verifying with API…',
         life: 2500,
       });
@@ -1418,12 +1753,7 @@ export class CommanderComponent implements OnInit {
         this.discoveryLoading.set(false);
         this.releaseDiscoveryLock();
         if (err instanceof HttpErrorResponse && err.status === 409) {
-          this.messageService.add({
-            key: 'app',
-            severity: 'warn',
-            summary: 'Full discovery already in progress (another window/request).',
-            life: 5000,
-          });
+          this.showDiscoveryAlreadyInProgressToast();
           this.refreshDiscoveryLockState();
           return;
         }
@@ -1436,7 +1766,7 @@ export class CommanderComponent implements OnInit {
     if (this.hasDiscoveryLockFromAnotherTab()) {
       this.messageService.add({
         key: 'app',
-        severity: 'info',
+        severity: 'contrast',
         summary: 'Another window lock detected. Verifying with API…',
         life: 2500,
       });
@@ -1446,28 +1776,31 @@ export class CommanderComponent implements OnInit {
     this.claimDiscoveryLock();
     this.discoveryWsLoading.set(true);
     this.discoveryWsSessionId.set(null);
+    this._discoveryWsStartedAtMs = performance.now();
     this.error.set(null);
     this.commanderApi.startFixtureDiscoveryWs().subscribe({
       next: (result) => {
         this.discoveryWsSessionId.set(String(result.session_id || '').trim() || null);
-        this.messageService.add({
-          key: 'app',
-          severity: 'info',
-          summary: 'Full Discovery (WS) started',
-          life: 2500,
-        });
+        // Progress toast is managed by the discoveryWsLoading effect on the shared app toast channel.
       },
       error: (err: unknown) => {
         this.discoveryWsThenFixturesPending = false;
+        this.discoveryWsLatestFixture.set(null);
+        this.discoveryWsFixturesSeen.set(0);
+        this.discoveryWsFixturesComplete.set(0);
+        this.discoveryWsIdentifyCount.set(0);
+        this.discoveryWsConfigCount.set(0);
+        this.discoveryWsCapabilitiesCount.set(0);
+        this.discoveryWsFixturesWithIdentify.set(0);
+        this.discoveryWsFixturesWithConfig.set(0);
+        this.discoveryWsFixturesWithCapabilities.set(0);
+        this.discoveryWsFixturesReportsComplete.set(0);
+        this.discoveryWsUpsertedFixtureNames.clear();
+        this._discoveryWsStartedAtMs = null;
         this.discoveryWsLoading.set(false);
         this.releaseDiscoveryLock();
         if (err instanceof HttpErrorResponse && err.status === 409) {
-          this.messageService.add({
-            key: 'app',
-            severity: 'warn',
-            summary: 'Full discovery already in progress (another window/request).',
-            life: 5000,
-          });
+          this.showDiscoveryAlreadyInProgressToast();
           this.refreshDiscoveryLockState();
           return;
         }
@@ -1478,22 +1811,76 @@ export class CommanderComponent implements OnInit {
 
   protected cancelCurrentDiscovery(): void {
     if (this.discoverySubscription) {
+      this.clearProgressToastImmediately();
       this.discoverySubscription.unsubscribe();
       this.discoverySubscription = null;
       this.discoveryLoading.set(false);
       this.discoveryWsLoading.set(false);
+      this.discoveryWsLatestFixture.set(null);
+      this.discoveryWsFixturesSeen.set(0);
+      this.discoveryWsFixturesComplete.set(0);
+      this.discoveryWsIdentifyCount.set(0);
+      this.discoveryWsConfigCount.set(0);
+      this.discoveryWsCapabilitiesCount.set(0);
+      this.discoveryWsFixturesWithIdentify.set(0);
+      this.discoveryWsFixturesWithConfig.set(0);
+      this.discoveryWsFixturesWithCapabilities.set(0);
+      this.discoveryWsFixturesReportsComplete.set(0);
+      this.discoveryWsUpsertedFixtureNames.clear();
       this.discoveryWsThenFixturesPending = false;
       this.releaseDiscoveryLock();
-      this.messageService.add({ key: 'app', severity: 'info', summary: 'Full discovery cancelled', life: 3000 });
+      this.messageService.add({ key: 'app', severity: 'contrast', summary: 'Full discovery cancelled', life: 3000 });
     } else if (this.discoveryWsLoading()) {
+      this.clearProgressToastImmediately();
+      const currentSessionId = this.discoveryWsSessionId();
+      this.commanderApi.cancelFixtureDiscoveryWs(currentSessionId).subscribe({
+        next: () => {},
+        error: () => {},
+      });
       // WS discovery runs server-side; this cancels local waiting state only.
       this.discoveryWsLoading.set(false);
+      this.discoveryWsLatestFixture.set(null);
+      this.discoveryWsFixturesSeen.set(0);
+      this.discoveryWsFixturesComplete.set(0);
+      this.discoveryWsIdentifyCount.set(0);
+      this.discoveryWsConfigCount.set(0);
+      this.discoveryWsCapabilitiesCount.set(0);
+      this.discoveryWsFixturesWithIdentify.set(0);
+      this.discoveryWsFixturesWithConfig.set(0);
+      this.discoveryWsFixturesWithCapabilities.set(0);
+      this.discoveryWsFixturesReportsComplete.set(0);
+      this._discoveryWsStartedAtMs = null;
       this.discoveryWsThenFixturesPending = false;
       this.releaseDiscoveryLock();
-      this.messageService.add({ key: 'app', severity: 'info', summary: 'Stopped waiting for Full Discovery (WS)', life: 3000 });
+      this.messageService.add({ key: 'app', severity: 'contrast', summary: 'Stopped waiting for Full Discovery (WS)', life: 3000 });
     } else if (this.discoverFixturesLoading()) {
       this.discoverFixturesCancelRequested = true;
+      // Remove the running progress toast immediately on cancel.
+      this.clearProgressToastImmediately();
+      this.discoverFixturesLoading.set(false);
     }
+  }
+
+  private clearProgressToastImmediately(): void {
+    if (this._progressToastClearTimer !== null) {
+      clearTimeout(this._progressToastClearTimer);
+      this._progressToastClearTimer = null;
+    }
+    this.messageService.clear('app');
+    this._activeProgressToastMode = null;
+    this._skipNextProgressHold = true;
+  }
+
+  private showDiscoveryAlreadyInProgressToast(): void {
+    const now = Date.now();
+    if (now - this._discoveryInProgressToastLastAtMs < 1500) return;
+    this._discoveryInProgressToastLastAtMs = now;
+    this.messageService.add({
+      key: 'app',
+      severity: 'warn',
+      summary: 'Full discovery already in progress (another window/request).',
+      life: 5000,
+    });
   }
 
   protected runSidebarFixtureDiscovery(): void {
@@ -1510,7 +1897,7 @@ export class CommanderComponent implements OnInit {
     if (!fixtureNames.length) {
       this.messageService.add({
         key: 'app',
-        severity: 'info',
+        severity: 'contrast',
         summary: 'No fixtures in the local list to query',
         life: 3000,
       });
@@ -1522,6 +1909,8 @@ export class CommanderComponent implements OnInit {
     this.discoverFixturesLoading.set(true);
     this.discoverFixturesCurrentFixture.set(null);
     this.discoverFixturesElapsedS.set(0);
+    this.discoverFixturesTotal.set(fixtureNames.length);
+    this.discoverFixturesProcessed.set(0);
     void this.runSidebarFixtureDiscoverySequential(fixtureNames);
   }
 
@@ -1533,7 +1922,7 @@ export class CommanderComponent implements OnInit {
     if (!fixtureNames.length) {
       this.messageService.add({
         key: 'app',
-        severity: 'info',
+        severity: 'contrast',
         summary: 'No outdated fixtures found',
         life: 3000,
       });
@@ -1545,6 +1934,8 @@ export class CommanderComponent implements OnInit {
     this.discoverFixturesLoading.set(true);
     this.discoverFixturesCurrentFixture.set(null);
     this.discoverFixturesElapsedS.set(0);
+    this.discoverFixturesTotal.set(fixtureNames.length);
+    this.discoverFixturesProcessed.set(0);
     void this.runSidebarFixtureDiscoverySequential(fixtureNames);
   }
 
@@ -1575,6 +1966,7 @@ export class CommanderComponent implements OnInit {
             anyAuthFailure = true;
           }
         } finally {
+          this.discoverFixturesProcessed.set(successCount + failures.length);
           this.discoverFixturesElapsedS.set((performance.now() - startedAt) / 1000);
         }
       }
@@ -1586,7 +1978,7 @@ export class CommanderComponent implements OnInit {
     }
 
     if (cancelled) {
-      this.messageService.add({ key: 'app', severity: 'info', summary: `Fixture discovery cancelled — ${successCount} queried before stopping`, life: 4000 });
+      this.messageService.add({ key: 'app', severity: 'contrast', summary: `Fixture discovery cancelled — ${successCount} queried before stopping`, life: 4000 });
       return;
     }
 
@@ -1870,7 +2262,7 @@ export class CommanderComponent implements OnInit {
         const durationMs = performance.now() - startedAt;
         this.applyFixturePlanStatusResult(fixture, result);
         this.markFixtureManualRefreshNow(fixture);
-        this.setFixtureModalFeedback(`Update fixture complete for ${fixture}`, 'success', durationMs);
+        this.setFixtureModalFeedback(`Plan state refresh complete for ${fixture}`, 'success', durationMs);
       },
       error: (err: unknown) => {
         this.modalQuerySub = null;
@@ -1884,7 +2276,6 @@ export class CommanderComponent implements OnInit {
 
   protected onFixtureModalPollingToggle(value: boolean): void {
     if (value && (this.commanderUnavailable() || this.serialHoldActive())) {
-      this.fixtureModalPollingEnabled.set(false);
       this.stopFixtureModalPolling();
       return;
     }
@@ -2227,12 +2618,12 @@ export class CommanderComponent implements OnInit {
   }
 
   private showErrorToast(message: string): void {
-    // Suppress redundant errors when cmdr-offline toast already covers the unavailable state.
+    // Suppress redundant errors when the offline toast already covers the unavailable state.
     if (this.commanderUnavailable()) return;
     this.messageService.add({ key: 'app', severity: 'error', summary: message, life: 6000 });
   }
 
-  /** Returns false if the API is known to be unreachable (cmdr-offline toast covers the state). */
+  /** Returns false if the API is known to be unreachable (offline toast covers the state). */
   private checkApiReachable(): boolean {
     return !this.healthError();
   }

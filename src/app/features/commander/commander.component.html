@@ -1,30 +1,113 @@
-<p-toast key="app" position="top-center"></p-toast>
-<p-toast key="app-progress" position="top-center">
+<p-toast key="app" position="top-center" styleClass="commander-toast">
   <ng-template pTemplate="message" let-message>
-    <div class="discovery-progress-toast">
-      <span class="discovery-progress-toast__summary">{{ message.summary }}</span>
-      @if (message.data?.cancellable) {
-        <button type="button" class="discovery-progress-toast__cancel" (click)="cancelCurrentDiscovery()">Cancel</button>
+    @if (message.data?.mode === 'offline') {
+      <div class="cmdr-offline-toast">
+        <strong class="cmdr-offline-toast__summary">Commander unavailable</strong>
+        <span class="cmdr-offline-toast__detail">
+          @if (healthError()) { API unreachable — run queries are disabled. }
+          @else if (commanderManualOverride()) { Serial port released — manual override active — run queries are disabled. }
+          @else { Commander not detected — run queries are disabled. }
+        </span>
+        <span class="cmdr-offline-toast__footer">
+          Next check in {{ nextHealthPollCountdown() }}s
+          · <button class="cmdr-offline-toast__retry" (click)="retryHealth()">↻ retry</button>
+        </span>
+      </div>
+    } @else if (isProgressToastMode(message.data?.mode)) {
+      <div class="discovery-progress-toast">
+        <span class="discovery-progress-toast__summary">
+          @if (message.data?.mode === 'progress_fixtures') {
+            Querying fixtures
+          } @else {
+            {{ message.summary }}
+          }
+        </span>
+        @if (shouldShowCompletedProgress(message.data?.mode)) {
+          <p-progressbar
+            [value]="100"
+            [showValue]="false"
+            styleClass="discovery-progress-toast__bar"
+            [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
+          ></p-progressbar>
+        } @else if (message.data?.indeterminate) {
+          <p-progressbar
+            mode="indeterminate"
+            [showValue]="false"
+            styleClass="discovery-progress-toast__bar"
+            [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
+          ></p-progressbar>
+        } @else if (message.data?.mode === 'progress_fixtures') {
+          <p-progressbar
+            [value]="discoverFixturesProgressPct()"
+            [showValue]="false"
+            styleClass="discovery-progress-toast__bar"
+            [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
+          ></p-progressbar>
+          <span class="discovery-progress-toast__detail">{{ discoverFixturesProgressLabel() }}</span>
+        }
+        @if (message.data?.mode === 'progress_full_ws') {
+          <span class="discovery-progress-toast__detail">{{ discoveryWsProgressLabel() }}</span>
+          <span class="discovery-progress-toast__detail">{{ discoveryWsReportsLabel() }}</span>
+          @if (discoveryWsLatestFixture(); as latestFixture) {
+            <span class="discovery-progress-toast__detail">Latest fixture: {{ latestFixture }}</span>
+          }
+        }
+        @if (message.data?.cancellable && isProgressCancelable(message.data?.mode)) {
+          <button type="button" class="discovery-progress-toast__cancel" (click)="cancelCurrentDiscovery()">Cancel</button>
+        }
+      </div>
+    } @else {
+      <div class="commander-generic-toast">
+        <span class="commander-generic-toast__summary">{{ message.summary }}</span>
+        @if (message.detail) {
+          <span class="commander-generic-toast__detail">{{ message.detail }}</span>
+        }
+      </div>
+    }
+  </ng-template>
+</p-toast>
+<p-dialog
+  header="Discovery Timing"
+  [visible]="discoveryTimingDialogVisible()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(760px, 96vw)' }"
+  (visibleChange)="discoveryTimingDialogVisible.set(!!$event)"
+>
+  <section class="commander__discovery-timing">
+    @if (discoveryTimingSummary(); as summary) {
+        <div class="commander__discovery-timing-summary">
+          <span>Responders: <strong>{{ summary.responders }}</strong></span>
+          <span>Sweep: <strong>{{ summary.sweepElapsedMs !== null ? ((summary.sweepElapsedMs / 1000).toFixed(1) + ' s') : 'n/a' }}</strong></span>
+          <span>Slowest: <strong>{{ summary.slowestFixture ?? 'n/a' }}</strong></span>
+          <span>Complete: <strong>{{ summary.slowestMs !== null ? ((summary.slowestMs / 1000).toFixed(1) + ' s') : 'n/a' }}</strong></span>
+        </div>
       }
-    </div>
-  </ng-template>
-</p-toast>
-<p-toast key="cmdr-offline" position="top-center">
-  <ng-template pTemplate="message" let-message>
-    <div class="cmdr-offline-toast">
-      <strong class="cmdr-offline-toast__summary">Commander unavailable</strong>
-      <span class="cmdr-offline-toast__detail">
-        @if (healthError()) { API unreachable — run queries are disabled. }
-        @else if (commanderManualOverride()) { Serial port released — manual override active — run queries are disabled. }
-        @else { Commander not detected — run queries are disabled. }
-      </span>
-      <span class="cmdr-offline-toast__footer">
-        Next check in {{ nextHealthPollCountdown() }}s
-        · <button class="cmdr-offline-toast__retry" (click)="retryHealth()">↻ retry</button>
-      </span>
-    </div>
-  </ng-template>
-</p-toast>
+    @if (discoveryTimingTopRows().length > 0) {
+      <div class="commander__discovery-timing-table-wrap">
+        <table class="commander__discovery-timing-table">
+          <thead>
+              <tr>
+                <th>Fixture</th>
+                <th>Complete (s)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of discoveryTimingTopRows(); track row.fixtureName) {
+                <tr>
+                  <td>{{ row.fixtureName }}</td>
+                  <td>{{ (row.completeMs / 1000).toFixed(1) }} s</td>
+                </tr>
+              }
+            </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="commander__discovery-timing-empty">No discovery timing data yet.</p>
+    }
+  </section>
+</p-dialog>
 <section class="commander" aria-label="Commander mode">
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">
@@ -46,16 +129,32 @@
         (onClick)="runFullDiscovery()"
         [disabled]="backendBusy() || commanderUnavailable() || discoveryLoading() || discoverFixturesLoading()"
       ></p-splitbutton>
-      <p-splitbutton
-        [label]="discoveryWsLoading() ? 'Full Discovery (WS)…' : 'Full Discovery (WS)'"
-        [icon]="discoveryWsLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-bolt'"
-        iconPos="right"
-        severity="success"
-        size="small"
-        [model]="fullDiscoveryWsMenuItems()"
-        (onClick)="runFullDiscoveryWs()"
-        [disabled]="backendBusy() || commanderUnavailable() || discoveryWsLoading()"
-      ></p-splitbutton>
+      <div class="commander__sidebar-discovery-ws-row">
+        <p-splitbutton
+          [label]="discoveryWsButtonLabel()"
+          [icon]="discoveryWsLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-bolt'"
+          iconPos="right"
+          severity="success"
+          size="small"
+          [model]="fullDiscoveryWsMenuItems()"
+          (onClick)="runFullDiscoveryWs()"
+          [disabled]="backendBusy() || commanderUnavailable() || discoveryWsLoading()"
+        ></p-splitbutton>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-chart-line"
+          severity="secondary"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          pTooltip="Discovery timing"
+          tooltipPosition="bottom"
+          (click)="discoveryTimingDialogVisible.set(true)"
+          [disabled]="!discoveryTimingAvailable()"
+          aria-label="Open discovery timing"
+        ></button>
+      </div>
       <p-splitbutton
         [label]="discoverFixturesButtonLabel()"
         [icon]="discoverFixturesLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"
@@ -481,6 +580,9 @@
     <header class="commander__dialog-header">
       <div class="commander__dialog-header-top">
         <div class="commander__dialog-fixture-nav">
+          @if (selectedFixture()?.plan_name && pinnedPlans().has(selectedFixture()!.plan_name)) {
+            <i class="pi pi-bookmark-fill commander__dialog-pinned-icon" title="Plan is pinned"></i>
+          }
           <button
             pButton
             type="button"
@@ -533,10 +635,35 @@
               <app-copy-to-clipboard [value]="selectedFixture()!.fixture_name" />
             }
             @if (selectedFixtureFwStatus(); as fws) {
-              <span class="commander__dialog-fw-version">v{{ fws.fw }}</span>
-            }
-            @if (selectedFixture()?.plan_name && pinnedPlans().has(selectedFixture()!.plan_name)) {
-              <i class="pi pi-bookmark-fill commander__dialog-pinned-icon" title="Plan is pinned"></i>
+              <span class="commander__dialog-fw-version">
+                @switch (fws.direction) {
+                  @case ('fixture-outdated') {
+                    v{{ fws.fw }} is outdated · latest: v{{ fws.release }}
+                    @if (compileSupported()) {
+                      <button
+                        pButton
+                        type="button"
+                        [text]="true"
+                        size="small"
+                        severity="secondary"
+                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update'"
+                        icon="pi pi-download"
+                        iconPos="left"
+                        [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
+                        [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
+                        (click)="startOtaUpdate(selectedFixtureName()!)"
+                        class="commander__dialog-fw-update-btn"
+                      ></button>
+                    }
+                  }
+                  @case ('fixture-ahead') {
+                    v{{ fws.fw }} · API outdated · release: v{{ fws.release }}
+                  }
+                  @default {
+                    v{{ fws.fw }}
+                  }
+                }
+              </span>
             }
           </div>
 
@@ -570,38 +697,6 @@
           ></button>
         </div>
       </div>
-      @if (selectedFixtureFwStatus(); as fws) {
-        @if (fws.direction !== 'up-to-date') {
-        <span
-          class="commander__dialog-fw-status"
-          [class.commander__dialog-fw-status--outdated]="fws.direction === 'fixture-outdated'"
-          [class.commander__dialog-fw-status--ahead]="fws.direction === 'fixture-ahead'"
-        >
-          @switch (fws.direction) {
-            @case ('fixture-outdated') {
-              outdated · latest: v{{ fws.release }}
-              @if (compileSupported()) {
-                <button
-                  pButton
-                  type="button"
-                  [text]="true"
-                  size="small"
-                  severity="secondary"
-                  [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update'"
-                  icon="pi pi-download"
-                  iconPos="left"
-                  [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
-                  [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
-                  (click)="startOtaUpdate(selectedFixtureName()!)"
-                  class="commander__dialog-fw-update-btn"
-                ></button>
-              }
-            }
-            @case ('fixture-ahead') { API outdated · release: v{{ fws.release }} }
-          }
-        </span>
-        }
-      }
       <div class="commander__dialog-header-actions">
         <label class="commander__dialog-poll-toggle">
           <span>Live update</span>
@@ -615,7 +710,7 @@
         <button
           pButton
           type="button"
-          label="Update fixture"
+          label="Refresh plan state"
           icon="pi pi-refresh"
           iconPos="right"
           severity="secondary"

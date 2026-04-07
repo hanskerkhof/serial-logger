@@ -16,6 +16,7 @@ import { ReleaseNotesComponent } from './shared/release-notes/release-notes.comp
 import { QrScannerDemoComponent } from './shared/qr-scanner-demo/qr-scanner-demo.component';
 import { QrScannedCommandService } from './shared/qr-scanner-demo/qr-scanned-command.service';
 import { AuthService } from './auth/auth.service';
+import { FixtureStoreService } from './fixture-store.service';
 
 @Component({
   selector: 'app-root',
@@ -38,6 +39,7 @@ export class AppComponent {
   private readonly commanderApi = inject(CommanderApiService);
   protected readonly authService = inject(AuthService);
   private readonly serialService = inject(SerialService);
+  private readonly fixtureStore = inject(FixtureStoreService);
   private readonly qrScannedCommandService = inject(QrScannedCommandService);
   protected readonly activeMode = signal<'direct' | 'commander'>(this.modeFromUrl(this.router.url));
   protected readonly appVersion = APP_VERSION;
@@ -190,6 +192,7 @@ export class AppComponent {
   }
 
   protected onUpdateNow(): void {
+    this.fixtureStore.clearAllFixtures();
     document.location.reload();
   }
 

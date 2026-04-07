@@ -26,6 +26,8 @@ interface GroupedCommandGroup {
   key: string;
   label: string;
   layout: 'paired' | 'full';
+  modeOrder: number;
+  mode: CommandUiMode | null;
   commands: CmdrCustomCommandUiItem[];
 }
 
@@ -44,11 +46,8 @@ interface SelectOption {
   value: FixtureCustomControlValue;
 }
 
-interface SharedRgbArgRef {
-  commandId: string;
-  arg: CmdrCustomCommandUiArg;
-  channel: 'r' | 'g' | 'b';
-}
+type CommandUiMode = 'control' | 'status' | 'action';
+type CommandUiBlock = 'rgb' | 'dimmer' | string;
 
 @Component({
   selector: 'app-fixture-custom-control',
@@ -69,6 +68,7 @@ interface SharedRgbArgRef {
 })
 export class FixtureCustomControlComponent {
   readonly commands = input<CmdrCustomCommandUiItem[]>([]);
+  readonly liveValues = input<Record<string, Record<string, FixtureCustomControlValue>>>({});
   readonly values = input<Record<string, Record<string, FixtureCustomControlValue>>>({});
   readonly loading = input(false);
   readonly disabled = input(false);
@@ -81,48 +81,6 @@ export class FixtureCustomControlComponent {
   readonly sliderReleased = output<CmdrCustomCommandUiItem>();
   readonly masterPreviewChanged = output<FixtureCustomArgChangedEvent[]>();
   readonly masterReleased = output<FixtureCustomMasterReleasedEvent>();
-  readonly sharedRgbChanged = output<FixtureCustomArgChangedEvent[]>();
-
-  protected readonly sharedRgbArgRefs = computed<SharedRgbArgRef[]>(() => {
-    const refs: SharedRgbArgRef[] = [];
-    for (const command of this.commands()) {
-      for (const arg of command.args ?? []) {
-        const channel = this.toRgbChannel(arg.name);
-        if (!channel) continue;
-        refs.push({ commandId: command.id, arg, channel });
-      }
-    }
-    return refs;
-  });
-
-  protected readonly hasSharedRgb = computed(() => this.sharedRgbArgRefs().length > 0);
-  protected readonly sharedRgbRunCommand = computed<CmdrCustomCommandUiItem | null>(() => {
-    const commands = this.commands();
-    const byId = commands.find((command) => command.id === 'licht_set_rgb');
-    if (byId) return byId;
-
-    const byPreset = commands.find((command) =>
-      (command.wire_template ?? '').toLowerCase().includes('preset=setrgb'),
-    );
-    return byPreset ?? null;
-  });
-
-  protected readonly sharedRgbRange = computed(() => {
-    const refs = this.sharedRgbArgRefs();
-    if (!refs.length) {
-      return { min: 0, max: 255, step: 1 };
-    }
-    const mins = refs.map((ref) => (typeof ref.arg.min === 'number' ? ref.arg.min : 0));
-    const maxs = refs.map((ref) => (typeof ref.arg.max === 'number' ? ref.arg.max : 255));
-    const steps = refs
-      .map((ref) => (typeof ref.arg.step === 'number' && ref.arg.step > 0 ? ref.arg.step : 1))
-      .filter((value) => Number.isFinite(value) && value > 0);
-    return {
-      min: Math.min(...mins),
-      max: Math.max(...maxs),
-      step: steps.length > 0 ? Math.min(...steps) : 1,
-    };
-  });
 
   protected readonly groupedCommands = computed<
     GroupedCommandGroup[]
@@ -144,47 +102,86 @@ export class FixtureCustomControlComponent {
     };
 
     const groups: GroupedCommandGroup[] = [];
+    const modeOrderFor = (command: CmdrCustomCommandUiItem): number => {
+      const mode = this.commandUiMode(command);
+      if (mode === 'action') return 10;
+      if (mode === 'control') return 20;
+      return 30;
+    };
+    const modeSuffixFor = (command: CmdrCustomCommandUiItem): string => {
+      const mode = this.commandUiMode(command);
+      if (mode === 'action') return 'Actions';
+      if (mode === 'control') return 'Controls';
+      return 'Commands';
+    };
 
     for (const cmd of this.commands()) {
       if (this.isInlineStatusCommand(cmd)) continue;
       const explicitGroup = (cmd.group ?? '').trim();
+      const normalizedGroup = explicitGroup.toLowerCase();
       const fallbackVolumeGroup = !explicitGroup && isVolumeCommand(cmd);
       const fallbackPlayTracksGroup = !explicitGroup && isPlayTracksCommand(cmd);
-      const isVolumeGroup = explicitGroup.toLowerCase() === 'volume' || fallbackVolumeGroup;
+      const isVolumeGroup = normalizedGroup === 'volume' || fallbackVolumeGroup;
       const isPlayTracksGroup =
-        explicitGroup.toLowerCase() === 'play tracks' ||
-        explicitGroup.toLowerCase() === 'play_tracks' ||
+        normalizedGroup === 'play tracks' ||
+        normalizedGroup === 'play_tracks' ||
         fallbackPlayTracksGroup;
 
+      const modeSuffix = modeSuffixFor(cmd);
       const key = isVolumeGroup
         ? '__set_volumes__'
         : isPlayTracksGroup
           ? '__play_tracks__'
-          : (explicitGroup || null);
-      const label = isVolumeGroup ? 'Set volumes' : isPlayTracksGroup ? 'Play Tracks' : explicitGroup;
+          : (explicitGroup ? `${explicitGroup}__${modeSuffix.toLowerCase()}` : null);
+      const label = isVolumeGroup
+        ? 'Set volumes'
+        : isPlayTracksGroup
+          ? 'Play Tracks'
+          : explicitGroup
+            ? `${explicitGroup} ${modeSuffix}`
+            : modeSuffix;
       const layout: 'paired' | 'full' = isVolumeGroup || isPlayTracksGroup ? 'paired' : 'full';
+      const modeOrder = isVolumeGroup || isPlayTracksGroup ? 25 : modeOrderFor(cmd);
 
       if (key) {
         const existing = groups.find((group) => group.key === key);
         if (existing) {
           existing.commands.push(cmd);
         } else {
-          groups.push({ key, label, layout, commands: [cmd] });
+          groups.push({ key, label, layout, modeOrder, mode: this.commandUiMode(cmd), commands: [cmd] });
         }
       } else {
-        groups.push({ key: cmd.id, label: cmd.label, layout: 'full', commands: [cmd] });
+        groups.push({
+          key: cmd.id,
+          label: cmd.label,
+          layout: 'full',
+          modeOrder,
+          mode: this.commandUiMode(cmd),
+          commands: [cmd],
+        });
       }
     }
 
-    return groups;
+    return groups.sort((a, b) => {
+      if (a.modeOrder !== b.modeOrder) return a.modeOrder - b.modeOrder;
+      return a.label.localeCompare(b.label);
+    });
   });
 
   protected readonly inlineStatusCommands = computed<CmdrCustomCommandUiItem[]>(() =>
     this.commands().filter((command) => this.isInlineStatusCommand(command)),
   );
 
-  protected commandArgValue(commandId: string, arg: CmdrCustomCommandUiArg): FixtureCustomControlValue {
+  protected draftCommandArgValue(commandId: string, arg: CmdrCustomCommandUiArg): FixtureCustomControlValue {
     const commandValues = this.values()[commandId];
+    if (commandValues && arg.name in commandValues) {
+      return commandValues[arg.name];
+    }
+    return this.defaultValueForArg(arg);
+  }
+
+  protected liveCommandArgValue(commandId: string, arg: CmdrCustomCommandUiArg): FixtureCustomControlValue {
+    const commandValues = this.liveValues()[commandId];
     if (commandValues && arg.name in commandValues) {
       return commandValues[arg.name];
     }
@@ -199,8 +196,30 @@ export class FixtureCustomControlComponent {
     return String(arg.control ?? '').toLowerCase() === 'display';
   }
 
+  protected isStatusSliderArg(arg: CmdrCustomCommandUiArg): boolean {
+    return String(arg.control ?? '').toLowerCase() === 'slider';
+  }
+
+  protected statusSliderValue(commandId: string, arg: CmdrCustomCommandUiArg): number {
+    const raw = Number(this.liveCommandArgValue(commandId, arg));
+    if (!Number.isFinite(raw)) return 0;
+    return this.clampArgToRange(raw, arg);
+  }
+
+  protected statusSliderMin(arg: CmdrCustomCommandUiArg): number {
+    return typeof arg.min === 'number' ? arg.min : 0;
+  }
+
+  protected statusSliderMax(arg: CmdrCustomCommandUiArg): number {
+    return typeof arg.max === 'number' ? arg.max : 255;
+  }
+
+  protected statusSliderStep(arg: CmdrCustomCommandUiArg): number {
+    return typeof arg.step === 'number' && arg.step > 0 ? arg.step : 1;
+  }
+
   protected statusDotOn(commandId: string, arg: CmdrCustomCommandUiArg): boolean {
-    return this.toBooleanLike(this.commandArgValue(commandId, arg));
+    return this.toBooleanLike(this.liveCommandArgValue(commandId, arg));
   }
 
   protected statusDisplaySuffix(arg: CmdrCustomCommandUiArg): string {
@@ -209,7 +228,9 @@ export class FixtureCustomControlComponent {
   }
 
   protected statusDisplayText(commandId: string, arg: CmdrCustomCommandUiArg): string {
-    const value = this.commandArgValue(commandId, arg);
+    const value = this.liveCommandArgValue(commandId, arg);
+    const optionLabel = this.optionLabelForValue(arg, value);
+    if (optionLabel) return optionLabel;
     const explicitSuffix = this.statusDisplaySuffix(arg);
     if (explicitSuffix) return `${value}${explicitSuffix}`;
     if (typeof value === 'number' && this.isSecondsLikeArgName(arg.name)) {
@@ -234,46 +255,164 @@ export class FixtureCustomControlComponent {
     return options;
   }
 
+  private optionLabelForValue(arg: CmdrCustomCommandUiArg, rawValue: unknown): string | null {
+    const options = this.selectOptions(arg);
+    if (!options.length) return null;
+    const direct = options.find((option) => option.value === rawValue);
+    if (direct) return direct.label;
+    const canonical = String(rawValue).trim();
+    const loose = options.find((option) => String(option.value).trim() === canonical);
+    return loose?.label ?? null;
+  }
+
   protected onArgChanged(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {
     this.argChanged.emit({ commandId, arg, rawValue });
   }
 
-  protected isSharedRgbArg(arg: CmdrCustomCommandUiArg): boolean {
+  protected isInputArg(arg: CmdrCustomCommandUiArg): boolean {
+    const control = String(arg.control ?? 'number').toLowerCase();
+    return control === 'slider' || control === 'number' || control === 'select' || control === 'checkbox';
+  }
+
+  protected hasStatePath(arg: CmdrCustomCommandUiArg): boolean {
+    const statePath = (arg as { state_path?: unknown }).state_path;
+    return typeof statePath === 'string' && statePath.trim().length > 0;
+  }
+
+  protected isSettableCommand(command: CmdrCustomCommandUiItem): boolean {
+    return this.commandUiMode(command) === 'control';
+  }
+
+  protected settableLiveArgs(command: CmdrCustomCommandUiItem): CmdrCustomCommandUiArg[] {
+    const args = (command.args ?? []).filter((arg) => this.isInputArg(arg) && this.hasStatePath(arg));
+    const block = this.commandUiBlock(command);
+    if (block === 'rgb') {
+      return args.filter((arg) => this.toRgbChannel(arg.name) !== null);
+    }
+    if (block === 'dimmer') {
+      return args.filter((arg) => this.isDimmerArg(arg));
+    }
+    return args;
+  }
+
+  protected settableEditArgs(command: CmdrCustomCommandUiItem): CmdrCustomCommandUiArg[] {
+    const args = (command.args ?? []).filter((arg) => this.isInputArg(arg));
+    const block = this.commandUiBlock(command);
+    if (block === 'rgb') {
+      return args.filter((arg) => this.toRgbChannel(arg.name) !== null);
+    }
+    if (block === 'dimmer') {
+      return args.filter((arg) => this.isDimmerArg(arg));
+    }
+    return args;
+  }
+
+  protected shouldRenderLiveSetBlock(command: CmdrCustomCommandUiItem): boolean {
+    return this.isSettableCommand(command);
+  }
+
+  protected isSettableRgbChannelArg(arg: CmdrCustomCommandUiArg): boolean {
     return this.toRgbChannel(arg.name) !== null;
   }
 
-  protected sharedRgbChannelValue(channel: 'r' | 'g' | 'b'): number {
-    const ref = this.sharedRgbArgRefs().find((candidate) => candidate.channel === channel);
-    if (!ref) return 0;
-    const raw = Number(this.commandArgValue(ref.commandId, ref.arg));
-    if (!Number.isFinite(raw)) return 0;
-    return this.clampToRange(raw);
+  protected hasSettableDimmer(command: CmdrCustomCommandUiItem): boolean {
+    return this.commandUiBlock(command) === 'dimmer' && this.dimmerArg(command) !== null;
   }
 
-  protected sharedRgbHexValue(): string {
-    const r = this.sharedRgbChannelValue('r');
-    const g = this.sharedRgbChannelValue('g');
-    const b = this.sharedRgbChannelValue('b');
+  protected draftCommandDimmerValue(command: CmdrCustomCommandUiItem): number {
+    const arg = this.dimmerArg(command);
+    if (!arg) return 0;
+    const raw = Number(this.draftCommandArgValue(command.id, arg));
+    if (!Number.isFinite(raw)) return 0;
+    return this.clampArgToRange(raw, arg);
+  }
+
+  protected liveCommandDimmerValue(command: CmdrCustomCommandUiItem): number {
+    const arg = this.dimmerArg(command);
+    if (!arg) return 0;
+    const raw = Number(this.liveCommandArgValue(command.id, arg));
+    if (!Number.isFinite(raw)) return 0;
+    return this.clampArgToRange(raw, arg);
+  }
+
+  protected liveSettableArgText(commandId: string, arg: CmdrCustomCommandUiArg): string {
+    const value = this.liveCommandArgValue(commandId, arg);
+    if (arg.control === 'checkbox') {
+      return this.toBooleanLike(value) ? 'On' : 'Off';
+    }
+    const optionLabel = this.optionLabelForValue(arg, value);
+    if (optionLabel) return optionLabel;
+    return `${value}`;
+  }
+
+  protected hasSettableRgb(command: CmdrCustomCommandUiItem): boolean {
+    return (
+      this.commandUiBlock(command) === 'rgb' &&
+      this.rgbArg(command, 'r') !== null &&
+      this.rgbArg(command, 'g') !== null &&
+      this.rgbArg(command, 'b') !== null
+    );
+  }
+
+  protected shouldHideGenericArgControl(command: CmdrCustomCommandUiItem, arg: CmdrCustomCommandUiArg): boolean {
+    return this.isSettableCommand(command) && this.isInputArg(arg);
+  }
+
+  protected draftCommandRgbHexValue(command: CmdrCustomCommandUiItem): string {
+    const r = this.draftCommandRgbChannelValue(command, 'r');
+    const g = this.draftCommandRgbChannelValue(command, 'g');
+    const b = this.draftCommandRgbChannelValue(command, 'b');
     return `${this.toHexByte(r)}${this.toHexByte(g)}${this.toHexByte(b)}`;
   }
 
-  protected onSharedRgbHexChanged(rawValue: unknown): void {
+  protected liveCommandRgbHexValue(command: CmdrCustomCommandUiItem): string {
+    const r = this.liveCommandRgbChannelValue(command, 'r');
+    const g = this.liveCommandRgbChannelValue(command, 'g');
+    const b = this.liveCommandRgbChannelValue(command, 'b');
+    return `${this.toHexByte(r)}${this.toHexByte(g)}${this.toHexByte(b)}`;
+  }
+
+  protected draftCommandRgbChannelValue(
+    command: CmdrCustomCommandUiItem,
+    channel: 'r' | 'g' | 'b',
+  ): number {
+    const arg = this.rgbArg(command, channel);
+    if (!arg) return 0;
+    const raw = Number(this.draftCommandArgValue(command.id, arg));
+    if (!Number.isFinite(raw)) return 0;
+    return this.clampArgToRange(raw, arg);
+  }
+
+  protected liveCommandRgbChannelValue(
+    command: CmdrCustomCommandUiItem,
+    channel: 'r' | 'g' | 'b',
+  ): number {
+    const arg = this.rgbArg(command, channel);
+    if (!arg) return 0;
+    const raw = Number(this.liveCommandArgValue(command.id, arg));
+    if (!Number.isFinite(raw)) return 0;
+    return this.clampArgToRange(raw, arg);
+  }
+
+  protected onCommandRgbHexChanged(command: CmdrCustomCommandUiItem, rawValue: unknown): void {
     if (typeof rawValue !== 'string') return;
     const parsed = this.parseHexColor(rawValue);
     if (!parsed) return;
-    this.emitSharedRgbChannel('r', parsed.r);
-    this.emitSharedRgbChannel('g', parsed.g);
-    this.emitSharedRgbChannel('b', parsed.b);
+    this.onCommandRgbChannelChanged(command, 'r', parsed.r);
+    this.onCommandRgbChannelChanged(command, 'g', parsed.g);
+    this.onCommandRgbChannelChanged(command, 'b', parsed.b);
   }
 
-  protected onSharedRgbChannelChanged(channel: 'r' | 'g' | 'b', rawValue: unknown): void {
-    this.emitSharedRgbChannel(channel, Number(rawValue));
-  }
-
-  protected onRunSharedRgb(): void {
-    const command = this.sharedRgbRunCommand();
-    if (!command) return;
-    this.commandRunRequested.emit(command);
+  protected onCommandRgbChannelChanged(
+    command: CmdrCustomCommandUiItem,
+    channel: 'r' | 'g' | 'b',
+    rawValue: unknown,
+  ): void {
+    const arg = this.rgbArg(command, channel);
+    if (!arg) return;
+    const value = Number(rawValue);
+    if (!Number.isFinite(value)) return;
+    this.onArgChanged(command.id, arg, this.clampArgToRange(value, arg));
   }
 
   protected onSliderRelease(command: CmdrCustomCommandUiItem): void {
@@ -368,8 +507,27 @@ export class FixtureCustomControlComponent {
   }
 
   private isInlineStatusCommand(command: CmdrCustomCommandUiItem): boolean {
+    if (this.commandUiMode(command) === 'status') return true;
     const group = String(command.group ?? '').trim().toLowerCase();
     return group === 'status' || group === 'inline_status' || group === 'inline status';
+  }
+
+  private commandUiMode(command: CmdrCustomCommandUiItem): CommandUiMode | null {
+    const mode = String(command.ui_mode ?? '').trim().toLowerCase();
+    if (mode === 'control' || mode === 'status' || mode === 'action') {
+      return mode;
+    }
+    return null;
+  }
+
+  private commandUiBlock(command: CmdrCustomCommandUiItem): string | null {
+    const block = String(command.control ?? '').trim().toLowerCase();
+    return block || null;
+  }
+
+  private isDimmerArg(arg: CmdrCustomCommandUiArg): boolean {
+    const name = String(arg.name ?? '').trim().toLowerCase();
+    return name === 'dimmer';
   }
 
   private volumeGroupEntries(group: GroupedCommandGroup): VolumeSliderEntry[] {
@@ -378,7 +536,7 @@ export class FixtureCustomControlComponent {
       if (!this.isVolumeCommand(command)) continue;
       for (const arg of command.args ?? []) {
         if (!this.isVolumeSliderArg(arg)) continue;
-        const value = Number(this.commandArgValue(command.id, arg));
+        const value = Number(this.draftCommandArgValue(command.id, arg));
         entries.push({
           commandId: command.id,
           command,
@@ -471,29 +629,28 @@ export class FixtureCustomControlComponent {
     return null;
   }
 
-  private emitSharedRgbChannel(channel: 'r' | 'g' | 'b', value: number): void {
-    if (!Number.isFinite(value)) return;
-    const normalized = this.clampToRange(value);
-    const changes = this.sharedRgbArgRefs()
-      .filter((ref) => ref.channel === channel)
-      .map((ref) => ({
-        commandId: ref.commandId,
-        arg: ref.arg,
-        rawValue: normalized,
-      }));
-    if (!changes.length) return;
-    this.sharedRgbChanged.emit(changes);
+  private rgbArg(
+    command: CmdrCustomCommandUiItem,
+    channel: 'r' | 'g' | 'b',
+  ): CmdrCustomCommandUiArg | null {
+    return this.settableEditArgs(command).find((arg) => this.toRgbChannel(arg.name) === channel) ?? null;
   }
 
-  private clampToRange(value: number): number {
-    const range = this.sharedRgbRange();
-    const bounded = Math.min(Math.max(value, range.min), range.max);
-    if (!Number.isFinite(range.step) || range.step <= 0) {
+  protected dimmerArg(command: CmdrCustomCommandUiItem): CmdrCustomCommandUiArg | null {
+    return this.settableEditArgs(command).find((arg) => this.isDimmerArg(arg)) ?? null;
+  }
+
+  private clampArgToRange(value: number, arg: CmdrCustomCommandUiArg): number {
+    const min = typeof arg.min === 'number' ? arg.min : 0;
+    const max = typeof arg.max === 'number' ? arg.max : 255;
+    const step = typeof arg.step === 'number' && arg.step > 0 ? arg.step : 1;
+    const bounded = Math.min(Math.max(value, min), max);
+    if (!Number.isFinite(step) || step <= 0) {
       return Math.round(bounded);
     }
-    const snapped = Math.round((bounded - range.min) / range.step) * range.step + range.min;
+    const snapped = Math.round((bounded - min) / step) * step + min;
     const fixed = Number(snapped.toFixed(6));
-    return Math.min(Math.max(fixed, range.min), range.max);
+    return Math.min(Math.max(fixed, min), max);
   }
 
   private toHexByte(value: number): string {

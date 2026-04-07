@@ -21,7 +21,11 @@ export type CmdrQueryResponse = CmdrVersionsResponse | CmdrDiscoveryResponse;
 export type CmdrFixtureCapabilities = components['schemas']['FixtureCapabilities'];
 export type CmdrPlanControls        = components['schemas']['PlanControls'];
 export type CmdrPlayerCapabilities  = components['schemas']['PlayerCapabilities'];
-export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem'];
+export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem'] & {
+  ui_mode?: 'control' | 'action' | 'status' | string | null;
+  control?: string | null;
+  live_group?: string | null;
+};
 export type CmdrCustomCommandUiArg  = components['schemas']['CustomCommandUiArg'];
 export type CmdrFixtureRssiReport   = components['schemas']['FixtureRssiReport'];
 export type CmdrRssiPeerEntry       = components['schemas']['RssiPeerEntry'];

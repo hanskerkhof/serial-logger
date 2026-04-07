@@ -300,9 +300,10 @@ export class CommanderComponent implements OnInit {
     return `Query fixtures - DONE - ${duration.toFixed(2)}s`;
   });
   protected readonly manualCommand = signal('');
-  protected readonly customCommandValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
+  protected readonly customCommandLiveValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
+  protected readonly customCommandDraftValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
   private readonly customCommandStateBackedOptimisticValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
-  private readonly customCommandDirtyState = signal<Record<string, true>>({});
+  private lastCustomCommandFixtureIdentity: string | null = null;
   protected readonly discoveryLockedByOtherTab = signal(false);
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
@@ -510,21 +511,28 @@ export class CommanderComponent implements OnInit {
       // including state_path-resolved defaults) don't overwrite the user's locally
       // edited slider values. Commands are read untracked so they don't create a
       // reactive dependency here — they will be current at the time the fixture changes.
-      this.fixtureStore.selectedFixtureName();
+      const selectedFixtureName = this.fixtureStore.selectedFixtureName();
+      const selectedFixture = this.selectedFixture();
+      const fixtureIdentity = (selectedFixture?.fixture_name ?? selectedFixtureName ?? '').trim();
+      if (!fixtureIdentity) return;
+      if (this.lastCustomCommandFixtureIdentity === fixtureIdentity) return;
+      this.lastCustomCommandFixtureIdentity = fixtureIdentity;
       const commands = untracked(() => this.selectedFixtureCustomCommands());
-      this.customCommandValues.set(this.buildInitialCustomCommandValues(commands));
+      const initialValues = this.buildInitialCustomCommandValues(commands);
+      this.customCommandLiveValues.set(initialValues);
+      this.customCommandDraftValues.set(this.cloneCustomCommandValues(initialValues));
       this.customCommandStateBackedOptimisticValues.set({});
-      this.customCommandDirtyState.set({});
       // Reset any optimistic plan state when switching fixtures.
       untracked(() => this.optimisticPlanState.set(null));
     });
 
     effect(() => {
-      // On re-query updates for the selected fixture, sync only args that are backed
-      // by plan_state via state_path. This keeps local edits for non-state-backed args.
+      // On re-query updates for the selected fixture, sync live display values only.
+      // Draft values are intentionally left untouched so operators can edit safely
+      // while plan_state keeps changing (for example rainbow/live effects).
       this.selectedFixture();
       const commands = this.selectedFixtureCustomCommands();
-      this.syncStateBackedCustomCommandValues(commands);
+      this.syncStateBackedCustomCommandLiveValues(commands);
     });
 
     effect(() => {
@@ -2240,7 +2248,6 @@ export class CommanderComponent implements OnInit {
     this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
     this.fixtureModalTab.set('commands');
-    this.customCommandDirtyState.set({});
   }
 
   protected rebootFixture(): void {
@@ -2531,15 +2538,9 @@ export class CommanderComponent implements OnInit {
     }
   }
 
-  protected onFixtureSharedRgbChanged(events: FixtureCustomArgChangedEvent[]): void {
-    for (const event of events) {
-      this.updateCustomCommandArg(event.commandId, event.arg, event.rawValue);
-    }
-  }
-
   protected updateCustomCommandArg(commandId: string, arg: CmdrCustomCommandUiArg, rawValue: unknown): void {
     const nextValue = this.normalizeArgValue(arg, rawValue);
-    this.customCommandValues.update((current) => {
+    this.customCommandDraftValues.update((current) => {
       const commandValues = { ...(current[commandId] ?? {}) };
       commandValues[arg.name] = nextValue;
       return {
@@ -2547,9 +2548,6 @@ export class CommanderComponent implements OnInit {
         [commandId]: commandValues,
       };
     });
-    if (this.hasStatePath(arg)) {
-      this.markCustomCommandArgDirty(commandId, arg.name);
-    }
   }
 
   protected onCustomCommandSliderRelease(command: CmdrCustomCommandUiItem): void {
@@ -2581,12 +2579,10 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    const commandValues = this.hydrateCommandValues(command, this.customCommandValues()[command.id] ?? {});
+    const commandValues = this.hydrateCommandValues(command, this.customCommandDraftValues()[command.id] ?? {});
     const wireCommand = this.buildCommandFromTemplate(wireTemplate, commandValues);
     this.sendCommand(fixture, wireCommand, 'default', () => {
       this.applyOptimisticStateBackedValues(command, commandValues);
-      // Command accepted: release draft lock so live plan_state can update controls again.
-      this.clearCustomCommandDirtyForCommand(command.id);
     });
   }
 
@@ -3106,11 +3102,10 @@ export class CommanderComponent implements OnInit {
     for (const command of commands) {
       const commandValues: Record<string, CustomCommandValue> = {};
       for (const arg of command.args ?? []) {
-        commandValues[arg.name] = this.defaultValueForArg(arg);
+        commandValues[arg.name] = this.defaultDraftValueForArg(command, arg);
       }
       initial[command.id] = commandValues;
     }
-    this.syncSharedRgbDefaults(initial, commands);
     return initial;
   }
 
@@ -3143,12 +3138,88 @@ export class CommanderComponent implements OnInit {
     }
   }
 
-  private syncStateBackedCustomCommandValues(commands: CmdrCustomCommandUiItem[]): void {
+  private syncSharedDimmerDefaults(
+    initial: Record<string, Record<string, CustomCommandValue>>,
+    commands: CmdrCustomCommandUiItem[],
+  ): void {
+    const runCommand = this.selectSharedDimmerRunCommand(commands);
+
+    let shared: CustomCommandValue | null = null;
+    if (runCommand) {
+      const runValue = initial[runCommand.id]?.['dimmer'];
+      if (runValue !== undefined) {
+        shared = runValue;
+      }
+    }
+
+    if (shared === null) {
+      for (const command of commands) {
+        const hasDimmer = (command.args ?? []).some(
+          (arg) => arg.name.trim().toLowerCase() === 'dimmer',
+        );
+        if (!hasDimmer) continue;
+        const value = initial[command.id]?.['dimmer'];
+        if (value !== undefined) {
+          shared = value;
+          break;
+        }
+      }
+    }
+
+    if (shared === null) return;
+
+    for (const command of commands) {
+      const hasDimmer = (command.args ?? []).some(
+        (arg) => arg.name.trim().toLowerCase() === 'dimmer',
+      );
+      if (!hasDimmer) continue;
+      if (!initial[command.id]) initial[command.id] = {};
+      initial[command.id]['dimmer'] = shared;
+    }
+  }
+
+  private selectSharedDimmerRunCommand(commands: CmdrCustomCommandUiItem[]): CmdrCustomCommandUiItem | null {
+    const sharedArgName = (name: string): 'r' | 'g' | 'b' | 'dimmer' | null => {
+      const normalized = name.trim().toLowerCase();
+      if (normalized === 'r' || normalized === 'g' || normalized === 'b' || normalized === 'dimmer') {
+        return normalized;
+      }
+      return null;
+    };
+
+    const candidates = commands.filter((command) => {
+      const args = command.args ?? [];
+      if (!args.length) return false;
+      const names = args.map((arg) => sharedArgName(arg.name));
+      const hasDimmer = names.includes('dimmer');
+      const sharedOnly = names.every((name) => name !== null);
+      return hasDimmer && sharedOnly;
+    });
+    if (!candidates.length) return null;
+
+    const score = (command: CmdrCustomCommandUiItem): number => {
+      const args = command.args ?? [];
+      const dimmerArg = args.find((arg) => arg.name.trim().toLowerCase() === 'dimmer');
+      const statePath = String((dimmerArg as { state_path?: unknown } | undefined)?.state_path ?? '')
+        .trim()
+        .toLowerCase();
+      let value = 0;
+      if (statePath === 'dimmer') value += 100;
+      else if (statePath.includes('dimmer')) value += 80;
+      else if (statePath.includes('master')) value -= 10;
+      if (args.length === 1) value += 20;
+      return value - args.length;
+    };
+
+    return [...candidates].sort((a, b) => score(b) - score(a))[0];
+  }
+
+  private syncStateBackedCustomCommandLiveValues(commands: CmdrCustomCommandUiItem[]): void {
     const optimisticByCommand = this.customCommandStateBackedOptimisticValues();
     let optimisticChanged = false;
     const nextOptimisticByCommand: Record<string, Record<string, CustomCommandValue>> = { ...optimisticByCommand };
 
-    this.customCommandValues.update((current) => {
+    this.customCommandLiveValues.update((current) => {
       let changed = false;
       const next: Record<string, Record<string, CustomCommandValue>> = { ...current };
 
@@ -3158,7 +3229,6 @@ export class CommanderComponent implements OnInit {
 
         for (const arg of command.args ?? []) {
           if (!this.hasStatePath(arg)) continue;
-          if (this.isCustomCommandArgDirty(command.id, arg.name)) continue;
           const optimisticValue = this.getOptimisticStateBackedValue(command.id, arg.name);
           const desired = optimisticValue ?? this.defaultValueForArg(arg);
           if (commandValues[arg.name] === desired) continue;
@@ -3189,6 +3259,16 @@ export class CommanderComponent implements OnInit {
     }
   }
 
+  private cloneCustomCommandValues(
+    values: Record<string, Record<string, CustomCommandValue>>,
+  ): Record<string, Record<string, CustomCommandValue>> {
+    const clone: Record<string, Record<string, CustomCommandValue>> = {};
+    for (const [commandId, commandValues] of Object.entries(values)) {
+      clone[commandId] = { ...commandValues };
+    }
+    return clone;
+  }
+
   private hydrateCommandValues(
     command: CmdrCustomCommandUiItem,
     values: Record<string, CustomCommandValue>,
@@ -3196,10 +3276,46 @@ export class CommanderComponent implements OnInit {
     const hydrated: Record<string, CustomCommandValue> = { ...values };
     for (const arg of command.args ?? []) {
       if (hydrated[arg.name] === undefined || hydrated[arg.name] === null || hydrated[arg.name] === '') {
-        hydrated[arg.name] = this.defaultValueForArg(arg);
+        hydrated[arg.name] = this.defaultDraftValueForArg(command, arg);
       }
     }
     return hydrated;
+  }
+
+  private commandUiMode(command: CmdrCustomCommandUiItem): 'control' | 'status' | 'action' | null {
+    const mode = String((command.ui_mode ?? '')).trim().toLowerCase();
+    if (mode === 'control' || mode === 'status' || mode === 'action') {
+      return mode;
+    }
+    return null;
+  }
+
+  private defaultDraftValueForArg(
+    command: CmdrCustomCommandUiItem,
+    arg: CmdrCustomCommandUiArg,
+  ): CustomCommandValue {
+    // Draft state for interactive controls must remain independent from live plan_state.
+    // Therefore, control-mode commands use only metadata defaults/fallbacks here.
+    if (this.commandUiMode(command) === 'control') {
+      if (arg.control === 'checkbox') {
+        return this.toBoolean(arg.default ?? false);
+      }
+      if (arg.control === 'select') {
+        const options = this.readSelectOptions(arg);
+        if (options.length > 0 && arg.default == null) return options[0].value;
+        const fallback = options.length > 0 ? options[0].value : '';
+        return this.normalizeSelectValue(arg, arg.default, fallback);
+      }
+      if (arg.control === 'slider' || arg.control === 'number') {
+        const fallback = typeof arg.min === 'number' ? arg.min : 0;
+        return this.toNumber(arg.default, fallback);
+      }
+      if (typeof arg.default === 'string') return arg.default;
+      if (typeof arg.default === 'number' && Number.isFinite(arg.default)) return arg.default;
+      if (typeof arg.default === 'boolean') return arg.default;
+      return '';
+    }
+    return this.defaultValueForArg(arg);
   }
 
   private buildCommandFromTemplate(
@@ -3344,37 +3460,6 @@ export class CommanderComponent implements OnInit {
   private hasStatePath(arg: CmdrCustomCommandUiArg): boolean {
     const statePath = (arg as { state_path?: unknown }).state_path;
     return typeof statePath === 'string' && statePath.trim().length > 0;
-  }
-
-  private customCommandDirtyKey(commandId: string, argName: string): string {
-    return `${commandId}::${argName}`;
-  }
-
-  private isCustomCommandArgDirty(commandId: string, argName: string): boolean {
-    return this.customCommandDirtyState()[this.customCommandDirtyKey(commandId, argName)] === true;
-  }
-
-  private markCustomCommandArgDirty(commandId: string, argName: string): void {
-    const key = this.customCommandDirtyKey(commandId, argName);
-    this.customCommandDirtyState.update((current) => {
-      if (current[key] === true) return current;
-      return { ...current, [key]: true };
-    });
-  }
-
-  private clearCustomCommandDirtyForCommand(commandId: string): void {
-    const prefix = `${commandId}::`;
-    this.customCommandDirtyState.update((current) => {
-      const keys = Object.keys(current);
-      if (!keys.some((key) => key.startsWith(prefix))) return current;
-      const next: Record<string, true> = {};
-      for (const key of keys) {
-        if (!key.startsWith(prefix)) {
-          next[key] = true;
-        }
-      }
-      return next;
-    });
   }
 
   private readSelectOptions(

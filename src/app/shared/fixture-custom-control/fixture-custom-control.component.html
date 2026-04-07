@@ -17,87 +17,40 @@
 @if (commands().length > 0) {
   <section class="fixture-custom-control" aria-label="Custom commands">
     <h4 class="fixture-custom-control__title">Custom Commands</h4>
-    @for (statusCommand of inlineStatusCommands(); track statusCommand.id) {
-      <div class="fixture-custom-control__status-row" aria-label="Custom command status row">
-        @for (arg of statusCommand.args ?? []; track arg.name) {
-          @if (isStatusDotArg(arg)) {
-            <span
-              class="fixture-custom-control__status-dot"
-              [class.fixture-custom-control__status-dot--on]="statusDotOn(statusCommand.id, arg)"
-            ></span>
-          } @else if (isStatusDisplayArg(arg)) {
-            <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
-            <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
-          }
-        }
-      </div>
-    }
-    @if (hasSharedRgb()) {
+    @if (inlineStatusCommands().length > 0) {
       <div class="fixture-custom-control__card fixture-custom-control__card--full">
-        <div class="fixture-custom-control__command-row">
-          <strong class="fixture-custom-control__command-title">Shared Color</strong>
-          <p-colorpicker
-            class="fixture-custom-control__colorpicker"
-            format="hex"
-            appendTo="body"
-            [ngModel]="sharedRgbHexValue()"
-            (ngModelChange)="onSharedRgbHexChanged($event)"
-            [disabled]="controlsDisabled()"
-          ></p-colorpicker>
-          <label class="fixture-custom-control__arg-inline">
-            <span class="fixture-custom-control__arg-inline-label">R</span>
-            <input
-              class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
-              pInputText
-              type="number"
-              [min]="sharedRgbRange().min"
-              [max]="sharedRgbRange().max"
-              [step]="sharedRgbRange().step"
-              [ngModel]="sharedRgbChannelValue('r')"
-              (ngModelChange)="onSharedRgbChannelChanged('r', $event)"
-              [disabled]="controlsDisabled()"
-            />
-          </label>
-          <label class="fixture-custom-control__arg-inline">
-            <span class="fixture-custom-control__arg-inline-label">G</span>
-            <input
-              class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
-              pInputText
-              type="number"
-              [min]="sharedRgbRange().min"
-              [max]="sharedRgbRange().max"
-              [step]="sharedRgbRange().step"
-              [ngModel]="sharedRgbChannelValue('g')"
-              (ngModelChange)="onSharedRgbChannelChanged('g', $event)"
-              [disabled]="controlsDisabled()"
-            />
-          </label>
-          <label class="fixture-custom-control__arg-inline">
-            <span class="fixture-custom-control__arg-inline-label">B</span>
-            <input
-              class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
-              pInputText
-              type="number"
-              [min]="sharedRgbRange().min"
-              [max]="sharedRgbRange().max"
-              [step]="sharedRgbRange().step"
-              [ngModel]="sharedRgbChannelValue('b')"
-              (ngModelChange)="onSharedRgbChannelChanged('b', $event)"
-              [disabled]="controlsDisabled()"
-            />
-          </label>
-          <div class="fixture-custom-control__actions fixture-custom-control__actions--shared-rgb">
-            <button
-              pButton
-              type="button"
-              label="Run"
-              severity="secondary"
-              size="small"
-              (click)="onRunSharedRgb()"
-              [disabled]="controlsDisabled() || !sharedRgbRunCommand()"
-            ></button>
-          </div>
+        <div class="fixture-custom-control__card-header">
+          <strong>Status</strong>
         </div>
+        @for (statusCommand of inlineStatusCommands(); track statusCommand.id) {
+          <div class="fixture-custom-control__status-row" aria-label="Custom command status row">
+            @for (arg of statusCommand.args ?? []; track arg.name) {
+              @if (isStatusDotArg(arg)) {
+                <span
+                  class="fixture-custom-control__status-dot"
+                  [class.fixture-custom-control__status-dot--on]="statusDotOn(statusCommand.id, arg)"
+                ></span>
+              } @else if (isStatusSliderArg(arg)) {
+                <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
+                <p-slider
+                  class="fixture-custom-control__arg-slider fixture-custom-control__arg-slider--inline"
+                  [min]="statusSliderMin(arg)"
+                  [max]="statusSliderMax(arg)"
+                  [step]="statusSliderStep(arg)"
+                  [ngModel]="statusSliderValue(statusCommand.id, arg)"
+                  [disabled]="true"
+                ></p-slider>
+                <strong class="fixture-custom-control__status-value">{{ statusSliderValue(statusCommand.id, arg) }}</strong>
+              } @else if (isStatusDisplayArg(arg)) {
+                <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
+                <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+              } @else {
+                <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
+                <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+              }
+            }
+          </div>
+        }
       </div>
     }
     @for (group of groupedCommands(); track group.key) {
@@ -105,6 +58,7 @@
         class="fixture-custom-control__card"
         [class.fixture-custom-control__card--paired]="group.layout === 'paired'"
         [class.fixture-custom-control__card--full]="group.layout === 'full'"
+        [class.fixture-custom-control__card--actions]="group.mode === 'action'"
       >
         <div class="fixture-custom-control__card-header">
           <strong>{{ group.label }}</strong>
@@ -129,13 +83,124 @@
           </div>
         }
 
-        @for (command of group.commands; track command.id) {
-          <div class="fixture-custom-control__command">
+        <div
+          class="fixture-custom-control__commands"
+          [class.fixture-custom-control__commands--actions]="group.mode === 'action'"
+        >
+          @for (command of group.commands; track command.id) {
+            <div class="fixture-custom-control__command">
+            @if (shouldRenderLiveSetBlock(command)) {
+              <div class="fixture-custom-control__command-row">
+                <strong class="fixture-custom-control__command-title">Live</strong>
+                @if (hasSettableRgb(command)) {
+                  <span
+                    class="fixture-custom-control__color-preview"
+                    [style.backgroundColor]="'#' + liveCommandRgbHexValue(command)"
+                  ></span>
+                  <span class="fixture-custom-control__arg-inline">
+                    <span class="fixture-custom-control__arg-inline-label">R</span>
+                    <strong class="fixture-custom-control__arg-live-value">{{ liveCommandRgbChannelValue(command, 'r') }}</strong>
+                  </span>
+                  <span class="fixture-custom-control__arg-inline">
+                    <span class="fixture-custom-control__arg-inline-label">G</span>
+                    <strong class="fixture-custom-control__arg-live-value">{{ liveCommandRgbChannelValue(command, 'g') }}</strong>
+                  </span>
+                  <span class="fixture-custom-control__arg-inline">
+                    <span class="fixture-custom-control__arg-inline-label">B</span>
+                    <strong class="fixture-custom-control__arg-live-value">{{ liveCommandRgbChannelValue(command, 'b') }}</strong>
+                  </span>
+                }
+                @if (hasSettableDimmer(command)) {
+                  <span class="fixture-custom-control__arg-inline">
+                    <span class="fixture-custom-control__arg-inline-label">Dimmer</span>
+                    <strong class="fixture-custom-control__arg-live-value">{{ liveCommandDimmerValue(command) }}</strong>
+                  </span>
+                }
+                @for (arg of settableLiveArgs(command); track arg.name) {
+                  @if (!isSettableRgbChannelArg(arg) && !(hasSettableDimmer(command) && arg.name.toLowerCase() === 'dimmer')) {
+                    <span class="fixture-custom-control__arg-inline">
+                      <span class="fixture-custom-control__arg-inline-label">{{ arg.label }}</span>
+                      <strong class="fixture-custom-control__arg-live-value">{{ liveSettableArgText(command.id, arg) }}</strong>
+                    </span>
+                  }
+                }
+              </div>
+            }
             <div class="fixture-custom-control__command-row">
               <strong class="fixture-custom-control__command-title">{{ command.label }}</strong>
 
+              @if (hasSettableRgb(command)) {
+                <p-colorpicker
+                  class="fixture-custom-control__colorpicker"
+                  format="hex"
+                  appendTo="body"
+                  [ngModel]="draftCommandRgbHexValue(command)"
+                  (ngModelChange)="onCommandRgbHexChanged(command, $event)"
+                  [disabled]="controlsDisabled()"
+                ></p-colorpicker>
+                <label class="fixture-custom-control__arg-inline">
+                  <span class="fixture-custom-control__arg-inline-label">R</span>
+                  <input
+                    class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+                    pInputText
+                    type="number"
+                    [ngModel]="draftCommandRgbChannelValue(command, 'r')"
+                    (ngModelChange)="onCommandRgbChannelChanged(command, 'r', $event)"
+                    [disabled]="controlsDisabled()"
+                  />
+                </label>
+                <label class="fixture-custom-control__arg-inline">
+                  <span class="fixture-custom-control__arg-inline-label">G</span>
+                  <input
+                    class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+                    pInputText
+                    type="number"
+                    [ngModel]="draftCommandRgbChannelValue(command, 'g')"
+                    (ngModelChange)="onCommandRgbChannelChanged(command, 'g', $event)"
+                    [disabled]="controlsDisabled()"
+                  />
+                </label>
+                <label class="fixture-custom-control__arg-inline">
+                  <span class="fixture-custom-control__arg-inline-label">B</span>
+                  <input
+                    class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+                    pInputText
+                    type="number"
+                    [ngModel]="draftCommandRgbChannelValue(command, 'b')"
+                    (ngModelChange)="onCommandRgbChannelChanged(command, 'b', $event)"
+                    [disabled]="controlsDisabled()"
+                  />
+                </label>
+              }
+              @if (hasSettableDimmer(command) && dimmerArg(command); as dimmerArg) {
+                <label class="fixture-custom-control__arg-inline">
+                  <span class="fixture-custom-control__arg-inline-label">Dimmer</span>
+                  <p-slider
+                    class="fixture-custom-control__arg-slider fixture-custom-control__arg-slider--inline"
+                    [min]="dimmerArg.min ?? 0"
+                    [max]="dimmerArg.max ?? 100"
+                    [step]="dimmerArg.step ?? 1"
+                    [ngModel]="draftCommandDimmerValue(command)"
+                    (ngModelChange)="onArgChanged(command.id, dimmerArg, $event)"
+                    (onSlideEnd)="onSliderRelease(command)"
+                    [disabled]="controlsDisabled()"
+                  ></p-slider>
+                  <input
+                    class="fixture-custom-control__arg-number fixture-custom-control__arg-number--inline"
+                    pInputText
+                    type="number"
+                    [min]="dimmerArg.min ?? 0"
+                    [max]="dimmerArg.max ?? null"
+                    [step]="dimmerArg.step ?? 1"
+                    [ngModel]="draftCommandDimmerValue(command)"
+                    (ngModelChange)="onArgChanged(command.id, dimmerArg, $event)"
+                    [disabled]="controlsDisabled()"
+                  />
+                </label>
+              }
+
               @for (arg of command.args ?? []; track arg.name) {
-                @if (!isSharedRgbArg(arg)) {
+                @if (!shouldHideGenericArgControl(command, arg)) {
                   <label class="fixture-custom-control__arg-inline">
                     <span class="fixture-custom-control__arg-inline-label">{{ arg.label }}</span>
                     @switch (arg.control) {
@@ -145,17 +210,17 @@
                           [min]="arg.min ?? 0"
                           [max]="arg.max ?? 100"
                           [step]="arg.step ?? 1"
-                          [ngModel]="commandArgValue(command.id, arg)"
+                          [ngModel]="draftCommandArgValue(command.id, arg)"
                           (ngModelChange)="onArgChanged(command.id, arg, $event)"
                           (onSlideEnd)="onSliderRelease(command)"
                           [disabled]="controlsDisabled()"
                         ></p-slider>
-                        <span class="fixture-custom-control__arg-value">{{ commandArgValue(command.id, arg) }}</span>
+                        <span class="fixture-custom-control__arg-value">{{ draftCommandArgValue(command.id, arg) }}</span>
                       }
                       @case ('checkbox') {
                         <p-checkbox
                           [binary]="true"
-                          [ngModel]="commandArgValue(command.id, arg)"
+                          [ngModel]="draftCommandArgValue(command.id, arg)"
                           (ngModelChange)="onArgChanged(command.id, arg, $event)"
                           [disabled]="controlsDisabled()"
                         ></p-checkbox>
@@ -167,7 +232,7 @@
                           optionLabel="label"
                           optionValue="value"
                           appendTo="body"
-                          [ngModel]="commandArgValue(command.id, arg)"
+                          [ngModel]="draftCommandArgValue(command.id, arg)"
                           (ngModelChange)="onArgChanged(command.id, arg, $event)"
                           [disabled]="controlsDisabled()"
                         ></p-select>
@@ -181,7 +246,7 @@
                           [min]="arg.min ?? 0"
                           [max]="arg.max ?? null"
                           [step]="arg.step ?? 1"
-                          [ngModel]="commandArgValue(command.id, arg)"
+                          [ngModel]="draftCommandArgValue(command.id, arg)"
                           (ngModelChange)="onArgChanged(command.id, arg, $event)"
                           [disabled]="controlsDisabled()"
                         />
@@ -199,14 +264,16 @@
                     label="Run"
                     severity="secondary"
                     size="small"
+                    [attr.data-testid]="command.id"
                     (click)="onRunCommand(command)"
                     [disabled]="controlsDisabled()"
                   ></button>
                 </div>
               }
             </div>
-          </div>
-        }
+            </div>
+          }
+        </div>
       </div>
     }
   </section>

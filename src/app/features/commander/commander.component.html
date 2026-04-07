@@ -705,7 +705,7 @@
             (ngModelChange)="onFixtureModalPollingToggle(!!$event)"
             [disabled]="commanderUnavailable()"
           />
-          <small>{{ fixtureModalPollingEnabled() ? 'On (500 ms)' : 'Off' }}</small>
+          <small>{{ fixtureModalPollingEnabled() ? 'On (' + fixtureModalPollIntervalLabel() + ')' : 'Off' }}</small>
         </label>
         <button
           pButton
@@ -769,7 +769,7 @@
         }
       </div>
       <div class="commander__dialog-live-timing-row">
-        @if (fixtureModalPollingEnabled() && selectedFixtureLiveUpdateTimingLabel(); as timingLabel) {
+        @if (fixtureModalPollingEnabled()) {
           <label class="commander__dialog-poll-timing-toggle">
             <input
               type="checkbox"
@@ -778,10 +778,26 @@
             />
             <span>Avg</span>
           </label>
-          <small class="commander__dialog-poll-timing">{{ timingLabel }}</small>
+          @if (selectedFixtureLiveUpdateTimingLabel(); as timingLabel) {
+            <small class="commander__dialog-poll-timing">{{ timingLabel }}</small>
+          } @else {
+            <span class="commander__dialog-live-timing-placeholder">&nbsp;</span>
+          }
         } @else {
           <span class="commander__dialog-live-timing-placeholder">&nbsp;</span>
         }
+        <p-select
+          class="commander__dialog-poll-interval-select"
+          [ngModel]="fixtureModalPollIntervalMs()"
+          (ngModelChange)="onFixtureModalPollIntervalChange($event)"
+          [options]="fixtureModalPollIntervalOptions"
+          optionLabel="label"
+          optionValue="value"
+          size="small"
+          appendTo="body"
+          [disabled]="commanderUnavailable()"
+          aria-label="Live update interval"
+        ></p-select>
       </div>
       <section
         class="commander__dialog-feedback commander__dialog-feedback--header"

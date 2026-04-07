@@ -97,7 +97,9 @@ export class HealthPollService {
   private _wsRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private _started = false;
   private _planStateFixtureName: string | null = null;
+  private _planStateIntervalMs: number | null = null;
   private _planStateSubscribedFixtureName: string | null = null;
+  private _planStateSubscribedIntervalMs: number | null = null;
 
   constructor() {
     // Single 1 s clock ticker drives both nextHealthPollCountdown and secondsSinceHealthCheck.
@@ -127,20 +129,32 @@ export class HealthPollService {
     }
   }
 
-  subscribePlanState(fixtureName: string): void {
+  subscribePlanState(fixtureName: string, intervalMs?: number | null): void {
     const normalized = String(fixtureName || '').trim();
     if (!normalized) return;
-    if (this._planStateFixtureName === normalized && this._planStateSubscribedFixtureName === normalized) {
+    const normalizedInterval =
+      typeof intervalMs === 'number' && Number.isFinite(intervalMs) && intervalMs >= 100
+        ? Math.round(intervalMs)
+        : null;
+    if (
+      this._planStateFixtureName === normalized &&
+      this._planStateSubscribedFixtureName === normalized &&
+      this._planStateIntervalMs === normalizedInterval &&
+      this._planStateSubscribedIntervalMs === normalizedInterval
+    ) {
       return;
     }
     this._planStateFixtureName = normalized;
+    this._planStateIntervalMs = normalizedInterval;
     this._sendPlanStateSubscribe();
   }
 
   unsubscribePlanState(): void {
     if (!this._planStateFixtureName && !this._planStateSubscribedFixtureName) return;
     this._planStateFixtureName = null;
+    this._planStateIntervalMs = null;
     this._planStateSubscribedFixtureName = null;
+    this._planStateSubscribedIntervalMs = null;
     this._sendWsMessage({ type: 'plan_state_unsubscribe' });
   }
 
@@ -175,6 +189,7 @@ export class HealthPollService {
       this._wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
       this._nextHealthPollAt.set(0); // no pending reconnect countdown
       this._planStateSubscribedFixtureName = null;
+      this._planStateSubscribedIntervalMs = null;
       this._sendPlanStateSubscribe();
     };
 
@@ -245,11 +260,23 @@ export class HealthPollService {
   private _sendPlanStateSubscribe(): void {
     const fixture = this._planStateFixtureName;
     if (!fixture) return;
-    if (this._planStateSubscribedFixtureName === fixture && this._ws?.readyState === WebSocket.OPEN) {
+    if (
+      this._planStateSubscribedFixtureName === fixture &&
+      this._planStateSubscribedIntervalMs === this._planStateIntervalMs &&
+      this._ws?.readyState === WebSocket.OPEN
+    ) {
       return;
     }
-    this._sendWsMessage({ type: 'plan_state_subscribe', fixture_name: fixture });
+    const payload: Record<string, unknown> = {
+      type: 'plan_state_subscribe',
+      fixture_name: fixture,
+    };
+    if (this._planStateIntervalMs !== null) {
+      payload['interval_ms'] = this._planStateIntervalMs;
+    }
+    this._sendWsMessage(payload);
     this._planStateSubscribedFixtureName = fixture;
+    this._planStateSubscribedIntervalMs = this._planStateIntervalMs;
   }
 
   private _sendWsMessage(payload: unknown): void {

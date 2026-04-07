@@ -21,10 +21,20 @@ export type CmdrQueryResponse = CmdrVersionsResponse | CmdrDiscoveryResponse;
 export type CmdrFixtureCapabilities = components['schemas']['FixtureCapabilities'];
 export type CmdrPlanControls        = components['schemas']['PlanControls'];
 export type CmdrPlayerCapabilities  = components['schemas']['PlayerCapabilities'];
+export interface CmdrCustomCommandPostRunSync {
+  mode?: 'from_live_once' | string | null;
+  targets?: string[] | null;
+}
+export interface CmdrCustomCommandLiveDraftSync {
+  mode?: 'if_pristine' | 'always' | string | null;
+  args?: string[] | null;
+}
 export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem'] & {
   ui_mode?: 'control' | 'action' | 'status' | string | null;
   control?: string | null;
   live_group?: string | null;
+  post_run_sync?: CmdrCustomCommandPostRunSync | null;
+  live_draft_sync?: CmdrCustomCommandLiveDraftSync | null;
 };
 export type CmdrCustomCommandUiArg  = components['schemas']['CustomCommandUiArg'];
 export type CmdrFixtureRssiReport   = components['schemas']['FixtureRssiReport'];

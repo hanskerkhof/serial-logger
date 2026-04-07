@@ -80,6 +80,11 @@ interface SelectOption {
   value: string;
 }
 
+interface PollIntervalOption {
+  label: string;
+  value: number;
+}
+
 type CustomCommandValue = string | number | boolean;
 type FixtureModalFeedbackTone = 'info' | 'success' | 'warn' | 'error';
 type SendCommandMode = 'default' | 'force_ack' | 'force_no_ack';
@@ -95,6 +100,18 @@ interface LiveUpdateTimingSample {
 interface DiscoveryTimingRow {
   fixtureName: string;
   completeMs: number;
+}
+
+interface CustomCommandPostRunSyncToken {
+  targets: string[];
+  baselineByCommand: Record<string, Record<string, CustomCommandValue>>;
+  baselineDraftByCommand: Record<string, Record<string, CustomCommandValue>>;
+  queuedAtMs: number;
+}
+
+interface LiveValueChange {
+  previous: CustomCommandValue;
+  next: CustomCommandValue;
 }
 
 function compareVersions(a: string, b: string): number {
@@ -117,6 +134,15 @@ function compareVersions(a: string, b: string): number {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommanderComponent implements OnInit {
+  private static readonly FIXTURE_MODAL_POLL_INTERVAL_OPTIONS: readonly PollIntervalOption[] = [
+    { label: '100ms', value: 100 },
+    { label: '250ms', value: 250 },
+    { label: '500ms', value: 500 },
+    { label: '750ms', value: 750 },
+    { label: '1s', value: 1000 },
+    { label: '5s', value: 5000 },
+  ];
+
   protected readonly frontendVersion = APP_VERSION;
   protected readonly frontendBuildDate = BUILD_DATE;
 
@@ -303,12 +329,20 @@ export class CommanderComponent implements OnInit {
   protected readonly customCommandLiveValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
   protected readonly customCommandDraftValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
   private readonly customCommandStateBackedOptimisticValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
+  private readonly pendingCustomCommandPostRunSync = signal<CustomCommandPostRunSyncToken[]>([]);
   private lastCustomCommandFixtureIdentity: string | null = null;
   protected readonly discoveryLockedByOtherTab = signal(false);
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
   protected readonly fixtureModalVisible = signal(false);
   protected readonly fixtureModalPollingEnabled = signal(true);
+  protected readonly fixtureModalPollIntervalOptions = [
+    ...CommanderComponent.FIXTURE_MODAL_POLL_INTERVAL_OPTIONS,
+  ];
+  protected readonly fixtureModalPollIntervalMs = signal(this.loadFixtureModalPollIntervalMs());
+  protected readonly fixtureModalPollIntervalLabel = computed(() =>
+    this.formatPollIntervalLabel(this.fixtureModalPollIntervalMs()),
+  );
   protected readonly liveTimingMovingAverageEnabled = signal(
     localStorage.getItem('cmdr.liveTiming.movingAvg') === '1',
   );
@@ -506,6 +540,9 @@ export class CommanderComponent implements OnInit {
         this.liveTimingMovingAverageEnabled() ? '1' : '0',
       ),
     );
+    effect(() =>
+      localStorage.setItem('cmdr.fixtureModalPollIntervalMs', String(this.fixtureModalPollIntervalMs())),
+    );
     effect(() => {
       // Track only fixture identity so that re-queries (which update raw fixture data
       // including state_path-resolved defaults) don't overwrite the user's locally
@@ -522,6 +559,7 @@ export class CommanderComponent implements OnInit {
       this.customCommandLiveValues.set(initialValues);
       this.customCommandDraftValues.set(this.cloneCustomCommandValues(initialValues));
       this.customCommandStateBackedOptimisticValues.set({});
+      this.pendingCustomCommandPostRunSync.set([]);
       // Reset any optimistic plan state when switching fixtures.
       untracked(() => this.optimisticPlanState.set(null));
     });
@@ -538,6 +576,7 @@ export class CommanderComponent implements OnInit {
     effect(() => {
       const visible = this.fixtureModalVisible();
       const liveUpdate = this.fixtureModalPollingEnabled();
+      const intervalMs = this.fixtureModalPollIntervalMs();
       const commanderUnavailable = this.commanderUnavailable() || this.serialHoldActive();
       // Subscribe by selected fixture identity only; avoid resubscribing on every
       // fixture raw-data update (plan_state ticks), which causes WS chatter.
@@ -546,7 +585,7 @@ export class CommanderComponent implements OnInit {
         this.healthService.unsubscribePlanState();
         return;
       }
-      this.healthService.subscribePlanState(selectedName);
+      this.healthService.subscribePlanState(selectedName, intervalMs);
     });
 
     effect(() => {
@@ -2317,11 +2356,17 @@ export class CommanderComponent implements OnInit {
     }
   }
 
+  protected onFixtureModalPollIntervalChange(value: number | null | undefined): void {
+    const normalized = this.normalizeFixtureModalPollIntervalMs(value);
+    if (normalized === this.fixtureModalPollIntervalMs()) return;
+    this.fixtureModalPollIntervalMs.set(normalized);
+  }
+
   private startFixtureModalPolling(): void {
     if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
     const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
     if (!fixture) return;
-    this.healthService.subscribePlanState(fixture);
+    this.healthService.subscribePlanState(fixture, this.fixtureModalPollIntervalMs());
   }
 
   private stopFixtureModalPolling(): void {
@@ -2583,6 +2628,7 @@ export class CommanderComponent implements OnInit {
     const wireCommand = this.buildCommandFromTemplate(wireTemplate, commandValues);
     this.sendCommand(fixture, wireCommand, 'default', () => {
       this.applyOptimisticStateBackedValues(command, commandValues);
+      this.queuePostRunDraftSync(command);
     });
   }
 
@@ -3070,6 +3116,28 @@ export class CommanderComponent implements OnInit {
     return wire;
   }
 
+  private loadFixtureModalPollIntervalMs(): number {
+    const raw = localStorage.getItem('cmdr.fixtureModalPollIntervalMs');
+    const parsed = Number(raw);
+    return this.normalizeFixtureModalPollIntervalMs(parsed);
+  }
+
+  private normalizeFixtureModalPollIntervalMs(value: unknown): number {
+    const validValues = new Set(
+      CommanderComponent.FIXTURE_MODAL_POLL_INTERVAL_OPTIONS.map((option) => option.value),
+    );
+    const parsed = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(parsed) && validValues.has(parsed) ? parsed : 500;
+  }
+
+  private formatPollIntervalLabel(intervalMs: number): string {
+    if (intervalMs % 1000 === 0) {
+      const seconds = intervalMs / 1000;
+      return `${seconds}s`;
+    }
+    return `${intervalMs}ms`;
+  }
+
   private setFixtureModalFeedback(
     message: string,
     tone: FixtureModalFeedbackTone,
@@ -3218,6 +3286,7 @@ export class CommanderComponent implements OnInit {
     const optimisticByCommand = this.customCommandStateBackedOptimisticValues();
     let optimisticChanged = false;
     const nextOptimisticByCommand: Record<string, Record<string, CustomCommandValue>> = { ...optimisticByCommand };
+    const changedLiveValues: Record<string, Record<string, LiveValueChange>> = {};
 
     this.customCommandLiveValues.update((current) => {
       let changed = false;
@@ -3236,6 +3305,11 @@ export class CommanderComponent implements OnInit {
             commandValues = { ...commandValues };
             commandChanged = true;
           }
+          changedLiveValues[command.id] ??= {};
+          changedLiveValues[command.id][arg.name] = {
+            previous: commandValues[arg.name],
+            next: desired,
+          };
           commandValues[arg.name] = desired;
 
           const metadataDesired = this.defaultValueForArg(arg);
@@ -3257,6 +3331,79 @@ export class CommanderComponent implements OnInit {
     if (optimisticChanged) {
       this.customCommandStateBackedOptimisticValues.set(nextOptimisticByCommand);
     }
+    this.applyMetadataLiveDraftSync(commands, changedLiveValues);
+    this.applyPendingPostRunDraftSync(commands);
+  }
+
+  private commandLiveDraftSyncConfig(command: CmdrCustomCommandUiItem): { mode: 'if_pristine' | 'always'; args: Set<string> } | null {
+    const raw = (command as Record<string, unknown>)['live_draft_sync'];
+    if (!raw || typeof raw !== 'object') return null;
+    const mode = String((raw as { mode?: unknown }).mode ?? '').trim().toLowerCase();
+    if (mode !== 'if_pristine' && mode !== 'always') return null;
+    const argsRaw = (raw as { args?: unknown }).args;
+    if (!Array.isArray(argsRaw)) return null;
+    const names = new Set<string>();
+    for (const argRaw of argsRaw) {
+      const name = String(argRaw ?? '').trim();
+      if (!name) continue;
+      names.add(name);
+    }
+    if (!names.size) return null;
+    return { mode, args: names };
+  }
+
+  private applyMetadataLiveDraftSync(
+    commands: CmdrCustomCommandUiItem[],
+    changedLiveValues: Record<string, Record<string, LiveValueChange>>,
+  ): void {
+    if (!Object.keys(changedLiveValues).length) return;
+    const draftSnapshot = this.customCommandDraftValues();
+    const draftUpdates: Record<string, Record<string, CustomCommandValue>> = {};
+
+    for (const command of commands) {
+      const commandChanges = changedLiveValues[command.id];
+      if (!commandChanges) continue;
+      const syncConfig = this.commandLiveDraftSyncConfig(command);
+      if (!syncConfig) continue;
+      const currentDraft = draftSnapshot[command.id] ?? {};
+
+      for (const arg of command.args ?? []) {
+        if (!this.isInputArg(arg) || !this.hasStatePath(arg)) continue;
+        if (!syncConfig.args.has(arg.name)) continue;
+        const change = commandChanges[arg.name];
+        if (!change) continue;
+        if (syncConfig.mode === 'if_pristine') {
+          // Sync only when the user has not diverged from the previous live value.
+          if (currentDraft[arg.name] !== change.previous) continue;
+        }
+        draftUpdates[command.id] ??= {};
+        draftUpdates[command.id][arg.name] = change.next;
+      }
+    }
+
+    if (!Object.keys(draftUpdates).length) return;
+    this.customCommandDraftValues.update((current) => {
+      let changed = false;
+      const next: Record<string, Record<string, CustomCommandValue>> = { ...current };
+      for (const [commandId, updates] of Object.entries(draftUpdates)) {
+        const existing = next[commandId] ?? {};
+        let nextCommand = existing;
+        let commandChanged = false;
+        for (const [argName, value] of Object.entries(updates)) {
+          if (nextCommand[argName] === value) continue;
+          if (!commandChanged) {
+            nextCommand = { ...existing };
+            commandChanged = true;
+          }
+          nextCommand[argName] = value;
+        }
+        if (commandChanged) {
+          next[commandId] = nextCommand;
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
   }
 
   private cloneCustomCommandValues(
@@ -3288,6 +3435,164 @@ export class CommanderComponent implements OnInit {
       return mode;
     }
     return null;
+  }
+
+  private commandUiControl(command: CmdrCustomCommandUiItem): string | null {
+    const control = String((command.control ?? '')).trim().toLowerCase();
+    return control || null;
+  }
+
+  private isInputArg(arg: CmdrCustomCommandUiArg): boolean {
+    const control = String(arg.control ?? '').trim().toLowerCase();
+    return control === 'slider' || control === 'number' || control === 'select' || control === 'checkbox';
+  }
+
+  private commandPostRunSyncTargets(command: CmdrCustomCommandUiItem): string[] {
+    if (this.commandUiMode(command) !== 'action') return [];
+    const raw = (command as Record<string, unknown>)['post_run_sync'];
+    if (!raw || typeof raw !== 'object') return [];
+    const mode = String((raw as { mode?: unknown }).mode ?? '').trim().toLowerCase();
+    if (mode !== 'from_live_once') return [];
+    const targetsRaw = (raw as { targets?: unknown }).targets;
+    if (!Array.isArray(targetsRaw)) return [];
+    const targets: string[] = [];
+    for (const targetRaw of targetsRaw) {
+      const target = String(targetRaw ?? '').trim().toLowerCase();
+      if (!target || targets.includes(target)) continue;
+      targets.push(target);
+    }
+    return targets;
+  }
+
+  private targetControlCommandsForPostRunSync(
+    commands: CmdrCustomCommandUiItem[],
+    targets: string[],
+  ): CmdrCustomCommandUiItem[] {
+    if (targets.length === 0) return [];
+    return commands.filter((candidate) => {
+      if (this.commandUiMode(candidate) !== 'control') return false;
+      const block = this.commandUiControl(candidate);
+      return !!block && targets.includes(block);
+    });
+  }
+
+  private queuePostRunDraftSync(command: CmdrCustomCommandUiItem): void {
+    const targets = this.commandPostRunSyncTargets(command);
+    if (!targets.length) return;
+    const commands = this.selectedFixtureCustomCommands();
+    const targetCommands = this.targetControlCommandsForPostRunSync(commands, targets);
+    if (!targetCommands.length) return;
+
+    const liveValues = this.customCommandLiveValues();
+    const draftValues = this.customCommandDraftValues();
+    const baselineByCommand: Record<string, Record<string, CustomCommandValue>> = {};
+    const baselineDraftByCommand: Record<string, Record<string, CustomCommandValue>> = {};
+    for (const targetCommand of targetCommands) {
+      let commandBaseline: Record<string, CustomCommandValue> | null = null;
+      let commandDraftBaseline: Record<string, CustomCommandValue> | null = null;
+      for (const arg of targetCommand.args ?? []) {
+        if (!this.isInputArg(arg) || !this.hasStatePath(arg)) continue;
+        const liveValue = liveValues[targetCommand.id]?.[arg.name];
+        if (liveValue === undefined) continue;
+        if (!commandBaseline) commandBaseline = {};
+        commandBaseline[arg.name] = liveValue;
+        if (!commandDraftBaseline) commandDraftBaseline = {};
+        commandDraftBaseline[arg.name] = draftValues[targetCommand.id]?.[arg.name] ?? this.defaultDraftValueForArg(targetCommand, arg);
+      }
+      if (commandBaseline) {
+        baselineByCommand[targetCommand.id] = commandBaseline;
+      }
+      if (commandDraftBaseline) {
+        baselineDraftByCommand[targetCommand.id] = commandDraftBaseline;
+      }
+    }
+
+    this.pendingCustomCommandPostRunSync.update((current) => [
+      ...current,
+      {
+        targets,
+        baselineByCommand,
+        baselineDraftByCommand,
+        queuedAtMs: Date.now(),
+      },
+    ]);
+  }
+
+  private applyPendingPostRunDraftSync(commands: CmdrCustomCommandUiItem[]): void {
+    const pending = this.pendingCustomCommandPostRunSync();
+    if (!pending.length) return;
+
+    const now = Date.now();
+    const timeoutMs = 700;
+    const liveValues = this.customCommandLiveValues();
+    const draftValues = this.customCommandDraftValues();
+    const draftUpdates: Record<string, Record<string, CustomCommandValue>> = {};
+    const remaining: CustomCommandPostRunSyncToken[] = [];
+
+    for (const token of pending) {
+      const targetCommands = this.targetControlCommandsForPostRunSync(commands, token.targets);
+      if (!targetCommands.length) continue;
+
+      let hasLiveState = false;
+      const tokenUpdates: Record<string, Record<string, CustomCommandValue>> = {};
+
+      for (const targetCommand of targetCommands) {
+        let commandUpdates: Record<string, CustomCommandValue> | null = null;
+        for (const arg of targetCommand.args ?? []) {
+          if (!this.isInputArg(arg) || !this.hasStatePath(arg)) continue;
+          const liveValue = liveValues[targetCommand.id]?.[arg.name];
+          if (liveValue === undefined) continue;
+          hasLiveState = true;
+          if (!commandUpdates) commandUpdates = {};
+          commandUpdates[arg.name] = liveValue;
+        }
+        if (commandUpdates) tokenUpdates[targetCommand.id] = commandUpdates;
+      }
+
+      const timedOut = now - token.queuedAtMs >= timeoutMs;
+      if (!hasLiveState || !timedOut) {
+        remaining.push(token);
+        continue;
+      }
+
+      for (const [commandId, updates] of Object.entries(tokenUpdates)) {
+        if (!draftUpdates[commandId]) draftUpdates[commandId] = {};
+        const draftBaseline = token.baselineDraftByCommand[commandId] ?? {};
+        const currentDraft = draftValues[commandId] ?? {};
+        for (const [argName, liveValue] of Object.entries(updates)) {
+          if (currentDraft[argName] !== draftBaseline[argName]) continue;
+          draftUpdates[commandId][argName] = liveValue;
+        }
+      }
+    }
+
+    if (remaining.length !== pending.length) {
+      this.pendingCustomCommandPostRunSync.set(remaining);
+    }
+    if (!Object.keys(draftUpdates).length) return;
+
+    this.customCommandDraftValues.update((current) => {
+      let changed = false;
+      const next: Record<string, Record<string, CustomCommandValue>> = { ...current };
+      for (const [commandId, updates] of Object.entries(draftUpdates)) {
+        const commandDraft = next[commandId] ?? {};
+        let commandChanged = false;
+        let nextCommandDraft = commandDraft;
+        for (const [argName, value] of Object.entries(updates)) {
+          if (nextCommandDraft[argName] === value) continue;
+          if (!commandChanged) {
+            nextCommandDraft = { ...commandDraft };
+            commandChanged = true;
+          }
+          nextCommandDraft[argName] = value;
+        }
+        if (commandChanged) {
+          next[commandId] = nextCommandDraft;
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
   }
 
   private defaultDraftValueForArg(

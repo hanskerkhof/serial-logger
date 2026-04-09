@@ -54,6 +54,9 @@ export class AuthService {
   private readonly oauthService = inject(OAuthService);
   private readonly router = inject(Router);
 
+  private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly REFRESH_BEFORE_EXPIRY_S = 5 * 60;
+
   readonly authRequired = signal<boolean>(true);
   readonly authMode = signal<AuthMode | null>(null);
   readonly authEndpointError = signal<string | null>(null);
@@ -89,7 +92,12 @@ export class AuthService {
 
           if (mode === 'lwl') {
             // Keep Light Weight Login token flow local, no OIDC bootstrap needed.
-            if (!this.isLwlSessionValid()) this.clearLwlSession();
+            if (!this.isLwlSessionValid()) {
+              this.clearLwlSession();
+            } else {
+              const existing = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
+              if (existing) this.scheduleTokenRefresh(existing);
+            }
             return;
           }
 
@@ -197,6 +205,7 @@ export class AuthService {
       } catch {
         // ignore storage failures
       }
+      this.scheduleTokenRefresh(token);
       return { ok: true };
     }
     if (sawTransportError) {
@@ -268,7 +277,46 @@ export class AuthService {
     return exp > Math.floor(Date.now() / 1000);
   }
 
+  private scheduleTokenRefresh(token: string): void {
+    const payload = decodeJwtPayload(token);
+    if (!payload) return;
+    const exp = Number(payload['exp'] ?? 0);
+    if (!Number.isFinite(exp) || exp <= 0) return;
+    const fireInMs = (exp - Math.floor(Date.now() / 1000) - AuthService.REFRESH_BEFORE_EXPIRY_S) * 1000;
+    if (fireInMs <= 0) return;
+    if (this._refreshTimer !== null) clearTimeout(this._refreshTimer);
+    this._refreshTimer = setTimeout(() => void this.silentRefresh(), fireInMs);
+  }
+
+  private async silentRefresh(): Promise<void> {
+    this._refreshTimer = null;
+    const token = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
+    if (!token || !this.isLwlTokenValid(token)) return;
+    const apiBase = resolveApiBaseUrl();
+    try {
+      const resp = await fetch(`${apiBase}/auth/lwl-refresh`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resp.ok) {
+        console.warn('[AuthService] Silent token refresh failed:', resp.status);
+        return;
+      }
+      const data = await resp.json() as { access_token?: string };
+      const newToken = (data.access_token ?? '').trim();
+      if (!newToken) return;
+      localStorage.setItem(LWL_TOKEN_STORAGE_KEY, newToken);
+      this.scheduleTokenRefresh(newToken);
+    } catch (err) {
+      console.warn('[AuthService] Silent token refresh error:', err);
+    }
+  }
+
   private clearLwlSession(): void {
+    if (this._refreshTimer !== null) {
+      clearTimeout(this._refreshTimer);
+      this._refreshTimer = null;
+    }
     localStorage.removeItem(LWL_TOKEN_STORAGE_KEY);
     localStorage.removeItem(LWL_USER_STORAGE_KEY);
   }

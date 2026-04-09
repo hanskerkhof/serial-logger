@@ -135,6 +135,8 @@ function compareVersions(a: string, b: string): number {
 })
 export class CommanderComponent implements OnInit {
   private static readonly FIXTURE_MODAL_POLL_INTERVAL_OPTIONS: readonly PollIntervalOption[] = [
+    { label: '25ms', value: 25 },
+    { label: '50ms', value: 50 },
     { label: '100ms', value: 100 },
     { label: '250ms', value: 250 },
     { label: '500ms', value: 500 },

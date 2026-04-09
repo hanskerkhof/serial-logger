@@ -8,6 +8,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { DialogModule } from 'primeng/dialog';
 import { CmdrCustomCommandUiArg, CmdrCustomCommandUiItem } from '../../api/cmdr-models';
+import { BitmaskDotsComponent } from '../bitmask-dots/bitmask-dots.component';
 
 export type FixtureCustomControlValue = string | number | boolean;
 
@@ -46,6 +47,11 @@ interface SelectOption {
   value: FixtureCustomControlValue;
 }
 
+interface StatusArgRow {
+  key: string;
+  args: CmdrCustomCommandUiArg[];
+}
+
 type CommandUiMode = 'control' | 'status' | 'action';
 type CommandUiBlock = 'rgb' | 'dimmer' | string;
 
@@ -61,6 +67,7 @@ type CommandUiBlock = 'rgb' | 'dimmer' | string;
     CheckboxModule,
     ColorPickerModule,
     DialogModule,
+    BitmaskDotsComponent,
   ],
   templateUrl: './fixture-custom-control.component.html',
   styleUrl: './fixture-custom-control.component.scss',
@@ -194,6 +201,50 @@ export class FixtureCustomControlComponent {
 
   protected isStatusDisplayArg(arg: CmdrCustomCommandUiArg): boolean {
     return String(arg.control ?? '').toLowerCase() === 'display';
+  }
+
+  protected isStatusBitmaskDotsArg(arg: CmdrCustomCommandUiArg): boolean {
+    const control = String(arg.control ?? '').trim().toLowerCase();
+    return control === 'bitmask_dots' || control === 'bitmask-dots';
+  }
+
+  protected statusBitmaskArgs(command: CmdrCustomCommandUiItem): CmdrCustomCommandUiArg[] {
+    return (command.args ?? []).filter((arg) => this.isStatusBitmaskDotsArg(arg));
+  }
+
+  protected statusNonBitmaskArgs(command: CmdrCustomCommandUiItem): CmdrCustomCommandUiArg[] {
+    return (command.args ?? []).filter((arg) => !this.isStatusBitmaskDotsArg(arg));
+  }
+
+  protected statusNonBitmaskRows(command: CmdrCustomCommandUiItem): StatusArgRow[] {
+    const rows = new Map<string, CmdrCustomCommandUiArg[]>();
+    for (const arg of this.statusNonBitmaskArgs(command)) {
+      const rawRow = (arg as unknown as { status_row?: unknown }).status_row;
+      const key = typeof rawRow === 'string' && rawRow.trim().length > 0 ? rawRow.trim() : 'default';
+      const existing = rows.get(key);
+      if (existing) {
+        existing.push(arg);
+      } else {
+        rows.set(key, [arg]);
+      }
+    }
+    return Array.from(rows.entries()).map(([key, args]) => ({ key, args }));
+  }
+
+  protected statusBitCount(arg: CmdrCustomCommandUiArg): number {
+    const raw = Number((arg as unknown as { bit_count?: unknown }).bit_count);
+    if (!Number.isFinite(raw)) return 12;
+    return Math.max(1, Math.min(32, Math.trunc(raw)));
+  }
+
+  protected statusBitmaskValue(commandId: string, arg: CmdrCustomCommandUiArg): number {
+    const raw = this.liveCommandArgValue(commandId, arg);
+    if (typeof raw === 'number' && Number.isFinite(raw)) return Math.trunc(raw);
+    if (typeof raw === 'string') {
+      const parsed = Number(raw.trim());
+      if (Number.isFinite(parsed)) return Math.trunc(parsed);
+    }
+    return 0;
   }
 
   protected isStatusSliderArg(arg: CmdrCustomCommandUiArg): boolean {

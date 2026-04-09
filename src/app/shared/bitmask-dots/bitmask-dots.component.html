@@ -1,0 +1,11 @@
+<div class="bitmask-dots" [attr.aria-label]="'Bitmask dots (' + bitCount() + ' bits)'">
+  @for (index of indices(); track index) {
+    <span
+      class="bitmask-dots__dot"
+      [class.bitmask-dots__dot--on]="isOn(index)"
+      [attr.title]="'Pin ' + index"
+      [attr.aria-label]="'Pin ' + index + (isOn(index) ? ' touched' : ' released')"
+    ></span>
+  }
+</div>
+

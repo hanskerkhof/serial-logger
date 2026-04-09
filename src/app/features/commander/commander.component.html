@@ -798,6 +798,9 @@
           [disabled]="commanderUnavailable()"
           aria-label="Live update interval"
         ></p-select>
+        @if (fixtureModalPollIntervalMs() < 100) {
+          <small class="commander__dialog-poll-cap-hint">Refresh is capped by backend safety limit</small>
+        }
       </div>
       <section
         class="commander__dialog-feedback commander__dialog-feedback--header"

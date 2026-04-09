@@ -25,6 +25,16 @@
   border-top: 1px dashed var(--p-content-border-color);
 }
 
+.fixture-custom-control__status-row--bitmask {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.fixture-custom-control__status-row--meta {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
 .fixture-custom-control__status-dot {
   width: 12px;
   height: 12px;

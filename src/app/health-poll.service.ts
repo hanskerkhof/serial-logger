@@ -133,7 +133,7 @@ export class HealthPollService {
     const normalized = String(fixtureName || '').trim();
     if (!normalized) return;
     const normalizedInterval =
-      typeof intervalMs === 'number' && Number.isFinite(intervalMs) && intervalMs >= 100
+      typeof intervalMs === 'number' && Number.isFinite(intervalMs) && intervalMs >= 25
         ? Math.round(intervalMs)
         : null;
     if (

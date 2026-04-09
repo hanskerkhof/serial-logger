@@ -23,33 +23,48 @@
           <strong>Status</strong>
         </div>
         @for (statusCommand of inlineStatusCommands(); track statusCommand.id) {
-          <div class="fixture-custom-control__status-row" aria-label="Custom command status row">
-            @for (arg of statusCommand.args ?? []; track arg.name) {
-              @if (isStatusDotArg(arg)) {
-                <span
-                  class="fixture-custom-control__status-dot"
-                  [class.fixture-custom-control__status-dot--on]="statusDotOn(statusCommand.id, arg)"
-                ></span>
-              } @else if (isStatusSliderArg(arg)) {
+          @if (statusBitmaskArgs(statusCommand).length > 0) {
+            <div class="fixture-custom-control__status-row fixture-custom-control__status-row--bitmask" aria-label="Touch mask status row">
+              @for (arg of statusBitmaskArgs(statusCommand); track arg.name) {
                 <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
-                <p-slider
-                  class="fixture-custom-control__arg-slider fixture-custom-control__arg-slider--inline"
-                  [min]="statusSliderMin(arg)"
-                  [max]="statusSliderMax(arg)"
-                  [step]="statusSliderStep(arg)"
-                  [ngModel]="statusSliderValue(statusCommand.id, arg)"
-                  [disabled]="true"
-                ></p-slider>
-                <strong class="fixture-custom-control__status-value">{{ statusSliderValue(statusCommand.id, arg) }}</strong>
-              } @else if (isStatusDisplayArg(arg)) {
-                <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
-                <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
-              } @else {
-                <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
-                <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                <app-bitmask-dots
+                  [value]="statusBitmaskValue(statusCommand.id, arg)"
+                  [bitCount]="statusBitCount(arg)"
+                />
               }
+            </div>
+          }
+          @if (statusNonBitmaskRows(statusCommand).length > 0) {
+            @for (row of statusNonBitmaskRows(statusCommand); track row.key) {
+              <div class="fixture-custom-control__status-row fixture-custom-control__status-row--meta" aria-label="Status meta row">
+                @for (arg of row.args; track arg.name) {
+                  @if (isStatusDotArg(arg)) {
+                    <span
+                      class="fixture-custom-control__status-dot"
+                      [class.fixture-custom-control__status-dot--on]="statusDotOn(statusCommand.id, arg)"
+                    ></span>
+                  } @else if (isStatusSliderArg(arg)) {
+                    <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
+                    <p-slider
+                      class="fixture-custom-control__arg-slider fixture-custom-control__arg-slider--inline"
+                      [min]="statusSliderMin(arg)"
+                      [max]="statusSliderMax(arg)"
+                      [step]="statusSliderStep(arg)"
+                      [ngModel]="statusSliderValue(statusCommand.id, arg)"
+                      [disabled]="true"
+                    ></p-slider>
+                    <strong class="fixture-custom-control__status-value">{{ statusSliderValue(statusCommand.id, arg) }}</strong>
+                  } @else if (isStatusDisplayArg(arg)) {
+                    <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
+                    <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                  } @else {
+                    <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
+                    <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                  }
+                }
+              </div>
             }
-          </div>
+          }
         }
       </div>
     }

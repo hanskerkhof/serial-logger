@@ -1,0 +1,18 @@
+.bitmask-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.bitmask-dots__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--p-surface-300);
+}
+
+.bitmask-dots__dot--on {
+  background: #16a34a;
+}
+

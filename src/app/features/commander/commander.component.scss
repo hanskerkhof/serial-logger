@@ -391,6 +391,12 @@
   flex: 0 0 auto;
 }
 
+.commander__dialog-poll-cap-hint {
+  font-size: 0.67rem;
+  color: var(--p-text-muted-color, #6b7280);
+  white-space: nowrap;
+}
+
 .commander__dialog-ack-toggle {
   display: inline-flex;
   align-items: center;

@@ -8,7 +8,7 @@
             FE: <strong>v{{ appVersion }}</strong>@if (buildDate) { - {{ buildDate }}}@if (apiVersion()) { | API: <strong>v{{ apiVersion() }}</strong>@if (apiBuildDate()) { - {{ apiBuildDate() }}}}
           </span>
           @if (updateAvailable() && !showUpdateDialog()) {
-            <button class="app-shell__update-btn" (click)="onUpdateNow()" title="Click to apply the update now">
+            <button class="app-shell__update-badge" (click)="onUpdateNow()" title="Click to apply the update now">
               ↑ update available@if (newVersion()) { v{{ newVersion() }} }
             </button>
           }

@@ -984,8 +984,12 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixturePlanState = computed<PlanState | null>(() => {
     const optimistic = this.optimisticPlanState();
     if (optimistic !== null) return optimistic;
-    const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
-    return (ps?.['plan_state'] as string) || null;
+    const ps = this.selectedFixture()?.raw['plan_state'];
+    if (typeof ps === 'string') {
+      return ps as PlanState;
+    }
+    const planStatePayload = ps as Record<string, unknown> | null | undefined;
+    return (planStatePayload?.['plan_state'] as string) || null;
   });
 
   protected readonly selectedFixtureLiveUpdateTimingLabel = computed<string | null>(() => {
@@ -1360,13 +1364,23 @@ export class CommanderComponent implements OnInit {
       const selectedName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
       if (!selectedName || fixtureName !== selectedName) return;
       if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
+      const normalizedPlanState =
+        (msg.summary?.plan_state as Record<string, unknown> | null | undefined) ??
+        (typeof msg.plan_state === 'string' || typeof msg.state === 'object'
+          ? ({
+              fixture_name: fixtureName,
+              plan_state: msg.plan_state ?? null,
+              state: (msg.state as Record<string, unknown> | null | undefined) ?? null,
+              received_at: msg.received_at ?? msg.utc ?? null,
+            } as Record<string, unknown>)
+          : null);
       const result = {
         ok: true,
         service: 'health_ws',
         fixture_name: fixtureName,
         summary: {
           fixture_name: fixtureName,
-          plan_state: (msg.summary?.plan_state as Record<string, unknown> | null | undefined) ?? null,
+          plan_state: normalizedPlanState,
           source: String(msg.summary?.source ?? 'ws_live'),
           fsps: (msg.summary?.fsps as Record<string, unknown> | null | undefined) ?? null,
         },
@@ -2453,6 +2467,9 @@ export class CommanderComponent implements OnInit {
       plan_state: result.summary?.plan_state ?? null,
       plan_state_timing: (result.timing as Record<string, unknown> | null | undefined) ?? null,
     };
+    if (nextRaw['plan_state'] != null) {
+      this.optimisticPlanState.set(null);
+    }
     this.recordLiveTimingSample(fixtureName, nextRaw['plan_state_timing'] as Record<string, unknown> | null | undefined);
     this.fixtureStore.upsertFixtures([{
       ...existing,
@@ -2506,7 +2523,7 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionResult.set(null);
 
     const command = `cmd;plan;action=${action};`;
-    const expectedState: PlanState = action === 'trigger' ? 'RUNNING' : 'STOPPED';
+    const expectedState: PlanState = action === 'trigger' ? 'RUNNING' : 'READY';
     this.sendCommand(fixture, command, 'default', () => {
       this.optimisticPlanState.set(expectedState);
     });

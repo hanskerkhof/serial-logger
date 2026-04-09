@@ -5,6 +5,9 @@ import { CommanderApiService, CommanderHealthResponse } from './commander-api.se
 export interface PlanStateWsMessage {
   type: 'plan_state';
   fixture_name: string;
+  plan_state?: unknown;
+  state?: unknown;
+  received_at?: string;
   summary?: {
     fixture_name?: string;
     plan_state?: unknown;
@@ -206,7 +209,10 @@ export class HealthPollService {
         this._lastHealthAt.set(Date.now());
         return;
       }
-      if (data?.['type'] === 'plan_state') {
+      const hasFlattenedPlanStateShape =
+        typeof data?.['fixture_name'] === 'string' &&
+        (Object.prototype.hasOwnProperty.call(data, 'plan_state') || Object.prototype.hasOwnProperty.call(data, 'state'));
+      if (data?.['type'] === 'plan_state' || hasFlattenedPlanStateShape) {
         this.planState$.next(data as unknown as PlanStateWsMessage);
         return;
       }

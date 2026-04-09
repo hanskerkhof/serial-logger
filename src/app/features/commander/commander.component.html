@@ -707,6 +707,23 @@
           />
           <small>{{ fixtureModalPollingEnabled() ? 'On (' + fixtureModalPollIntervalLabel() + ')' : 'Off' }}</small>
         </label>
+        <div class="commander__dialog-poll-interval-control">
+          <p-select
+            class="commander__dialog-poll-interval-select"
+            [ngModel]="fixtureModalPollIntervalMs()"
+            (ngModelChange)="onFixtureModalPollIntervalChange($event)"
+            [options]="fixtureModalPollIntervalOptions"
+            optionLabel="label"
+            optionValue="value"
+            size="small"
+            appendTo="body"
+            [disabled]="commanderUnavailable()"
+            aria-label="Live update interval"
+          ></p-select>
+          @if (fixtureModalPollIntervalMs() < 100) {
+            <small class="commander__dialog-poll-cap-hint">Refresh is capped by backend safety limit</small>
+          }
+        </div>
         <button
           pButton
           type="button"
@@ -785,21 +802,6 @@
           }
         } @else {
           <span class="commander__dialog-live-timing-placeholder">&nbsp;</span>
-        }
-        <p-select
-          class="commander__dialog-poll-interval-select"
-          [ngModel]="fixtureModalPollIntervalMs()"
-          (ngModelChange)="onFixtureModalPollIntervalChange($event)"
-          [options]="fixtureModalPollIntervalOptions"
-          optionLabel="label"
-          optionValue="value"
-          size="small"
-          appendTo="body"
-          [disabled]="commanderUnavailable()"
-          aria-label="Live update interval"
-        ></p-select>
-        @if (fixtureModalPollIntervalMs() < 100) {
-          <small class="commander__dialog-poll-cap-hint">Refresh is capped by backend safety limit</small>
         }
       </div>
       <section

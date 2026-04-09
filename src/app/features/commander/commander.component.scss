@@ -391,6 +391,13 @@
   flex: 0 0 auto;
 }
 
+.commander__dialog-poll-interval-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
 .commander__dialog-poll-cap-hint {
   font-size: 0.67rem;
   color: var(--p-text-muted-color, #6b7280);

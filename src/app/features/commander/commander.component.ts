@@ -403,7 +403,7 @@ export class CommanderComponent implements OnInit {
   private _offlineToastShown = false;
   private _unavailableToastTimer: ReturnType<typeof setTimeout> | null = null;
   private _progressToastClearTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly progressToastHoldMs = 5000;
+  private readonly progressToastHoldMs = 3000;
   private _activeProgressToastMode: 'progress_full_ws' | 'progress_full' | 'progress_fixtures' | 'progress_query' | null = null;
   private _discoveryWsStartedAtMs: number | null = null;
   private _skipNextProgressHold = false;
@@ -506,6 +506,9 @@ export class CommanderComponent implements OnInit {
   protected shouldShowCompletedProgress(mode: unknown): boolean {
     if (mode === 'progress_full_ws') return !this.discoveryWsLoading();
     if (mode === 'progress_full') return !this.discoveryLoading();
+    if (mode === 'progress_query') {
+      return !this.fixtureQueryLoading() && !this.planQueryLoading() && !this.planGroupQueryLoading();
+    }
     return false;
   }
 

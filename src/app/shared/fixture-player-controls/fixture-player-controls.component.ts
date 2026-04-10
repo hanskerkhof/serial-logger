@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, WritableSignal, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewChild, WritableSignal, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -16,6 +16,7 @@ export interface FixturePlayerCommandRequest {
   command: string;
   kind?: 'setVolume';
   volume?: number;
+  volumeScale?: 30 | 100;
   requestId?: string;
 }
 
@@ -68,6 +69,7 @@ export class FixturePlayerControlsComponent {
   readonly volumeSyncIssue = output<string>();
 
   readonly analogOverride = signal(false);
+  readonly isTrackSelectOpen = signal(false);
   readonly isVolumeDragging = signal(false);
   readonly isVolumeFocused = signal(false);
   readonly pendingVolumeTarget = signal<number | null>(null);
@@ -83,7 +85,12 @@ export class FixturePlayerControlsComponent {
   private readonly fadeTimers   = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
   private volumeSyncTimeout: ReturnType<typeof setTimeout> | null = null;
   private volumeKeyboardCommitTimeout: ReturnType<typeof setTimeout> | null = null;
+  private volumeRefocusTimeout: ReturnType<typeof setTimeout> | null = null;
+  private keepVolumeFocusAfterSync = false;
   private readonly lastAuthoritativeVolume = signal<number | null>(null);
+  private readonly lastAuthoritativeTrack = signal<number | null>(null);
+  @ViewChild('volumeSliderHost', { read: ElementRef })
+  private volumeSliderHost?: ElementRef<HTMLElement>;
 
   private startInputAnimation(
     phase: WritableSignal<'idle' | 'filling' | 'fading'>,
@@ -111,6 +118,7 @@ export class FixturePlayerControlsComponent {
       clearTimeout(this.fadeTimers.t1);   clearTimeout(this.fadeTimers.t2);
       this.clearVolumeSyncTimeout();
       this.clearVolumeKeyboardCommitTimeout();
+      this.clearVolumeRefocusTimeout();
     });
     // Sync live fixture state into controls when plan_state arrives.
     effect(() => {
@@ -133,8 +141,11 @@ export class FixturePlayerControlsComponent {
         }
       }
       if (ps.eq !== undefined) this.eqPreset.set(ps.eq);
-      // Only sync track if > 0 — currentTrack is 0 before any track has played.
-      if (ps.trackIndex !== undefined && ps.trackIndex > 0) this.trackNumber.set(ps.trackIndex);
+      // Track sync is paused while the track selector is open so user selection doesn't snap back.
+      if (ps.trackIndex !== undefined && ps.trackIndex > 0) {
+        this.lastAuthoritativeTrack.set(ps.trackIndex);
+        if (!this.isTrackSelectOpen()) this.trackNumber.set(ps.trackIndex);
+      }
     });
 
     effect(() => {
@@ -189,7 +200,7 @@ export class FixturePlayerControlsComponent {
   readonly trackFilter = signal<string | null>(null);
 
   readonly trackNumber = signal<number | null>(null);
-  readonly volumeLevel = signal<number>(50);
+  readonly volumeLevel = signal<number>(15);
   readonly fadeToVolume = signal<number>(30);
   readonly fadeInVolume = signal<number>(30);
   readonly fadeInDurationMs = signal<number>(3000);
@@ -222,13 +233,13 @@ export class FixturePlayerControlsComponent {
     const track = this.trackNumber();
     if (track === null) return;
     this.commandRequested.emit({
-      command: `cmd;fadeIn;track=${track};volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`,
+      command: `cmd;fadeIn;track=${track};volume_scale=30;volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`,
     });
     this.startInputAnimation(this.fadeInMsPhase, this.fadeInMsDirection, 'ltr', this.fadeInDurationMs(), this.fadeInTimers);
   }
 
   fadeTo(): void {
-    this.commandRequested.emit({ command: `cmd;fadeTo;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};` });
+    this.commandRequested.emit({ command: `cmd;fadeTo;volume_scale=30;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};` });
     const dir = this.fadeToVolume() >= this.volumeLevel() ? 'ltr' : 'rtl';
     this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, dir, this.fadeDurationMs(), this.fadeTimers);
   }
@@ -238,8 +249,12 @@ export class FixturePlayerControlsComponent {
     this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, 'rtl', this.fadeDurationMs(), this.fadeTimers);
   }
 
-  setVolume(): void {
+  setVolume(keepFocusAfterSync = false): void {
     const volume = this.volumeLevel();
+    this.keepVolumeFocusAfterSync = keepFocusAfterSync;
+    if (keepFocusAfterSync) {
+      this.scheduleVolumeRefocus();
+    }
     const authoritativeVolume = this.lastAuthoritativeVolume();
     if (authoritativeVolume !== null && volume === authoritativeVolume) {
       this.clearPendingVolumeSync();
@@ -250,9 +265,10 @@ export class FixturePlayerControlsComponent {
     this.pendingVolumeRequestId.set(requestId);
     this.startVolumeSyncTimeout(requestId);
     this.commandRequested.emit({
-      command: `cmd;setVolume;volume=${volume};`,
+      command: `cmd;setVolume;volume_scale=30;volume=${volume};`,
       kind: 'setVolume',
       volume,
+      volumeScale: 30,
       requestId,
     });
   }
@@ -266,6 +282,22 @@ export class FixturePlayerControlsComponent {
     this.trackNumber.set(val > 0 ? val : null);
   }
 
+  onTrackSelectOpen(): void {
+    this.isTrackSelectOpen.set(true);
+  }
+
+  onTrackSelectClose(): void {
+    this.isTrackSelectOpen.set(false);
+  }
+
+  onTrackSelectChange(track: number): void {
+    this.trackNumber.set(track);
+    if (!Number.isFinite(track) || track <= 0) return;
+    const authoritativeTrack = this.lastAuthoritativeTrack();
+    if (authoritativeTrack !== null && authoritativeTrack === track) return;
+    this.commandRequested.emit({ command: `cmd;playSound;track=${track};` });
+  }
+
   onVolumeInput(value: number): void {
     this.volumeLevel.set(value);
     if (this.isVolumeFocused() && !this.isVolumeDragging()) {
@@ -274,6 +306,7 @@ export class FixturePlayerControlsComponent {
   }
 
   onVolumePointerDown(event: Event): void {
+    this.keepVolumeFocusAfterSync = false;
     this.onVolumeDragStart();
     const target = event.target as HTMLElement | null;
     const handle =
@@ -295,15 +328,21 @@ export class FixturePlayerControlsComponent {
     this.isVolumeFocused.set(true);
   }
 
-  onVolumeFocusOut(): void {
+  onVolumeFocusOut(event?: FocusEvent): void {
     this.clearVolumeKeyboardCommitTimeout();
     this.isVolumeFocused.set(false);
     this.onVolumeDragEnd();
+    const nextTarget = event?.relatedTarget as Node | null;
+    if (this.keepVolumeFocusAfterSync && this.shouldRestoreVolumeFocus(nextTarget)) {
+      this.scheduleVolumeRefocus();
+      return;
+    }
+    this.keepVolumeFocusAfterSync = false;
   }
 
   onVolumeSlideEnd(): void {
     this.onVolumeDragEnd();
-    this.setVolume();
+    this.setVolume(false);
   }
 
   onFadeToVolumeInput(value: number): void {
@@ -342,12 +381,47 @@ export class FixturePlayerControlsComponent {
     }
   }
 
+  private clearVolumeRefocusTimeout(): void {
+    if (this.volumeRefocusTimeout) {
+      clearTimeout(this.volumeRefocusTimeout);
+      this.volumeRefocusTimeout = null;
+    }
+  }
+
+  private shouldRestoreVolumeFocus(nextTarget: Node | null): boolean {
+    if (!nextTarget) return true;
+    if (nextTarget === document.body || nextTarget === document.documentElement) return true;
+    const host = this.volumeSliderHost?.nativeElement;
+    if (!host) return false;
+    return host.contains(nextTarget);
+  }
+
+  private scheduleVolumeRefocus(retriesLeft = 8): void {
+    this.clearVolumeRefocusTimeout();
+    this.volumeRefocusTimeout = setTimeout(() => {
+      this.volumeRefocusTimeout = null;
+      if (!this.keepVolumeFocusAfterSync || this.disabled()) return;
+      const host = this.volumeSliderHost?.nativeElement;
+      const handle = host?.querySelector('.p-slider-handle') as HTMLElement | null;
+      if (handle) {
+        handle.focus({ preventScroll: true });
+        this.keepVolumeFocusAfterSync = false;
+        return;
+      }
+      if (retriesLeft <= 0) {
+        this.keepVolumeFocusAfterSync = false;
+        return;
+      }
+      this.scheduleVolumeRefocus(retriesLeft - 1);
+    }, 35);
+  }
+
   private scheduleVolumeKeyboardCommit(): void {
     this.clearVolumeKeyboardCommitTimeout();
     this.volumeKeyboardCommitTimeout = setTimeout(() => {
       this.volumeKeyboardCommitTimeout = null;
       if (!this.isVolumeFocused() || this.isVolumeDragging()) return;
-      this.setVolume();
+      this.setVolume(true);
     }, FixturePlayerControlsComponent.VOLUME_KEYBOARD_COMMIT_DEBOUNCE_MS);
   }
 

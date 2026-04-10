@@ -896,9 +896,11 @@
               [player]="selectedFixturePlayer()"
               [playerType]="selectedFixturePlayerType()"
               [playerState]="selectedFixturePlayerState()"
+              [volumeSyncResult]="playerVolumeSyncResult()"
               [planTracks]="selectedFixtureTracks()"
               [disabled]="playerControlsDisabled()"
               (commandRequested)="onPlayerCommand($event)"
+              (volumeSyncIssue)="onPlayerVolumeSyncIssue($event)"
             />
 <!--            <section class="commander__rssi-session" aria-label="RSSI session">-->
 <!--              @if (selectedFixtureIsEsp8266()) {-->

@@ -58,7 +58,11 @@ import {
 } from '../../api/cmdr-models';
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
-import { FixturePlayerControlsComponent } from '../../shared/fixture-player-controls/fixture-player-controls.component';
+import {
+  FixturePlayerCommandRequest,
+  FixturePlayerControlsComponent,
+  VolumeSyncResultEvent,
+} from '../../shared/fixture-player-controls/fixture-player-controls.component';
 import { FixturePlanControlComponent, PlanState } from '../../shared/fixture-plan-control/fixture-plan-control.component';
 import {
   FixtureCustomArgChangedEvent,
@@ -218,6 +222,7 @@ export class CommanderComponent implements OnInit {
   );
   protected readonly fixtureActionTone = signal<FixtureModalFeedbackTone>('info');
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
+  protected readonly playerVolumeSyncResult = signal<VolumeSyncResultEvent | null>(null);
   protected readonly rebootConfirmPending = signal(false);
   protected readonly fixtureAckEnabled = signal(false);
   protected readonly fixtureModalTab = signal<string>('commands');
@@ -2529,10 +2534,74 @@ export class CommanderComponent implements OnInit {
     });
   }
 
-  protected onPlayerCommand(command: string): void {
+  protected onPlayerCommand(request: FixturePlayerCommandRequest): void {
     const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
     if (!fixture) return;
-    this.sendCommand(fixture, command);
+    if (request.kind === 'setVolume') {
+      this.sendPlayerSetVolumeCommand(fixture, request);
+      return;
+    }
+    this.sendCommand(fixture, request.command);
+  }
+
+  protected onPlayerVolumeSyncIssue(message: string): void {
+    this.setFixtureModalFeedback(message, 'warn');
+  }
+
+  private sendPlayerSetVolumeCommand(fixture: string, request: FixturePlayerCommandRequest): void {
+    const targetVolume = typeof request.volume === 'number' ? request.volume : null;
+    const requestId = request.requestId ?? `vol-fallback-${Date.now().toString(36)}`;
+    this.playerVolumeSyncResult.set(null);
+    this.sendCommand(
+      fixture,
+      request.command,
+      'default',
+      () => {
+        this.refreshPlanStatusAfterSetVolume(fixture, requestId, targetVolume);
+      },
+      () => {
+        this.playerVolumeSyncResult.set({
+          requestId,
+          status: 'failed',
+          authoritativeVolume: this.selectedFixturePlayerState()?.volume,
+          message: `Volume command failed for ${fixture}.`,
+        });
+      },
+    );
+  }
+
+  private refreshPlanStatusAfterSetVolume(
+    fixture: string,
+    requestId: string,
+    targetVolume: number | null,
+  ): void {
+    this.commanderApi.getFixturePlanStatus(fixture, {
+      preferQueryTokenAuth: true,
+    }).subscribe({
+      next: (result) => {
+        this.applyFixturePlanStatusResult(fixture, result);
+        const planStatePayload = result.summary?.plan_state as Record<string, unknown> | null | undefined;
+        const state = (planStatePayload?.['state'] as Record<string, unknown> | null | undefined) ?? null;
+        const authoritativeVolume = typeof state?.['volume'] === 'number' ? (state['volume'] as number) : undefined;
+        if (targetVolume !== null && typeof authoritativeVolume === 'number' && authoritativeVolume !== targetVolume) {
+          this.playerVolumeSyncResult.set({
+            requestId,
+            status: 'mismatch',
+            authoritativeVolume,
+            message: `Volume not applied (${targetVolume} requested, ${authoritativeVolume} reported).`,
+          });
+          return;
+        }
+        this.playerVolumeSyncResult.set({
+          requestId,
+          status: 'confirmed',
+          authoritativeVolume,
+        });
+      },
+      error: () => {
+        // Keep pending optimistic state; WS can still confirm. Timeout fallback in player controls resolves.
+      },
+    });
   }
 
   protected onConfigCommand(command: string): void {
@@ -2906,6 +2975,7 @@ export class CommanderComponent implements OnInit {
     command: string,
     mode: SendCommandMode = 'default',
     onSuccess?: (result: FixturePlanActionResponse, durationMs: number) => void,
+    onError?: (err: unknown, durationMs: number) => void,
   ): void {
     const wireCommand = this.buildModalWireCommand(fixture, command, mode);
 
@@ -2952,6 +3022,7 @@ export class CommanderComponent implements OnInit {
           durationMs,
         );
         this.fixtureActionLoading.set(false);
+        onError?.(err, durationMs);
       },
     });
   }

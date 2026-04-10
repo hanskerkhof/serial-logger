@@ -11,6 +11,20 @@ export interface PlayerTrack {
   duration_ms: number;
 }
 
+export interface FixturePlayerCommandRequest {
+  command: string;
+  kind?: 'setVolume';
+  volume?: number;
+  requestId?: string;
+}
+
+export interface VolumeSyncResultEvent {
+  requestId: string;
+  status: 'confirmed' | 'failed' | 'mismatch';
+  authoritativeVolume?: number;
+  message?: string;
+}
+
 /** DY players (DY-HV20T, DY-SV5W): 5 presets, no Bass (EQ range 0x00–0x04). */
 const EQ_PRESETS_DY = [
   { label: 'Normal', value: 0 },
@@ -39,15 +53,22 @@ const EQ_PRESETS_ALL = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FixturePlayerControlsComponent {
+  private static readonly VOLUME_SYNC_TIMEOUT_MS = 5000;
+
   readonly player = input<CmdrPlayerCapabilities | null>(null);
   readonly playerType = input<string | null>(null);
   readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: string } | null>(null);
+  readonly volumeSyncResult = input<VolumeSyncResultEvent | null>(null);
   readonly planTracks = input<PlayerTrack[] | null>(null);
   readonly disabled = input<boolean>(false);
 
-  readonly commandRequested = output<string>();
+  readonly commandRequested = output<FixturePlayerCommandRequest>();
+  readonly volumeSyncIssue = output<string>();
 
   readonly analogOverride = signal(false);
+  readonly isVolumeDragging = signal(false);
+  readonly pendingVolumeTarget = signal<number | null>(null);
+  readonly pendingVolumeRequestId = signal<string | null>(null);
   /** Per-input animation phase: filling → fading → idle */
   readonly fadeInMsPhase     = signal<'idle' | 'filling' | 'fading'>('idle');
   readonly fadeMsPhase       = signal<'idle' | 'filling' | 'fading'>('idle');
@@ -57,6 +78,8 @@ export class FixturePlayerControlsComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly fadeInTimers = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
   private readonly fadeTimers   = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
+  private volumeSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+  private readonly lastAuthoritativeVolume = signal<number | null>(null);
 
   private startInputAnimation(
     phase: WritableSignal<'idle' | 'filling' | 'fading'>,
@@ -82,15 +105,55 @@ export class FixturePlayerControlsComponent {
     this.destroyRef.onDestroy(() => {
       clearTimeout(this.fadeInTimers.t1); clearTimeout(this.fadeInTimers.t2);
       clearTimeout(this.fadeTimers.t1);   clearTimeout(this.fadeTimers.t2);
+      this.clearVolumeSyncTimeout();
     });
     // Sync live fixture state into controls when plan_state arrives.
     effect(() => {
       const ps = this.playerState();
       if (!ps) return;
-      if (ps.volume !== undefined) this.volumeLevel.set(ps.volume);
+      if (ps.volume !== undefined) {
+        this.lastAuthoritativeVolume.set(ps.volume);
+        if (!this.isVolumeDragging()) {
+          const pendingTarget = this.pendingVolumeTarget();
+          if (pendingTarget !== null) {
+            if (ps.volume === pendingTarget) {
+              this.clearPendingVolumeSync();
+              this.volumeLevel.set(ps.volume);
+            } else {
+              this.volumeLevel.set(pendingTarget);
+            }
+          } else {
+            this.volumeLevel.set(ps.volume);
+          }
+        }
+      }
       if (ps.eq !== undefined) this.eqPreset.set(ps.eq);
       // Only sync track if > 0 — currentTrack is 0 before any track has played.
       if (ps.trackIndex !== undefined && ps.trackIndex > 0) this.trackNumber.set(ps.trackIndex);
+    });
+
+    effect(() => {
+      const event = this.volumeSyncResult();
+      if (!event) return;
+      const pendingRequestId = this.pendingVolumeRequestId();
+      if (!pendingRequestId || event.requestId !== pendingRequestId) return;
+      if (event.status === 'confirmed') {
+        this.clearPendingVolumeSync();
+        if (typeof event.authoritativeVolume === 'number') {
+          this.volumeLevel.set(event.authoritativeVolume);
+          this.lastAuthoritativeVolume.set(event.authoritativeVolume);
+        }
+        return;
+      }
+      if (event.status === 'failed' || event.status === 'mismatch') {
+        const fallback =
+          typeof event.authoritativeVolume === 'number'
+            ? event.authoritativeVolume
+            : this.lastAuthoritativeVolume();
+        this.clearPendingVolumeSync();
+        if (typeof fallback === 'number') this.volumeLevel.set(fallback);
+        if (event.message) this.volumeSyncIssue.emit(event.message);
+      }
     });
 
     // Clamp eqPreset to the highest valid index when player type changes.
@@ -143,37 +206,49 @@ export class FixturePlayerControlsComponent {
   playSound(): void {
     const track = this.trackNumber();
     if (track === null) return;
-    this.commandRequested.emit(`cmd;playSound;track=${track};`);
+    this.commandRequested.emit({ command: `cmd;playSound;track=${track};` });
   }
 
   stopSound(): void {
-    this.commandRequested.emit('cmd;stopSound;');
+    this.commandRequested.emit({ command: 'cmd;stopSound;' });
   }
 
   fadeIn(): void {
     const track = this.trackNumber();
     if (track === null) return;
-    this.commandRequested.emit(`cmd;fadeIn;track=${track};volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`);
+    this.commandRequested.emit({
+      command: `cmd;fadeIn;track=${track};volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`,
+    });
     this.startInputAnimation(this.fadeInMsPhase, this.fadeInMsDirection, 'ltr', this.fadeInDurationMs(), this.fadeInTimers);
   }
 
   fadeTo(): void {
-    this.commandRequested.emit(`cmd;fadeTo;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};`);
+    this.commandRequested.emit({ command: `cmd;fadeTo;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};` });
     const dir = this.fadeToVolume() >= this.volumeLevel() ? 'ltr' : 'rtl';
     this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, dir, this.fadeDurationMs(), this.fadeTimers);
   }
 
   fadeOut(): void {
-    this.commandRequested.emit(`cmd;fadeOut;duration=${this.fadeDurationMs()};`);
+    this.commandRequested.emit({ command: `cmd;fadeOut;duration=${this.fadeDurationMs()};` });
     this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, 'rtl', this.fadeDurationMs(), this.fadeTimers);
   }
 
   setVolume(): void {
-    this.commandRequested.emit(`cmd;setVolume;volume=${this.volumeLevel()};`);
+    const volume = this.volumeLevel();
+    const requestId = `vol-${Date.now().toString(36)}-${Math.floor(Math.random() * 0xffff).toString(16)}`;
+    this.pendingVolumeTarget.set(volume);
+    this.pendingVolumeRequestId.set(requestId);
+    this.startVolumeSyncTimeout(requestId);
+    this.commandRequested.emit({
+      command: `cmd;setVolume;volume=${volume};`,
+      kind: 'setVolume',
+      volume,
+      requestId,
+    });
   }
 
   setEqualizer(): void {
-    this.commandRequested.emit(`cmd;setEqualizer;preset=${this.eqPreset()};`);
+    this.commandRequested.emit({ command: `cmd;setEqualizer;preset=${this.eqPreset()};` });
   }
 
   onTrackInput(event: Event): void {
@@ -183,6 +258,14 @@ export class FixturePlayerControlsComponent {
 
   onVolumeInput(event: Event): void {
     this.volumeLevel.set(+(event.target as HTMLInputElement).value);
+  }
+
+  onVolumeDragStart(): void {
+    this.isVolumeDragging.set(true);
+  }
+
+  onVolumeDragEnd(): void {
+    this.isVolumeDragging.set(false);
   }
 
   onFadeToVolumeInput(event: Event): void {
@@ -199,5 +282,29 @@ export class FixturePlayerControlsComponent {
 
   onFadeDurationInput(event: Event): void {
     this.fadeDurationMs.set(Math.min(15000, Math.max(1000, +(event.target as HTMLInputElement).value)));
+  }
+
+  private clearPendingVolumeSync(): void {
+    this.pendingVolumeTarget.set(null);
+    this.pendingVolumeRequestId.set(null);
+    this.clearVolumeSyncTimeout();
+  }
+
+  private clearVolumeSyncTimeout(): void {
+    if (this.volumeSyncTimeout) {
+      clearTimeout(this.volumeSyncTimeout);
+      this.volumeSyncTimeout = null;
+    }
+  }
+
+  private startVolumeSyncTimeout(requestId: string): void {
+    this.clearVolumeSyncTimeout();
+    this.volumeSyncTimeout = setTimeout(() => {
+      if (this.pendingVolumeRequestId() !== requestId) return;
+      const fallback = this.lastAuthoritativeVolume();
+      this.clearPendingVolumeSync();
+      if (typeof fallback === 'number') this.volumeLevel.set(fallback);
+      this.volumeSyncIssue.emit('Volume update not confirmed (timeout) — reverted to authoritative value.');
+    }, FixturePlayerControlsComponent.VOLUME_SYNC_TIMEOUT_MS);
   }
 }

@@ -1,0 +1,98 @@
+.sequence-timeline-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sequence-timeline-status__sequence {
+  border: 1px solid var(--surface-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: var(--surface-ground);
+}
+
+.sequence-timeline-status__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: baseline;
+  margin-bottom: 0.25rem;
+}
+
+.sequence-timeline-status__title {
+  font-size: 0.95rem;
+}
+
+.sequence-timeline-status__meta,
+.sequence-timeline-status__live,
+.sequence-timeline-status__duration {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+}
+
+.sequence-timeline-status__live-step-title {
+  color: var(--text-color);
+  font-weight: 700;
+}
+
+.sequence-timeline-status__live-details {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+}
+
+.sequence-timeline-status__live--badge {
+  align-self: center;
+}
+
+.sequence-timeline-status__elapsed {
+  margin: 0 0 0.45rem;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  font-weight: 700;
+  color: var(--text-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.sequence-timeline-status__col {
+  font-size: 0.72rem;
+  color: var(--text-color-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sequence-timeline-status__col--idx {
+  width: 2rem;
+}
+
+.sequence-timeline-status__col--time {
+  width: 5.7rem;
+}
+
+.sequence-timeline-status__cell {
+  font-size: 0.8rem;
+  line-height: 1.2;
+  padding: 0.28rem 0.4rem;
+}
+
+.sequence-timeline-status__cell--idx,
+.sequence-timeline-status__cell--time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sequence-timeline-status__row--active {
+  background: color-mix(in srgb, var(--primary-color) 16%, var(--surface-ground));
+}
+
+.sequence-timeline-status__row--active .sequence-timeline-status__cell {
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.sequence-timeline-status__table .p-datatable-thead > tr > th {
+  padding: 0.25rem 0.4rem;
+}
+
+.sequence-timeline-status__table .p-datatable-tbody > tr > td {
+  border-color: color-mix(in srgb, var(--surface-border) 55%, transparent);
+}

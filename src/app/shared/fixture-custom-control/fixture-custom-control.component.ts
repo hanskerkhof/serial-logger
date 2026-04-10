@@ -7,10 +7,15 @@ import { SliderModule } from 'primeng/slider';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { DialogModule } from 'primeng/dialog';
-import { CmdrCustomCommandUiArg, CmdrCustomCommandUiItem } from '../../api/cmdr-models';
+import {
+  CmdrCustomCommandUiArg,
+  CmdrCustomCommandUiItem,
+  CmdrSequenceTimelineDefinition,
+} from '../../api/cmdr-models';
 import { BitmaskDotsComponent } from '../bitmask-dots/bitmask-dots.component';
+import { SequenceTimelineStatusComponent } from '../sequence-timeline-status/sequence-timeline-status.component';
 
-export type FixtureCustomControlValue = string | number | boolean;
+export type FixtureCustomControlValue = string | number | boolean | Record<string, unknown>;
 
 export interface FixtureCustomArgChangedEvent {
   commandId: string;
@@ -55,6 +60,12 @@ interface StatusArgRow {
 type CommandUiMode = 'control' | 'status' | 'action';
 type CommandUiBlock = 'rgb' | 'dimmer' | string;
 
+interface SequenceRuntimeState {
+  i?: number;
+  p?: number | boolean;
+  as?: number;
+}
+
 @Component({
   selector: 'app-fixture-custom-control',
   standalone: true,
@@ -68,6 +79,7 @@ type CommandUiBlock = 'rgb' | 'dimmer' | string;
     ColorPickerModule,
     DialogModule,
     BitmaskDotsComponent,
+    SequenceTimelineStatusComponent,
   ],
   templateUrl: './fixture-custom-control.component.html',
   styleUrl: './fixture-custom-control.component.scss',
@@ -208,12 +220,19 @@ export class FixtureCustomControlComponent {
     return control === 'bitmask_dots' || control === 'bitmask-dots';
   }
 
+  protected isStatusSequenceTimelineArg(arg: CmdrCustomCommandUiArg): boolean {
+    const control = String(arg.control ?? '').trim().toLowerCase();
+    return control === 'sequence_timeline' || control === 'sequence-timeline';
+  }
+
   protected statusBitmaskArgs(command: CmdrCustomCommandUiItem): CmdrCustomCommandUiArg[] {
     return (command.args ?? []).filter((arg) => this.isStatusBitmaskDotsArg(arg));
   }
 
   protected statusNonBitmaskArgs(command: CmdrCustomCommandUiItem): CmdrCustomCommandUiArg[] {
-    return (command.args ?? []).filter((arg) => !this.isStatusBitmaskDotsArg(arg));
+    return (command.args ?? []).filter(
+      (arg) => !this.isStatusBitmaskDotsArg(arg) && !this.isStatusSequenceTimelineArg(arg),
+    );
   }
 
   protected statusNonBitmaskRows(command: CmdrCustomCommandUiItem): StatusArgRow[] {
@@ -245,6 +264,21 @@ export class FixtureCustomControlComponent {
       if (Number.isFinite(parsed)) return Math.trunc(parsed);
     }
     return 0;
+  }
+
+  protected statusSequenceRuntime(
+    commandId: string,
+    arg: CmdrCustomCommandUiArg,
+  ): Record<string, SequenceRuntimeState> {
+    const raw = this.liveCommandArgValue(commandId, arg);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    return raw as Record<string, SequenceRuntimeState>;
+  }
+
+  protected statusSequenceDefinitions(arg: CmdrCustomCommandUiArg): Record<string, CmdrSequenceTimelineDefinition> {
+    const raw = (arg as { sequence_definitions?: unknown }).sequence_definitions;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    return raw as Record<string, CmdrSequenceTimelineDefinition>;
   }
 
   protected isStatusSliderArg(arg: CmdrCustomCommandUiArg): boolean {

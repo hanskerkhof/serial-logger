@@ -29,6 +29,21 @@ export interface CmdrCustomCommandLiveDraftSync {
   mode?: 'if_pristine' | 'always' | string | null;
   args?: string[] | null;
 }
+
+export interface CmdrSequenceTimelineStep {
+  index: number;
+  title: string;
+  start_ms: number;
+  duration_ms: number;
+}
+
+export interface CmdrSequenceTimelineDefinition {
+  sq: string;
+  ts: number;
+  td: number;
+  steps: CmdrSequenceTimelineStep[];
+}
+
 export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem'] & {
   ui_mode?: 'control' | 'action' | 'status' | string | null;
   control?: string | null;
@@ -36,7 +51,13 @@ export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem
   post_run_sync?: CmdrCustomCommandPostRunSync | null;
   live_draft_sync?: CmdrCustomCommandLiveDraftSync | null;
 };
-export type CmdrCustomCommandUiArg  = components['schemas']['CustomCommandUiArg'];
+export type CmdrCustomCommandUiArg = components['schemas']['CustomCommandUiArg'] & {
+  status_row?: string | null;
+  bit_count?: number | null;
+  suffix?: string | null;
+  sequence_keys?: string[] | null;
+  sequence_definitions?: Record<string, CmdrSequenceTimelineDefinition> | null;
+};
 export type CmdrFixtureRssiReport   = components['schemas']['FixtureRssiReport'];
 export type CmdrRssiPeerEntry       = components['schemas']['RssiPeerEntry'];
 export type CmdrFixtureDocsListResponse = components['schemas']['FixtureDocsListResponse'];

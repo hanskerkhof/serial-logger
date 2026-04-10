@@ -263,6 +263,27 @@
   }
 }
 
+.user-pop__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.12rem 0.6rem;
+  margin: 0;
+  color: var(--p-text-color, #1f2937);
+
+  dt {
+    color: var(--p-text-muted-color, #9ca3af);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  dd {
+    margin: 0;
+    font-family: monospace;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+}
+
 // Health popover content
 .health-pop {
   display: flex;

@@ -60,6 +60,8 @@ export class AuthService {
   readonly authRequired = signal<boolean>(true);
   readonly authMode = signal<AuthMode | null>(null);
   readonly authEndpointError = signal<string | null>(null);
+  readonly tokenRefreshCount = signal<number>(0);
+  readonly nextTokenRefreshAtMs = signal<number | null>(null);
 
   async initialize(): Promise<void> {
     let oidcConfig = { ...authConfig };
@@ -82,6 +84,8 @@ export class AuthService {
           if (!data.enabled) {
             this.authRequired.set(false);
             this.authMode.set(null);
+            this.nextTokenRefreshAtMs.set(null);
+            this.tokenRefreshCount.set(0);
             return;
           }
           this.authRequired.set(true);
@@ -199,6 +203,7 @@ export class AuthService {
       if (!token) return { ok: false, error: 'Login response missing token' };
       localStorage.setItem(LWL_TOKEN_STORAGE_KEY, token);
       localStorage.setItem(LWL_USER_STORAGE_KEY, userName);
+      this.tokenRefreshCount.set(0);
       this.authEndpointError.set(null);
       try {
         localStorage.setItem(API_URL_STORAGE_KEY, apiBase);
@@ -279,17 +284,28 @@ export class AuthService {
 
   private scheduleTokenRefresh(token: string): void {
     const payload = decodeJwtPayload(token);
-    if (!payload) return;
+    if (!payload) {
+      this.nextTokenRefreshAtMs.set(null);
+      return;
+    }
     const exp = Number(payload['exp'] ?? 0);
-    if (!Number.isFinite(exp) || exp <= 0) return;
+    if (!Number.isFinite(exp) || exp <= 0) {
+      this.nextTokenRefreshAtMs.set(null);
+      return;
+    }
     const fireInMs = (exp - Math.floor(Date.now() / 1000) - AuthService.REFRESH_BEFORE_EXPIRY_S) * 1000;
-    if (fireInMs <= 0) return;
+    if (fireInMs <= 0) {
+      this.nextTokenRefreshAtMs.set(null);
+      return;
+    }
     if (this._refreshTimer !== null) clearTimeout(this._refreshTimer);
+    this.nextTokenRefreshAtMs.set(Date.now() + fireInMs);
     this._refreshTimer = setTimeout(() => void this.silentRefresh(), fireInMs);
   }
 
   private async silentRefresh(): Promise<void> {
     this._refreshTimer = null;
+    this.nextTokenRefreshAtMs.set(null);
     const token = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
     if (!token || !this.isLwlTokenValid(token)) return;
     const apiBase = resolveApiBaseUrl();
@@ -306,6 +322,7 @@ export class AuthService {
       const newToken = (data.access_token ?? '').trim();
       if (!newToken) return;
       localStorage.setItem(LWL_TOKEN_STORAGE_KEY, newToken);
+      this.tokenRefreshCount.update((count) => count + 1);
       this.scheduleTokenRefresh(newToken);
     } catch (err) {
       console.warn('[AuthService] Silent token refresh error:', err);
@@ -317,6 +334,8 @@ export class AuthService {
       clearTimeout(this._refreshTimer);
       this._refreshTimer = null;
     }
+    this.nextTokenRefreshAtMs.set(null);
+    this.tokenRefreshCount.set(0);
     localStorage.removeItem(LWL_TOKEN_STORAGE_KEY);
     localStorage.removeItem(LWL_USER_STORAGE_KEY);
   }

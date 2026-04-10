@@ -69,6 +69,15 @@ export class AppComponent {
     if (this.healthService.healthError()) return 'disconnected';
     return 'connected';
   });
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly tokenRefreshNowMs = signal(Date.now());
+  protected readonly tokenRefreshCountdownSeconds = computed<number | null>(() => {
+    const nextAt = this.authService.nextTokenRefreshAtMs();
+    if (!nextAt) return null;
+    const msLeft = nextAt - this.tokenRefreshNowMs();
+    if (msLeft <= 0) return 0;
+    return Math.ceil(msLeft / 1000);
+  });
 
   private readonly isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   private readonly isStandalone = ('standalone' in navigator) && !!(navigator as any).standalone;
@@ -114,6 +123,8 @@ export class AppComponent {
   protected readonly showQrScannerDialog = signal(false);
 
   constructor() {
+    const tokenRefreshTicker = window.setInterval(() => this.tokenRefreshNowMs.set(Date.now()), 1000);
+    this.destroyRef.onDestroy(() => window.clearInterval(tokenRefreshTicker));
 
     // Drive native <dialog> elements via showModal/close so they enter the top layer.
     effect(() => {

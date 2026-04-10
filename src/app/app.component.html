@@ -182,6 +182,20 @@
           <div class="user-pop">
             @if (authService.isLoggedIn) {
               <div class="user-pop__name">{{ authService.userName }}</div>
+              @if (authService.authMode() === 'lwl') {
+                <dl class="user-pop__meta">
+                  <dt>Next token refresh</dt>
+                  <dd>
+                    @if (tokenRefreshCountdownSeconds() !== null) {
+                      in {{ tokenRefreshCountdownSeconds() }}s
+                    } @else {
+                      -
+                    }
+                  </dd>
+                  <dt>Refresh count</dt>
+                  <dd>{{ authService.tokenRefreshCount() }}</dd>
+                </dl>
+              }
               <button class="user-pop__logout" type="button" (click)="authService.logout()">
                 <i class="pi pi-sign-out"></i> Log out
               </button>

@@ -1,0 +1,54 @@
+@if (entries().length > 0) {
+  <div class="sequence-timeline-status">
+    @for (entry of entries(); track entry.key) {
+      <section class="sequence-timeline-status__sequence">
+        <header class="sequence-timeline-status__header">
+          <span class="sequence-timeline-status__live sequence-timeline-status__live--badge">
+            <p-badge
+              [value]="sequencePlaying(entry) ? 'RUNNING' : 'STOPPED'"
+              [severity]="sequenceStateBadgeSeverity(entry)"
+            ></p-badge>
+          </span>
+          <span class="sequence-timeline-status__live-details">
+            <strong class="sequence-timeline-status__title">{{ sequenceTitle(entry) }}</strong>
+            {{ sequenceTotalSteps(entry) }} steps · duration: {{ sequenceTotalDurationLabel(entry) }} - step:
+            {{ sequenceCurrentStepIndex(entry) }} ·
+            <strong class="sequence-timeline-status__live-step-title">{{ sequenceCurrentStepTitle(entry) }}</strong>
+            · Cue: {{ sequenceCueLabel(entry) }} - duration:
+            {{ sequenceElapsedLabel(entry) }}
+          </span>
+        </header>
+        <h3 class="sequence-timeline-status__elapsed">{{ sequenceElapsedLabel(entry) }}</h3>
+
+        <div class="sequence-timeline-status__table-wrap p-datatable p-component p-datatable-sm">
+          <table class="sequence-timeline-status__table p-datatable-table">
+            <thead class="p-datatable-thead">
+            <tr>
+              <th class="sequence-timeline-status__col sequence-timeline-status__col--idx">#</th>
+              <th class="sequence-timeline-status__col sequence-timeline-status__col--title">Step</th>
+              <th class="sequence-timeline-status__col sequence-timeline-status__col--time">Start</th>
+              <th class="sequence-timeline-status__col sequence-timeline-status__col--time">Duration</th>
+            </tr>
+            </thead>
+            <tbody class="p-datatable-tbody">
+            @for (step of entry.definition.steps ?? []; track step.index) {
+            <tr [class.sequence-timeline-status__row--active]="isStepActive(entry, step)">
+              <td class="sequence-timeline-status__cell sequence-timeline-status__cell--idx">{{ step.index }}</td>
+              <td class="sequence-timeline-status__cell sequence-timeline-status__cell--title">{{ step.title }}</td>
+              <td class="sequence-timeline-status__cell sequence-timeline-status__cell--time">{{ formatMs(step.start_ms) }}</td>
+              <td class="sequence-timeline-status__cell sequence-timeline-status__cell--time">
+                @if (step.duration_ms > 0) {
+                  {{ formatMs(step.duration_ms) }}
+                } @else {
+                  -
+                }
+              </td>
+            </tr>
+            }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </div>
+}

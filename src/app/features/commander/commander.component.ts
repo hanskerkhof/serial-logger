@@ -89,7 +89,7 @@ interface PollIntervalOption {
   value: number;
 }
 
-type CustomCommandValue = string | number | boolean;
+type CustomCommandValue = string | number | boolean | Record<string, unknown>;
 type FixtureModalFeedbackTone = 'info' | 'success' | 'warn' | 'error';
 type SendCommandMode = 'default' | 'force_ack' | 'force_no_ack';
 
@@ -3757,6 +3757,12 @@ export class CommanderComponent implements OnInit {
   private defaultValueForArg(arg: CmdrCustomCommandUiArg): CustomCommandValue {
     const liveStateValue = this.resolveStateBackedArgValue(arg);
     const control = String(arg.control ?? '').toLowerCase();
+    if (control === 'sequence_timeline' || control === 'sequence-timeline') {
+      if (liveStateValue && typeof liveStateValue === 'object' && !Array.isArray(liveStateValue)) {
+        return liveStateValue as Record<string, unknown>;
+      }
+      return {};
+    }
     if (control === 'dot') {
       return this.toBoolean(liveStateValue ?? arg.default ?? false);
     }
@@ -3790,6 +3796,13 @@ export class CommanderComponent implements OnInit {
   }
 
   private normalizeArgValue(arg: CmdrCustomCommandUiArg, rawValue: unknown): CustomCommandValue {
+    const control = String(arg.control ?? '').toLowerCase();
+    if (control === 'sequence_timeline' || control === 'sequence-timeline') {
+      if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+        return rawValue as Record<string, unknown>;
+      }
+      return {};
+    }
     if (arg.control === 'checkbox') {
       return this.toBoolean(rawValue);
     }

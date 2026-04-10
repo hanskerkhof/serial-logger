@@ -53,11 +53,18 @@
     line-height: 1.5;
     color: var(--p-text-color, #1f2937);
     margin-bottom: 0.15rem;
+    text-align: left;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 
     // ngx-markdown wraps inline content in <p>; strip its block spacing
+    markdown,
     markdown p {
       display: inline;
       margin: 0;
+      text-align: left;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     code {
@@ -65,6 +72,9 @@
       background: var(--p-surface-100, #f3f4f6);
       border-radius: 0.2rem;
       padding: 0.05em 0.3em;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
   }
 }

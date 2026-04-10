@@ -138,6 +138,7 @@ function compareVersions(a: string, b: string): number {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommanderComponent implements OnInit {
+  private static readonly PLAYER_VOLUME_CONFIRM_TOLERANCE = 2;
   private static readonly FIXTURE_MODAL_POLL_INTERVAL_OPTIONS: readonly PollIntervalOption[] = [
     { label: '25ms', value: 25 },
     { label: '50ms', value: 50 },
@@ -2583,7 +2584,11 @@ export class CommanderComponent implements OnInit {
         const planStatePayload = result.summary?.plan_state as Record<string, unknown> | null | undefined;
         const state = (planStatePayload?.['state'] as Record<string, unknown> | null | undefined) ?? null;
         const authoritativeVolume = typeof state?.['volume'] === 'number' ? (state['volume'] as number) : undefined;
-        if (targetVolume !== null && typeof authoritativeVolume === 'number' && authoritativeVolume !== targetVolume) {
+        const isMismatch =
+          targetVolume !== null &&
+          typeof authoritativeVolume === 'number' &&
+          Math.abs(authoritativeVolume - targetVolume) > CommanderComponent.PLAYER_VOLUME_CONFIRM_TOLERANCE;
+        if (isMismatch) {
           this.playerVolumeSyncResult.set({
             requestId,
             status: 'mismatch',

@@ -77,15 +77,15 @@
             [disabled]="disabled()"
             (click)="stopSound()"
           >&#x25A0; Stop</button>
-          <input
+          <p-slider
             class="fixture-player-controls__range"
-            type="range"
             min="0"
             max="100"
-            [value]="fadeInVolume()"
+            [step]="1"
+            [ngModel]="fadeInVolume()"
             [disabled]="disabled()"
-            (input)="onFadeInVolumeInput($event)"
-          />
+            (ngModelChange)="onFadeInVolumeInput($event)"
+          ></p-slider>
           <span class="fixture-player-controls__range-value">{{ fadeInVolume() }}</span>
           <span
             class="fixture-player-controls__fill-wrap"
@@ -120,25 +120,26 @@
           <span class="fixture-player-controls__analog-note">not available (analog)</span>
         }
         @if (!p.analog_volume_active || analogOverride()) {
-          <input
+          <p-slider
             class="fixture-player-controls__range"
-            type="range"
             min="0"
             max="100"
-            [value]="volumeLevel()"
+            [step]="1"
+            [ngModel]="volumeLevel()"
             [disabled]="disabled()"
-            (pointerdown)="onVolumeDragStart()"
-            (mousedown)="onVolumeDragStart()"
-            (touchstart)="onVolumeDragStart()"
+            (pointerdown)="onVolumePointerDown($event)"
+            (mousedown)="onVolumePointerDown($event)"
+            (touchstart)="onVolumePointerDown($event)"
             (pointerup)="onVolumeDragEnd()"
             (pointercancel)="onVolumeDragEnd()"
             (mouseup)="onVolumeDragEnd()"
             (touchend)="onVolumeDragEnd()"
             (touchcancel)="onVolumeDragEnd()"
-            (blur)="onVolumeDragEnd()"
-            (input)="onVolumeInput($event)"
-            (change)="setVolume()"
-          />
+            (focusin)="onVolumeFocusIn()"
+            (focusout)="onVolumeFocusOut()"
+            (ngModelChange)="onVolumeInput($event)"
+            (onSlideEnd)="onVolumeSlideEnd()"
+          ></p-slider>
           <span class="fixture-player-controls__range-value">{{ volumeLevel() }}</span>
         }
         @if (p.analog_volume_active) {
@@ -151,15 +152,15 @@
 
       <div class="fixture-player-controls__row">
         <span class="fixture-player-controls__row-label">Fade</span>
-        <input
+        <p-slider
           class="fixture-player-controls__range"
-          type="range"
           min="0"
           max="100"
-          [value]="fadeToVolume()"
+          [step]="1"
+          [ngModel]="fadeToVolume()"
           [disabled]="disabled()"
-          (input)="onFadeToVolumeInput($event)"
-        />
+          (ngModelChange)="onFadeToVolumeInput($event)"
+        ></p-slider>
         <span class="fixture-player-controls__range-value">{{ fadeToVolume() }}</span>
         <span
           class="fixture-player-controls__fill-wrap"

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, WritableSignal, compute
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
+import { SliderModule } from 'primeng/slider';
 import { CmdrPlayerCapabilities } from '../../api/cmdr-models';
 import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard.component';
 
@@ -47,13 +48,14 @@ const EQ_PRESETS_ALL = [
 @Component({
   selector: 'app-fixture-player-controls',
   standalone: true,
-  imports: [ButtonModule, SelectModule, FormsModule, CopyToClipboardComponent],
+  imports: [ButtonModule, SelectModule, SliderModule, FormsModule, CopyToClipboardComponent],
   templateUrl: './fixture-player-controls.component.html',
   styleUrl: './fixture-player-controls.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FixturePlayerControlsComponent {
   private static readonly VOLUME_SYNC_TIMEOUT_MS = 5000;
+  private static readonly VOLUME_KEYBOARD_COMMIT_DEBOUNCE_MS = 800;
 
   readonly player = input<CmdrPlayerCapabilities | null>(null);
   readonly playerType = input<string | null>(null);
@@ -67,6 +69,7 @@ export class FixturePlayerControlsComponent {
 
   readonly analogOverride = signal(false);
   readonly isVolumeDragging = signal(false);
+  readonly isVolumeFocused = signal(false);
   readonly pendingVolumeTarget = signal<number | null>(null);
   readonly pendingVolumeRequestId = signal<string | null>(null);
   /** Per-input animation phase: filling → fading → idle */
@@ -79,6 +82,7 @@ export class FixturePlayerControlsComponent {
   private readonly fadeInTimers = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
   private readonly fadeTimers   = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
   private volumeSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+  private volumeKeyboardCommitTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly lastAuthoritativeVolume = signal<number | null>(null);
 
   private startInputAnimation(
@@ -106,6 +110,7 @@ export class FixturePlayerControlsComponent {
       clearTimeout(this.fadeInTimers.t1); clearTimeout(this.fadeInTimers.t2);
       clearTimeout(this.fadeTimers.t1);   clearTimeout(this.fadeTimers.t2);
       this.clearVolumeSyncTimeout();
+      this.clearVolumeKeyboardCommitTimeout();
     });
     // Sync live fixture state into controls when plan_state arrives.
     effect(() => {
@@ -113,17 +118,17 @@ export class FixturePlayerControlsComponent {
       if (!ps) return;
       if (ps.volume !== undefined) {
         this.lastAuthoritativeVolume.set(ps.volume);
-        if (!this.isVolumeDragging()) {
+        if (!this.isVolumeDragging() && !this.isVolumeFocused()) {
           const pendingTarget = this.pendingVolumeTarget();
           if (pendingTarget !== null) {
             if (ps.volume === pendingTarget) {
               this.clearPendingVolumeSync();
-              this.volumeLevel.set(ps.volume);
+              if (this.volumeLevel() !== ps.volume) this.volumeLevel.set(ps.volume);
             } else {
-              this.volumeLevel.set(pendingTarget);
+              if (this.volumeLevel() !== pendingTarget) this.volumeLevel.set(pendingTarget);
             }
           } else {
-            this.volumeLevel.set(ps.volume);
+            if (this.volumeLevel() !== ps.volume) this.volumeLevel.set(ps.volume);
           }
         }
       }
@@ -235,6 +240,11 @@ export class FixturePlayerControlsComponent {
 
   setVolume(): void {
     const volume = this.volumeLevel();
+    const authoritativeVolume = this.lastAuthoritativeVolume();
+    if (authoritativeVolume !== null && volume === authoritativeVolume) {
+      this.clearPendingVolumeSync();
+      return;
+    }
     const requestId = `vol-${Date.now().toString(36)}-${Math.floor(Math.random() * 0xffff).toString(16)}`;
     this.pendingVolumeTarget.set(volume);
     this.pendingVolumeRequestId.set(requestId);
@@ -256,11 +266,24 @@ export class FixturePlayerControlsComponent {
     this.trackNumber.set(val > 0 ? val : null);
   }
 
-  onVolumeInput(event: Event): void {
-    this.volumeLevel.set(+(event.target as HTMLInputElement).value);
+  onVolumeInput(value: number): void {
+    this.volumeLevel.set(value);
+    if (this.isVolumeFocused() && !this.isVolumeDragging()) {
+      this.scheduleVolumeKeyboardCommit();
+    }
+  }
+
+  onVolumePointerDown(event: Event): void {
+    this.onVolumeDragStart();
+    const target = event.target as HTMLElement | null;
+    const handle =
+      (target?.closest('.p-slider-handle') as HTMLElement | null) ??
+      (target?.querySelector('.p-slider-handle') as HTMLElement | null);
+    handle?.focus();
   }
 
   onVolumeDragStart(): void {
+    this.clearVolumeKeyboardCommitTimeout();
     this.isVolumeDragging.set(true);
   }
 
@@ -268,12 +291,27 @@ export class FixturePlayerControlsComponent {
     this.isVolumeDragging.set(false);
   }
 
-  onFadeToVolumeInput(event: Event): void {
-    this.fadeToVolume.set(+(event.target as HTMLInputElement).value);
+  onVolumeFocusIn(): void {
+    this.isVolumeFocused.set(true);
   }
 
-  onFadeInVolumeInput(event: Event): void {
-    this.fadeInVolume.set(+(event.target as HTMLInputElement).value);
+  onVolumeFocusOut(): void {
+    this.clearVolumeKeyboardCommitTimeout();
+    this.isVolumeFocused.set(false);
+    this.onVolumeDragEnd();
+  }
+
+  onVolumeSlideEnd(): void {
+    this.onVolumeDragEnd();
+    this.setVolume();
+  }
+
+  onFadeToVolumeInput(value: number): void {
+    this.fadeToVolume.set(value);
+  }
+
+  onFadeInVolumeInput(value: number): void {
+    this.fadeInVolume.set(value);
   }
 
   onFadeInDurationInput(event: Event): void {
@@ -295,6 +333,22 @@ export class FixturePlayerControlsComponent {
       clearTimeout(this.volumeSyncTimeout);
       this.volumeSyncTimeout = null;
     }
+  }
+
+  private clearVolumeKeyboardCommitTimeout(): void {
+    if (this.volumeKeyboardCommitTimeout) {
+      clearTimeout(this.volumeKeyboardCommitTimeout);
+      this.volumeKeyboardCommitTimeout = null;
+    }
+  }
+
+  private scheduleVolumeKeyboardCommit(): void {
+    this.clearVolumeKeyboardCommitTimeout();
+    this.volumeKeyboardCommitTimeout = setTimeout(() => {
+      this.volumeKeyboardCommitTimeout = null;
+      if (!this.isVolumeFocused() || this.isVolumeDragging()) return;
+      this.setVolume();
+    }, FixturePlayerControlsComponent.VOLUME_KEYBOARD_COMMIT_DEBOUNCE_MS);
   }
 
   private startVolumeSyncTimeout(requestId: string): void {

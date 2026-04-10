@@ -79,7 +79,7 @@
 
 .fixture-player-controls__range {
   width: 7rem;
-  accent-color: var(--p-primary-color, #6366f1);
+  display: inline-flex;
 }
 
 .fixture-player-controls__range-value {

@@ -66,10 +66,18 @@
                     <strong class="fixture-custom-control__status-value">{{ statusSliderValue(statusCommand.id, arg) }}</strong>
                   } @else if (isStatusDisplayArg(arg)) {
                     <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
-                    <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                    @if (isStatusRemsecArg(arg)) {
+                      <h3 class="fixture-custom-control__status-value fixture-custom-control__status-value--heading">{{ statusDisplayText(statusCommand.id, arg) }}</h3>
+                    } @else {
+                      <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                    }
                   } @else {
                     <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
-                    <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                    @if (isStatusRemsecArg(arg)) {
+                      <h3 class="fixture-custom-control__status-value fixture-custom-control__status-value--heading">{{ statusDisplayText(statusCommand.id, arg) }}</h3>
+                    } @else {
+                      <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                    }
                   }
                 }
               </div>

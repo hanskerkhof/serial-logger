@@ -59,6 +59,15 @@
   font-weight: 700;
 }
 
+.fixture-custom-control__status-value--heading {
+  display: inline-block;
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
 .fixture-custom-control__card {
   border: 1px solid var(--p-content-border-color);
   border-radius: 0.5rem;

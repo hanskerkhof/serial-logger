@@ -12,9 +12,136 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BAUKLANK Studio">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=6">
-  <meta name="theme-color" content="#0d0d0d">
+  <meta name="theme-color" content="#f3f4f6">
+  <style>
+    :root {
+      --startup-bg: #f3f4f6;
+      --startup-fg: #111827;
+      --startup-muted: #4b5563;
+      --startup-accent: #111827;
+    }
+
+    body {
+      margin: 0;
+      background: var(--startup-bg);
+    }
+
+    #startup-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 50% 35%, #ffffff 0%, var(--startup-bg) 60%);
+      color: var(--startup-fg);
+      opacity: 1;
+      transition: opacity 220ms ease;
+    }
+
+    #startup-splash.startup-splash--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #startup-splash .startup-splash__card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.55rem;
+      text-align: center;
+      padding: 1.2rem 1.4rem;
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      box-shadow: 0 8px 28px rgba(17, 24, 39, 0.08);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+
+    #startup-splash .startup-splash__title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    #startup-splash .startup-splash__status {
+      margin: 0;
+      font-size: 0.86rem;
+      color: var(--startup-muted);
+    }
+
+    #startup-splash .startup-splash__spinner {
+      width: 1.45rem;
+      height: 1.45rem;
+      border-radius: 50%;
+      border: 2px solid rgba(17, 24, 39, 0.18);
+      border-top-color: var(--startup-accent);
+      animation: startup-spin 0.8s linear infinite;
+    }
+
+    #startup-splash.startup-splash--error .startup-splash__spinner {
+      animation: none;
+      border-top-color: #b91c1c;
+      border-color: rgba(185, 28, 28, 0.32);
+    }
+
+    #startup-splash.startup-splash--error .startup-splash__status {
+      color: #991b1b;
+    }
+
+    @keyframes startup-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+  <script>
+    (function () {
+      let hidden = false;
+
+      function getSplash() {
+        return document.getElementById('startup-splash');
+      }
+
+      window.__hideStartupSplash = function () {
+        if (hidden) return;
+        const splash = getSplash();
+        if (!splash) {
+          hidden = true;
+          return;
+        }
+        splash.classList.add('startup-splash--hidden');
+        const cleanup = function () {
+          if (hidden) return;
+          hidden = true;
+          splash.remove();
+        };
+        splash.addEventListener('transitionend', cleanup, { once: true });
+        window.setTimeout(cleanup, 500);
+      };
+
+      window.__setStartupSplashError = function (message) {
+        const splash = getSplash();
+        if (!splash) return;
+        splash.classList.add('startup-splash--error');
+        const statusNode = splash.querySelector('[data-role="startup-status"]');
+        if (statusNode) {
+          statusNode.textContent = message || 'Startup failed. Please reload.';
+        }
+      };
+    })();
+  </script>
 </head>
 <body>
+  <div id="startup-splash" role="status" aria-live="polite" aria-label="Loading BAUKLANK Studio">
+    <div class="startup-splash__card">
+      <h1 class="startup-splash__title">BAUKLANK Studio</h1>
+      <div class="startup-splash__spinner" aria-hidden="true"></div>
+      <p class="startup-splash__status" data-role="startup-status">Loading…</p>
+    </div>
+  </div>
   <app-root></app-root>
 </body>
 </html>

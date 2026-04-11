@@ -13,6 +13,13 @@ import { routes } from './app/app.routes';
 import { AuthService } from './app/auth/auth.service';
 import { authHttpInterceptor } from './app/auth/auth-http-interceptor';
 
+declare global {
+  interface Window {
+    __hideStartupSplash?: () => void;
+    __setStartupSplashError?: (message?: string) => void;
+  }
+}
+
 bootstrapApplication(AppComponent, {
   providers: [
     provideAnimations(),
@@ -39,4 +46,14 @@ bootstrapApplication(AppComponent, {
       registrationStrategy: 'registerWhenStable:30000',
     }),
   ],
-}).catch((err) => console.error(err));
+})
+  .then(() => {
+    // Let Angular paint once before removing the static startup splash.
+    requestAnimationFrame(() => {
+      window.__hideStartupSplash?.();
+    });
+  })
+  .catch((err) => {
+    window.__setStartupSplashError?.('Startup failed. Please reload.');
+    console.error(err);
+  });

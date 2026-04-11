@@ -215,6 +215,10 @@ export class FixtureCustomControlComponent {
     return String(arg.control ?? '').toLowerCase() === 'display';
   }
 
+  protected isStatusRemsecArg(arg: CmdrCustomCommandUiArg): boolean {
+    return String(arg.name ?? '').trim().toLowerCase() === 'remsec';
+  }
+
   protected isStatusBitmaskDotsArg(arg: CmdrCustomCommandUiArg): boolean {
     const control = String(arg.control ?? '').trim().toLowerCase();
     return control === 'bitmask_dots' || control === 'bitmask-dots';

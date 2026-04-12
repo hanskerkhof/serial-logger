@@ -69,7 +69,7 @@ export class HealthPollService {
    * Returns 0 when the WebSocket is connected and health is live.
    */
   readonly nextHealthPollCountdown = computed(() =>
-    Math.max(0, Math.round((this._nextHealthPollAt() - this._now()) / 1000)),
+    Math.max(0, Math.ceil((this._nextHealthPollAt() - this._now()) / 1000)),
   );
 
   /** Seconds since the last successful health response, or null before the first success. */

@@ -158,6 +158,19 @@ export class CommanderComponent implements OnInit {
   protected readonly healthRefreshing = this.healthService.healthRefreshing;
   protected readonly healthError = this.healthService.healthError;
   protected readonly nextHealthPollCountdown = this.healthService.nextHealthPollCountdown;
+  protected readonly offlineRetryStatusLabel = computed(() => {
+    if (this.healthError()) {
+      return `Next check in ${this.nextHealthPollCountdown()}s`;
+    }
+    const proxyState = String(this.health()?.commander?.proxy?.state ?? '').toLowerCase();
+    if (proxyState === 'reconnecting' || proxyState === 'probing' || proxyState === 'offline') {
+      return 'Auto-reprobe active';
+    }
+    if (proxyState === 'invalid_device') {
+      return 'Commander check blocked (invalid device on port)';
+    }
+    return 'Auto-detection active';
+  });
 
   protected readonly loading = signal(true);
   protected readonly fixtureQueryLoading = signal(false);
@@ -1718,7 +1731,9 @@ export class CommanderComponent implements OnInit {
     this.fixtureQueryLoading.set(true);
     this.error.set(null);
     const startedAt = performance.now();
-    this.commanderApi.getFixtureVersion(fixture).subscribe({
+    this.commanderApi.getFixtureVersion(fixture, {
+      preferQueryTokenAuth: true,
+    }).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         const stats = this.ingestQueryResult(result, 'fixture_query');
@@ -2049,7 +2064,9 @@ export class CommanderComponent implements OnInit {
         this.discoverFixturesCurrentFixture.set(fixtureName);
         this.sidebarRefreshingFixture.set(fixtureName);
         try {
-          const result = await firstValueFrom(this.commanderApi.getFixtureVersion(fixtureName));
+          const result = await firstValueFrom(this.commanderApi.getFixtureVersion(fixtureName, {
+            preferQueryTokenAuth: true,
+          }));
           this.ingestQueryResult(result, 'fixture_query', fixtureName);
           this.autoQueriedFixtures.add(fixtureName);
           successCount += 1;
@@ -2328,7 +2345,7 @@ export class CommanderComponent implements OnInit {
     this.runModalFixtureQueryInternal({
       refreshTracksAndDocs: true,
       successVerb: 'Query complete',
-      preferQueryTokenAuth: false,
+      preferQueryTokenAuth: true,
       onComplete,
     });
   }
@@ -2485,7 +2502,9 @@ export class CommanderComponent implements OnInit {
   }
 
   private queryFixtureByName(fixtureName: string): void {
-    this.commanderApi.getFixtureVersion(fixtureName).subscribe({
+    this.commanderApi.getFixtureVersion(fixtureName, {
+      preferQueryTokenAuth: true,
+    }).subscribe({
       next: (result) => {
         this.queryResult.set(result);
         this.ingestQueryResult(result, 'fixture_query', fixtureName);
@@ -2847,6 +2866,14 @@ export class CommanderComponent implements OnInit {
       const mergedRaw: Record<string, unknown> = { ...item, fixture_name };
       if (mergedRaw['config'] == null && existingRaw?.['config'] != null) {
         mergedRaw['config'] = existingRaw['config'];
+      }
+      // Preserve capabilities when a query intermittently returns none
+      // (e.g. BK_CAPABILITIES not received in this sweep).
+      if (mergedRaw['capabilities'] == null && existingRaw?.['capabilities'] != null) {
+        mergedRaw['capabilities'] = existingRaw['capabilities'];
+      }
+      if (mergedRaw['capabilities_status'] == null && existingRaw?.['capabilities_status'] != null) {
+        mergedRaw['capabilities_status'] = existingRaw['capabilities_status'];
       }
       // Preserve plan_state from cache when a query returns null — plan_state is only
       // populated when the commander has a recent BK_PLAN_STATE serial message.

@@ -9,7 +9,7 @@
           @else { Commander not detected — run queries are disabled. }
         </span>
         <span class="cmdr-offline-toast__footer">
-          Next check in {{ nextHealthPollCountdown() }}s
+          {{ offlineRetryStatusLabel() }}
           · <button class="cmdr-offline-toast__retry" (click)="retryHealth()">↻ retry</button>
         </span>
       </div>

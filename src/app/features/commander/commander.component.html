@@ -819,6 +819,9 @@
         } @else {
           <span class="commander__dialog-live-timing-placeholder">&nbsp;</span>
         }
+        @if (commanderVersionParityWarning(); as parityWarning) {
+          <small class="commander__dialog-parity-warning">{{ parityWarning }}</small>
+        }
       </div>
       <section
         class="commander__dialog-feedback commander__dialog-feedback--header"
@@ -938,64 +941,64 @@
 <!--&lt;!&ndash;                ></button>&ndash;&gt;-->
 <!--              }-->
 <!--            </section>-->
-<!--            <section class="commander__rssi" aria-label="Link quality">-->
-<!--              <h4 class="commander__rssi-title">-->
-<!--                Link Quality-->
-<!--                @if (selectedFixtureRssi()) {-->
-<!--                  <span class="commander__rssi-direction">signal received by fixture</span>-->
-<!--                } @else {-->
-<!--                  <span class="commander__rssi-direction">signal received by commander</span>-->
-<!--                }-->
-<!--              </h4>-->
-<!--              <div class="commander__rssi-summary">-->
-<!--                @if (selectedFixtureRssiQuality(); as quality) {-->
-<!--                  <span class="commander__rssi-badge commander__rssi-badge&#45;&#45;{{ rssiQualityClass(quality) }}">-->
-<!--                    {{ quality.replace('_', ' ') }}-->
-<!--                  </span>-->
-<!--                }-->
-<!--                @if (selectedFixtureRssiDbm(); as dbm) {-->
-<!--                  <span class="commander__rssi-dbm">{{ dbm }} dBm</span>-->
-<!--                }-->
-<!--                @if (selectedFixtureRssi(); as rssi) {-->
-<!--                  <span class="commander__rssi-duration">{{ rssiDurationLabel(rssi) }}</span>-->
-<!--                }-->
-<!--                @if (!selectedFixtureRssiDbm() && !selectedFixtureRssiQuality()) {-->
-<!--                  <span class="commander__rssi-no-data">-->
-<!--                    ⚠ No data yet — the commander must receive at least one message from this fixture first.-->
-<!--                  </span>-->
-<!--                }-->
-<!--              </div>-->
-<!--              @if (selectedFixtureRssi(); as rssi) {-->
-<!--                <table class="commander__rssi-table">-->
-<!--                  <thead>-->
-<!--                    <tr>-->
-<!--                      <th>Peer</th>-->
-<!--                      <th>MAC</th>-->
-<!--                      <th>Avg</th>-->
-<!--                      <th>Min</th>-->
-<!--                      <th>Max</th>-->
-<!--                      <th>Trend</th>-->
-<!--                    </tr>-->
-<!--                  </thead>-->
-<!--                  <tbody>-->
-<!--                    @for (peer of rssi.peers; track peer.mac) {-->
-<!--                      <tr>-->
-<!--                        <td class="commander__rssi-peer-name">-->
-<!--                          {{ macToFixtureName()[peer.mac.toUpperCase()] || '—' }}-->
-<!--                        </td>-->
-<!--                        <td>-->
-<!--                          <span class="commander__rssi-mac-addr">{{ peer.mac }}</span>-->
-<!--                        </td>-->
-<!--                        <td>{{ peer.avg_rssi }} dBm</td>-->
-<!--                        <td>{{ peer.min_rssi }}</td>-->
-<!--                        <td>{{ peer.max_rssi }}</td>-->
-<!--                        <td>{{ peer.trend_label }}</td>-->
-<!--                      </tr>-->
-<!--                    }-->
-<!--                  </tbody>-->
-<!--                </table>-->
-<!--              }-->
-<!--            </section>-->
+            <section class="commander__rssi" aria-label="Link quality">
+              <h4 class="commander__rssi-title">
+                Link Quality
+                @if (selectedFixtureRssi()) {
+                  <span class="commander__rssi-direction">signal received by fixture</span>
+                } @else {
+                  <span class="commander__rssi-direction">signal received by commander</span>
+                }
+              </h4>
+              <div class="commander__rssi-summary">
+                @if (selectedFixtureRssiQuality(); as quality) {
+                  <span class="commander__rssi-badge commander__rssi-badge--{{ rssiQualityClass(quality) }}">
+                    {{ quality.replace('_', ' ') }}
+                  </span>
+                }
+                @if (selectedFixtureRssiDbm(); as dbm) {
+                  <span class="commander__rssi-dbm">{{ dbm }} dBm</span>
+                }
+                @if (selectedFixtureRssi(); as rssi) {
+                  <span class="commander__rssi-duration">{{ rssiDurationLabel(rssi) }}</span>
+                }
+                @if (!selectedFixtureRssiDbm() && !selectedFixtureRssiQuality()) {
+                  <span class="commander__rssi-no-data">
+                    ⚠ No data yet — the commander must receive at least one message from this fixture first.
+                  </span>
+                }
+              </div>
+              @if (selectedFixtureRssi(); as rssi) {
+                <table class="commander__rssi-table">
+                  <thead>
+                    <tr>
+                      <th>Peer</th>
+                      <th>MAC</th>
+                      <th>Avg</th>
+                      <th>Min</th>
+                      <th>Max</th>
+                      <th>Trend</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (peer of rssi.peers; track peer.mac) {
+                      <tr>
+                        <td class="commander__rssi-peer-name">
+                          {{ macToFixtureName()[peer.mac.toUpperCase()] || '—' }}
+                        </td>
+                        <td>
+                          <span class="commander__rssi-mac-addr">{{ peer.mac }}</span>
+                        </td>
+                        <td>{{ peer.avg_rssi }} dBm</td>
+                        <td>{{ peer.min_rssi }}</td>
+                        <td>{{ peer.max_rssi }}</td>
+                        <td>{{ peer.trend_label }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </section>
             @if (selectedFixtureCustomCommands().length > 0) {
               <app-fixture-custom-control
                 [commands]="selectedFixtureCustomCommands()"

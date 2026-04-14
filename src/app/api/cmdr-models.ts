@@ -41,7 +41,7 @@ export interface CmdrSequenceTimelineDefinition {
   sq: string;
   ts: number;
   td: number;
-  steps: CmdrSequenceTimelineStep[];
+  steps?: CmdrSequenceTimelineStep[];
 }
 
 export type CmdrCustomCommandUiItem = components['schemas']['CustomCommandUiItem'] & {
@@ -81,29 +81,8 @@ export interface CmdrRelayStateItem {
   remainingOnMs?: number;
 }
 
-// --- Fast plan-status endpoint models (handwritten until OpenAPI types are regenerated) ---
-export interface CmdrFixturePlanStatusSummary {
-  fixture_name: string;
-  plan_state: Record<string, unknown> | null;
-  source: 'fsps_live' | 'cache' | 'missing' | string;
-  fsps?: {
-    request_id?: string;
-    fixture_name?: string;
-    accepted?: boolean;
-    plan_state_received?: boolean;
-    elapsed_ms?: number;
-    error?: string;
-  } | null;
-}
-
-export interface CmdrFixturePlanStatusResponse {
-  ok: boolean;
-  service: string;
-  fixture_name: string;
-  summary: CmdrFixturePlanStatusSummary;
-  issued_commands: string[];
-  timing?: Record<string, unknown> | null;
-}
+export type CmdrFixturePlanStatusSummary = components['schemas']['FixturePlanStatusSummary'];
+export type CmdrFixturePlanStatusResponse = components['schemas']['FixturePlanStatusResponse'];
 
 // --- Messages API (not in OpenAPI schema — handwritten) ---
 export interface CmdrMessageSection {

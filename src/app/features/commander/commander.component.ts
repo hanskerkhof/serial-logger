@@ -99,6 +99,14 @@ interface LiveUpdateTimingSample {
   sincePrevEmitMs: number | null;
   targetIntervalMs: number | null;
   headroomMs: number | null;
+  overBudget: boolean | null;
+  spike: boolean | null;
+}
+
+interface AutoStabilizeStatus {
+  fromIntervalMs: number;
+  toIntervalMs: number;
+  atMs: number;
 }
 
 interface DiscoveryTimingRow {
@@ -148,6 +156,9 @@ export class CommanderComponent implements OnInit {
     { label: '1s', value: 1000 },
     { label: '5s', value: 5000 },
   ];
+  private static readonly AUTO_STABILIZE_STEPS_MS: readonly number[] = [500, 750, 1000];
+  private static readonly AUTO_STABILIZE_WINDOW_SAMPLES = 8;
+  private static readonly AUTO_STABILIZE_TRIGGER_COUNT = 5;
 
   protected readonly frontendVersion = APP_VERSION;
   protected readonly frontendBuildDate = BUILD_DATE;
@@ -367,6 +378,8 @@ export class CommanderComponent implements OnInit {
     localStorage.getItem('cmdr.liveTiming.movingAvg') === '1',
   );
   private readonly liveTimingSamplesByFixture = signal<Map<string, LiveUpdateTimingSample[]>>(new Map());
+  private readonly liveOverBudgetWindowByFixture = signal<Map<string, boolean[]>>(new Map());
+  private readonly liveAutoStabilizedByFixture = signal<Map<string, AutoStabilizeStatus>>(new Map());
   private readonly fixtureManualRefreshAtByName = signal<Map<string, number>>(new Map());
   private modalQuerySub: Subscription | null = null;
   /** Fixture names that have been auto-queried on first modal open this session. */
@@ -1015,6 +1028,7 @@ export class CommanderComponent implements OnInit {
     const fixtureName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
     const liveSample = this.parseLiveUpdateTimingSample(timing);
     const samples = fixtureName ? (this.liveTimingSamplesByFixture().get(fixtureName) ?? []) : [];
+    const autoStabilized = fixtureName ? (this.liveAutoStabilizedByFixture().get(fixtureName) ?? null) : null;
     const useAvg = this.liveTimingMovingAverageEnabled();
     const avg = useAvg ? this.averageLiveUpdateTimingSamples(samples) : null;
     const sourceSample = avg ?? liveSample;
@@ -1029,6 +1043,9 @@ export class CommanderComponent implements OnInit {
     if (queryElapsedMs !== null) parts.push(`Q ${queryElapsedMs.toFixed(1)} ms`);
     if (sincePrevEmitMs !== null) parts.push(`Δ ${sincePrevEmitMs.toFixed(1)} ms`);
     if (headroomMs !== null) parts.push(`H ${headroomMs.toFixed(1)} ms`);
+    if (sourceSample.overBudget === true) parts.push('over-budget');
+    if (sourceSample.spike === true) parts.push('spike');
+    if (autoStabilized) parts.push(`auto-stabilized ${autoStabilized.toIntervalMs}ms`);
     return parts.length > 0 ? parts.join(' · ') : null;
   });
 
@@ -1325,6 +1342,16 @@ export class CommanderComponent implements OnInit {
       : cmp < 0        ? 'fixture-outdated'
       :                  'fixture-ahead';
     return { fw: v, release, upToDate: direction === 'up-to-date', direction };
+  });
+
+  protected readonly commanderVersionParityWarning = computed<string | null>(() => {
+    const health = this.health();
+    const release = health?.api?.release_version ?? health?.release_version ?? null;
+    const commanderFw = health?.commander?.fw_version ?? null;
+    const explicitMismatch = health?.commander?.['fw_mismatch'] === true;
+    if (!release || !commanderFw) return null;
+    if (!explicitMismatch && compareVersions(commanderFw, release) === 0) return null;
+    return `Commander FW v${commanderFw} differs from API release v${release}`;
   });
 
   // Callbacks run once when the API recovers from offline → online.
@@ -2401,6 +2428,8 @@ export class CommanderComponent implements OnInit {
     const normalized = this.normalizeFixtureModalPollIntervalMs(value);
     if (normalized === this.fixtureModalPollIntervalMs()) return;
     this.fixtureModalPollIntervalMs.set(normalized);
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (fixture) this.clearAutoStabilizedStatus(fixture);
   }
 
   private startFixtureModalPolling(): void {
@@ -3145,12 +3174,18 @@ export class CommanderComponent implements OnInit {
       queryElapsedMs !== null && targetIntervalMs !== null
         ? targetIntervalMs - queryElapsedMs
         : null;
+    const overBudget =
+      this.parseBoolean(timing['over_budget']) ??
+      (headroomMs !== null ? headroomMs < 0 : null);
+    const spike = this.parseBoolean(timing['spike']);
     if (
       phase === null &&
       queryElapsedMs === null &&
       sincePrevEmitMs === null &&
       targetIntervalMs === null &&
-      headroomMs === null
+      headroomMs === null &&
+      overBudget === null &&
+      spike === null
     ) {
       return null;
     }
@@ -3160,6 +3195,8 @@ export class CommanderComponent implements OnInit {
       sincePrevEmitMs,
       targetIntervalMs,
       headroomMs,
+      overBudget,
+      spike,
     };
   }
 
@@ -3190,6 +3227,8 @@ export class CommanderComponent implements OnInit {
       sincePrevEmitMs: averageOf(samples.map((sample) => sample.sincePrevEmitMs)),
       targetIntervalMs: averageOf(samples.map((sample) => sample.targetIntervalMs)),
       headroomMs: averageOf(samples.map((sample) => sample.headroomMs)),
+      overBudget: latest.overBudget,
+      spike: latest.spike,
     };
   }
 
@@ -3208,6 +3247,70 @@ export class CommanderComponent implements OnInit {
       next.set(key, samples.slice(-maxSamples));
       return next;
     });
+    this.applyAutoStabilizationIfNeeded(key, sample);
+  }
+
+  private parseBoolean(value: unknown): boolean | null {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') return true;
+      if (normalized === 'false') return false;
+    }
+    return null;
+  }
+
+  private clearAutoStabilizedStatus(fixtureName: string): void {
+    this.liveAutoStabilizedByFixture.update((current) => {
+      if (!current.has(fixtureName)) return current;
+      const next = new Map(current);
+      next.delete(fixtureName);
+      return next;
+    });
+  }
+
+  private applyAutoStabilizationIfNeeded(fixtureName: string, sample: LiveUpdateTimingSample): void {
+    if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
+    const selectedName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!selectedName || selectedName !== fixtureName) return;
+    const overloaded = sample.overBudget === true || sample.spike === true;
+    const maxWindow = CommanderComponent.AUTO_STABILIZE_WINDOW_SAMPLES;
+    let overloadWindow: boolean[] = [];
+    this.liveOverBudgetWindowByFixture.update((current) => {
+      const next = new Map(current);
+      const window = [...(next.get(fixtureName) ?? []), overloaded].slice(-maxWindow);
+      next.set(fixtureName, window);
+      overloadWindow = window;
+      return next;
+    });
+    const overloadedCount = overloadWindow.filter(Boolean).length;
+    if (overloadedCount < CommanderComponent.AUTO_STABILIZE_TRIGGER_COUNT) return;
+    const currentInterval = this.fixtureModalPollIntervalMs();
+    const nextInterval = this.nextAutoStabilizedInterval(currentInterval);
+    if (nextInterval === null || nextInterval === currentInterval) return;
+    this.fixtureModalPollIntervalMs.set(nextInterval);
+    this.liveAutoStabilizedByFixture.update((current) => {
+      const next = new Map(current);
+      next.set(fixtureName, {
+        fromIntervalMs: currentInterval,
+        toIntervalMs: nextInterval,
+        atMs: Date.now(),
+      });
+      return next;
+    });
+    this.liveOverBudgetWindowByFixture.update((current) => {
+      const next = new Map(current);
+      next.set(fixtureName, []);
+      return next;
+    });
+  }
+
+  private nextAutoStabilizedInterval(currentIntervalMs: number): number | null {
+    const steps = CommanderComponent.AUTO_STABILIZE_STEPS_MS;
+    if (!steps.includes(currentIntervalMs)) return null;
+    const currentIndex = steps.indexOf(currentIntervalMs);
+    if (currentIndex < 0 || currentIndex >= steps.length - 1) return null;
+    return steps[currentIndex + 1] ?? null;
   }
 
   private buildModalWireCommand(fixture: string, command: string, mode: SendCommandMode): string {

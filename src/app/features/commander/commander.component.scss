@@ -454,6 +454,12 @@
   letter-spacing: 0;
 }
 
+.commander__dialog-parity-warning {
+  font-size: 0.67rem;
+  color: #b45309;
+  white-space: nowrap;
+}
+
 .commander__dialog-poll-timing-toggle {
   display: inline-flex;
   align-items: center;

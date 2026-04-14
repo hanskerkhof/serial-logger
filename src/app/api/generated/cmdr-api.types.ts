@@ -55,6 +55,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/lwl-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Auth Lwl Login
+         * @description Light Weight Login endpoint. Active only when CMDR auth mode is 'lwl'.
+         */
+        post: operations["auth_lwl_login_auth_lwl_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/lwl-refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Auth Lwl Refresh
+         * @description Re-issue a fresh LWL token. Caller must present a valid Bearer token.
+         */
+        post: operations["auth_lwl_refresh_auth_lwl_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Auth Status
+         * @description Public endpoint — returns auth config so the FE can configure login dynamically.
+         */
+        get: operations["auth_status_auth_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/commander/raw": {
         parameters: {
             query?: never;
@@ -157,6 +217,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fixtures/discovery/ws-cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fixture Discovery Ws Cancel */
+        post: operations["fixture_discovery_ws_cancel_fixtures_discovery_ws_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/discovery/ws-start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fixture Discovery Ws Start */
+        post: operations["fixture_discovery_ws_start_fixtures_discovery_ws_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/discovery/ws-start-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fixture Discovery Ws Start Batch */
+        post: operations["fixture_discovery_ws_start_batch_fixtures_discovery_ws_start_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fixtures/{fixture_name}/cmd": {
         parameters: {
             query?: never;
@@ -243,6 +354,23 @@ export interface paths {
         put?: never;
         /** Fixture Plan Action */
         post: operations["fixture_plan_action_fixtures__fixture_name__plan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/{fixture_name}/plan-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fixture Plan Status */
+        get: operations["fixture_plan_status_fixtures__fixture_name__plan_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -398,6 +526,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plans/{plan_name}/player/tracks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plan Player Tracks */
+        get: operations["plan_player_tracks_plans__plan_name__player_tracks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/plans/{plan_name}/versions": {
         parameters: {
             query?: never;
@@ -449,6 +594,13 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** AuthLoginRequest */
+        AuthLoginRequest: {
+            /** Password */
+            password: string;
+            /** Username */
+            username: string;
+        };
         /** CommandResult */
         CommandResult: {
             /** Accepted */
@@ -495,6 +647,10 @@ export interface components {
             expected_fixture_name: string | null;
             /** Fqbn */
             fqbn: string | null;
+            /** Fw Matches Release */
+            fw_matches_release: boolean | null;
+            /** Fw Mismatch */
+            fw_mismatch: boolean | null;
             /** Fw Version */
             fw_version: string | null;
             /** Last Reboot At Utc */
@@ -651,6 +807,8 @@ export interface components {
         };
         /** CustomCommandUiArg */
         CustomCommandUiArg: {
+            /** Bit Count */
+            bit_count?: number | null;
             /** Control */
             control: string;
             /** Default */
@@ -665,10 +823,22 @@ export interface components {
             name: string;
             /** Options */
             options?: components["schemas"]["OptionItem"][] | null;
+            /** Sequence Definitions */
+            sequence_definitions?: {
+                [key: string]: components["schemas"]["SequenceTimelineDefinition"];
+            } | null;
+            /** Sequence Keys */
+            sequence_keys?: string[] | null;
             /** State Path */
             state_path?: string | null;
+            /** Status Row */
+            status_row?: string | null;
             /** Step */
             step?: number | null;
+            /** Suffix */
+            suffix?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** CustomCommandUiItem */
         CustomCommandUiItem: {
@@ -676,16 +846,40 @@ export interface components {
             args?: components["schemas"]["CustomCommandUiArg"][];
             /** Confirm */
             confirm?: string | null;
+            /** Control */
+            control?: string | null;
             /** Group */
             group?: string | null;
             /** Id */
             id: string;
             /** Label */
             label: string;
+            live_draft_sync?: components["schemas"]["CustomCommandUiLiveDraftSync"] | null;
+            /** Live Group */
+            live_group?: string | null;
+            post_run_sync?: components["schemas"]["CustomCommandUiPostRunSync"] | null;
             /** Send On Release */
             send_on_release?: boolean | null;
+            /** Ui Mode */
+            ui_mode?: string | null;
             /** Wire Template */
             wire_template: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** CustomCommandUiLiveDraftSync */
+        CustomCommandUiLiveDraftSync: {
+            /** Args */
+            args?: string[] | null;
+            /** Mode */
+            mode?: string | null;
+        };
+        /** CustomCommandUiPostRunSync */
+        CustomCommandUiPostRunSync: {
+            /** Mode */
+            mode?: string | null;
+            /** Targets */
+            targets?: string[] | null;
         };
         /** DiscoveryResponse */
         DiscoveryResponse: {
@@ -869,6 +1063,38 @@ export interface components {
         FixturePlanActionRequest: {
             /** Action */
             action: string;
+        };
+        /** FixturePlanStatusResponse */
+        FixturePlanStatusResponse: {
+            /** Fixture Name */
+            fixture_name: string;
+            /** Issued Commands */
+            issued_commands: string[];
+            /** Ok */
+            ok: boolean;
+            /** Service */
+            service: string;
+            summary: components["schemas"]["FixturePlanStatusSummary"];
+            timing?: components["schemas"]["PlanStateTiming"] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixturePlanStatusSummary */
+        FixturePlanStatusSummary: {
+            /** Fixture Name */
+            fixture_name: string;
+            /** Fsps */
+            fsps?: {
+                [key: string]: unknown;
+            } | null;
+            /** Plan State */
+            plan_state?: {
+                [key: string]: unknown;
+            } | null;
+            /** Source */
+            source: string;
+        } & {
+            [key: string]: unknown;
         };
         /** FixtureRssiReport */
         FixtureRssiReport: {
@@ -1084,6 +1310,33 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** PlanStateTiming */
+        PlanStateTiming: {
+            /** Loop Cycle Ms */
+            loop_cycle_ms?: number | null;
+            /** Over Budget */
+            over_budget?: boolean | null;
+            /** Phase */
+            phase?: string | null;
+            /** Query Elapsed Ms */
+            query_elapsed_ms?: number | null;
+            /** Query Timing */
+            query_timing?: {
+                [key: string]: unknown;
+            } | null;
+            /** Refresh Interval Ms */
+            refresh_interval_ms?: number | null;
+            /** Serial Error */
+            serial_error?: string | null;
+            /** Since Prev Emit Ms */
+            since_prev_emit_ms?: number | null;
+            /** Spike */
+            spike?: boolean | null;
+            /** Target Interval Ms */
+            target_interval_ms?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** PlansResponse */
         PlansResponse: {
             /** Count */
@@ -1236,6 +1489,28 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** SequenceTimelineDefinition */
+        SequenceTimelineDefinition: {
+            /** Sq */
+            sq: string;
+            /** Steps */
+            steps?: components["schemas"]["SequenceTimelineStep"][];
+            /** Td */
+            td: number;
+            /** Ts */
+            ts: number;
+        };
+        /** SequenceTimelineStep */
+        SequenceTimelineStep: {
+            /** Duration Ms */
+            duration_ms: number;
+            /** Index */
+            index: number;
+            /** Start Ms */
+            start_ms: number;
+            /** Title */
+            title: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1377,6 +1652,85 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_lwl_login_auth_lwl_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_lwl_refresh_auth_lwl_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_status_auth_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -1562,6 +1916,107 @@ export interface operations {
             };
         };
     };
+    fixture_discovery_ws_cancel_fixtures_discovery_ws_cancel_post: {
+        parameters: {
+            query?: {
+                session_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_discovery_ws_start_fixtures_discovery_ws_start_post: {
+        parameters: {
+            query?: {
+                listen_seconds?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_discovery_ws_start_batch_fixtures_discovery_ws_start_batch_post: {
+        parameters: {
+            query?: {
+                listen_seconds?: number;
+                runs?: number;
+                inter_run_gap_ms?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     fixture_command_fixtures__fixture_name__cmd_post: {
         parameters: {
             query?: never;
@@ -1715,6 +2170,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixtureCommandResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_plan_status_fixtures__fixture_name__plan_status_get: {
+        parameters: {
+            query?: {
+                listen_seconds?: number;
+            };
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixturePlanStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1935,6 +2423,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlansResponse"];
+                };
+            };
+        };
+    };
+    plan_player_tracks_plans__plan_name__player_tracks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -501,6 +501,25 @@
   }
 }
 
+.commander__fixture-seen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  color: var(--p-text-muted-color, #6b7280);
+  opacity: 0.75;
+  flex-shrink: 0;
+
+  .pi {
+    font-size: 0.6rem;
+  }
+
+  &--overdue {
+    color: #f97316;
+    opacity: 1;
+  }
+}
+
 .commander__custom input,
 .commander__query-row input,
 .commander__query-row select,

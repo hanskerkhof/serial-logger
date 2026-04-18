@@ -258,6 +258,13 @@
                       >
                         {{ fixture.fixture_name }}
                       </button>
+                      @if (fixtureLastSeenLabel(fixture.fixture_name); as label) {
+                        <span
+                          class="commander__fixture-seen"
+                          [class.commander__fixture-seen--overdue]="fixtureHeartbeatOverdue(fixture.fixture_name)"
+                          title="Last heartbeat seen {{ label }} ago"
+                        ><i class="pi pi-clock"></i>{{ label }}</span>
+                      }
                       @if (fixtureFwStatusMap().get(fixture.fixture_name); as fws) {
                         <span
                           class="commander__fixture-fw"

@@ -72,7 +72,7 @@ import {
 import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
 import { FixtureDocsComponent } from '../../shared/fixture-docs/fixture-docs.component';
 import { CopyToClipboardComponent } from '../../shared/copy-to-clipboard/copy-to-clipboard.component';
-import { DiscoveryWsMessage, HealthPollService, PlanStateWsMessage } from '../../health-poll.service';
+import { DiscoveryWsMessage, FixtureSeenWsMessage, HealthPollService, PlanStateWsMessage } from '../../health-poll.service';
 import {
   QrScannedCommandService,
   ScannedFixtureCommand,
@@ -442,6 +442,12 @@ export class CommanderComponent implements OnInit {
 
   // Ensures auto-discovery on empty store fires at most once per session.
   private _autoDiscoveryTriggered = false;
+
+  // Tracks fixture names currently being queried via passive discovery to avoid duplicate requests.
+  private readonly _passiveQueryInFlight = new Set<string>();
+
+  // Last-seen timestamps (ms since epoch) from the passive heartbeat cache, keyed by fixture name.
+  protected readonly fixtureLastSeenMs = signal<Map<string, number>>(new Map());
   private readonly discoveryLockStorageKey = 'cmdr.discovery.lock.v1';
   private readonly discoveryLockTtlMs = 5 * 60 * 1000;
   private readonly discoveryTabId =
@@ -1372,12 +1378,18 @@ export class CommanderComponent implements OnInit {
     this.recoveryCallbacks.push(
       () => this.loadExposedPlans(),
       () => this.loadLanGroups(),
+      () => this.pollPassiveDiscovery(),
     );
 
     this.loadExposedPlans();
     this.loadLanGroups();
     const timer = setInterval(() => this.now.set(Date.now()), 1000);
     this.destroyRef.onDestroy(() => clearInterval(timer));
+
+    // Poll /fixtures/discovered every 15 s to pick up passively-seen fixtures.
+    this.pollPassiveDiscovery();
+    const passiveDiscoveryTimer = setInterval(() => this.pollPassiveDiscovery(), 15_000);
+    this.destroyRef.onDestroy(() => clearInterval(passiveDiscoveryTimer));
 
     // If health arrived before this component mounted (rare), clear loading immediately.
     if (this.healthService.health() !== null || this.healthService.healthError() !== null) {
@@ -1675,6 +1687,13 @@ export class CommanderComponent implements OnInit {
         return;
       }
     });
+    const fixtureSeenSub = this.healthService.fixtureSeen$.subscribe((msg: FixtureSeenWsMessage) => {
+      const name = String(msg.fixture_name ?? '').trim();
+      if (!name) return;
+      const lastSeen = typeof msg.data?.['last_seen_ms'] === 'number' ? msg.data['last_seen_ms'] : Date.now();
+      this.updateFixtureLastSeen(name, lastSeen);
+      this.autoQueryPassiveFixture(name);
+    });
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
       failedSub.unsubscribe();
@@ -1683,6 +1702,7 @@ export class CommanderComponent implements OnInit {
       planStateSub.unsubscribe();
       planStateErrorSub.unsubscribe();
       discoverySub.unsubscribe();
+      fixtureSeenSub.unsubscribe();
       this.stopFixtureModalPolling();
       window.removeEventListener('storage', onStorage);
       this.releaseDiscoveryLock();
@@ -4127,5 +4147,85 @@ export class CommanderComponent implements OnInit {
     }
 
     return `${prefix}: ${String(err)}`;
+  }
+
+  /** Human-readable elapsed time since the fixture last sent a passive heartbeat (e.g. "5s", "2m3s"). */
+  protected fixtureLastSeenLabel(fixtureName: string): string | null {
+    const lastSeenMs = this.fixtureLastSeenMs().get(fixtureName);
+    if (lastSeenMs == null) return null;
+    const elapsedMs = Math.max(0, this.now() - lastSeenMs);
+    return this.formatElapsedMs(elapsedMs);
+  }
+
+  /** True when elapsed since last heartbeat exceeds the 30 s broadcast interval + grace margin. */
+  protected fixtureHeartbeatOverdue(fixtureName: string): boolean {
+    const lastSeenMs = this.fixtureLastSeenMs().get(fixtureName);
+    if (lastSeenMs == null) return false;
+    return (this.now() - lastSeenMs) > 35_000;
+  }
+
+  private formatElapsedMs(elapsedMs: number): string {
+    const totalS = Math.max(1, Math.floor(elapsedMs / 1000));
+    if (totalS < 60) return `${totalS}s`;
+    const m = Math.floor(totalS / 60);
+    const s = totalS % 60;
+    if (totalS < 3600) return s > 0 ? `${m}m${s}s` : `${m}m`;
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return rem > 0 ? `${h}h${rem}m` : `${h}h`;
+  }
+
+  /**
+   * Polls GET /fixtures/discovered and fires autoQueryPassiveFixture() for any
+   * fixture name that is not yet in the local store.
+   */
+  private pollPassiveDiscovery(): void {
+    if (this.healthError()) return;
+    this.commanderApi.getFixturesDiscovered().subscribe({
+      next: (response) => {
+        if (!response.ok || !Array.isArray(response.fixtures)) return;
+        for (const entry of response.fixtures) {
+          const name = String(entry['fixture_name'] ?? '').trim();
+          if (!name) continue;
+          const lastSeen = typeof entry['last_seen_ms'] === 'number' ? entry['last_seen_ms'] : null;
+          if (lastSeen !== null) this.updateFixtureLastSeen(name, lastSeen);
+          this.autoQueryPassiveFixture(name);
+        }
+      },
+      error: () => {/* silently ignore — passive discovery is best-effort */},
+    });
+  }
+
+  private updateFixtureLastSeen(fixtureName: string, lastSeenMs: number): void {
+    this.fixtureLastSeenMs.update((map) => {
+      const next = new Map(map);
+      next.set(fixtureName, lastSeenMs);
+      return next;
+    });
+  }
+
+  /**
+   * Fires a full fixture version query for a passively-discovered fixture name.
+   * Skips if a query is already in flight, or if the fixture is already in the
+   * store with complete data (capabilities + plan_state both present).
+   */
+  private autoQueryPassiveFixture(fixtureName: string): void {
+    if (this._passiveQueryInFlight.has(fixtureName)) return;
+    const existing = this.fixtureStore.fixturesByName()[fixtureName];
+    if (existing) {
+      const hasCapabilities = existing.raw['capabilities'] != null;
+      const hasPlanState = existing.raw['plan_state'] != null;
+      if (hasCapabilities && hasPlanState) return;
+    }
+    this._passiveQueryInFlight.add(fixtureName);
+    this.commanderApi.getFixtureVersion(fixtureName, { preferQueryTokenAuth: true }).subscribe({
+      next: (result) => {
+        this.ingestQueryResult(result, 'fixture_query', fixtureName);
+        this._passiveQueryInFlight.delete(fixtureName);
+      },
+      error: () => {
+        this._passiveQueryInFlight.delete(fixtureName);
+      },
+    });
   }
 }

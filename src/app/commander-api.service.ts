@@ -145,6 +145,12 @@ export class CommanderApiService {
     );
   }
 
+  getFixturesDiscovered(): Observable<{ ok: boolean; fixtures: Record<string, unknown>[]; count: number; source: string }> {
+    return this.http.get<{ ok: boolean; fixtures: Record<string, unknown>[]; count: number; source: string }>(
+      `${this.getRequestBaseUrl()}/fixtures/discovered`,
+    );
+  }
+
   startFixtureDiscoveryWs(listenSeconds = 60): Observable<{ ok: boolean; status: string; mode: string; session_id: string; listen_seconds: number }> {
     return this.http.post<{ ok: boolean; status: string; mode: string; session_id: string; listen_seconds: number }>(
       `${this.getRequestBaseUrl()}/fixtures/discovery/ws-start?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,

@@ -43,6 +43,7 @@ export class CommanderConsoleComponent {
   protected readonly paused = signal(false);
   protected readonly autoScroll = signal(true);
   protected readonly showHeartbeatLines = signal(false);
+  protected readonly showPassiveSeenLines = signal(false);
   protected readonly heartbeatPulse = signal(false);
   protected readonly lastHeartbeatTs = signal<number | null>(null);
   protected readonly lines = signal<ConsoleLine[]>([]);
@@ -84,6 +85,10 @@ export class CommanderConsoleComponent {
 
   protected toggleHeartbeatLines(): void {
     this.showHeartbeatLines.set(!this.showHeartbeatLines());
+  }
+
+  protected togglePassiveSeenLines(): void {
+    this.showPassiveSeenLines.set(!this.showPassiveSeenLines());
   }
 
   protected clear(): void {
@@ -183,6 +188,10 @@ export class CommanderConsoleComponent {
       if (!this.showHeartbeatLines()) {
         return;
       }
+    }
+
+    if (!this.showPassiveSeenLines() && typeof event.line === 'string' && event.line.includes('BK_PASSIVE_SEEN')) {
+      return;
     }
 
     if (this.paused()) {

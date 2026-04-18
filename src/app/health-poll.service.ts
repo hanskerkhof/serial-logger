@@ -42,6 +42,12 @@ export interface DiscoveryWsMessage {
   [key: string]: unknown;
 }
 
+export interface FixtureSeenWsMessage {
+  type: 'fixture_seen';
+  fixture_name: string;
+  data: Record<string, unknown>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HealthPollService {
   private static readonly HEALTH_POLL_MS = 30_000;
@@ -94,6 +100,8 @@ export class HealthPollService {
   readonly planStateError$ = new Subject<PlanStateWsErrorMessage>();
   /** Emits live discovery events pushed over /health/ws. */
   readonly discovery$ = new Subject<DiscoveryWsMessage>();
+  /** Emits when a fixture heartbeat is passively observed by the commander. */
+  readonly fixtureSeen$ = new Subject<FixtureSeenWsMessage>();
 
   private _ws: WebSocket | null = null;
   private _wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
@@ -221,6 +229,10 @@ export class HealthPollService {
         return;
       }
       if (data?.['type'] === 'plan_state_subscribed' || data?.['type'] === 'plan_state_unsubscribed') {
+        return;
+      }
+      if (data?.['type'] === 'fixture_seen') {
+        this.fixtureSeen$.next(data as unknown as FixtureSeenWsMessage);
         return;
       }
       if (typeof data?.['type'] === 'string' && data['type'].startsWith('discovery_')) {

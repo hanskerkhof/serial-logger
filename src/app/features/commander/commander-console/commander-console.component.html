@@ -35,6 +35,10 @@
         <p-toggleswitch [ngModel]="showHeartbeatLines()" (ngModelChange)="toggleHeartbeatLines()" />
         <span>Heartbeat</span>
       </label>
+      <label class="commander-console__switch-label">
+        <p-toggleswitch [ngModel]="showPassiveSeenLines()" (ngModelChange)="togglePassiveSeenLines()" />
+        <span>BK_PASSIVE_SEEN</span>
+      </label>
     </div>
   </header>
 

@@ -4210,9 +4210,11 @@ export class CommanderComponent implements OnInit {
    * store with complete data (capabilities + plan_state both present).
    */
   private autoQueryPassiveFixture(fixtureName: string): void {
-    // Skip commander boards — they appear in the passive cache via fpc bootstrap but cannot
-    // respond to fsf queries while acting as the active commander.
-    if (/^BKLK_CMDR_/i.test(fixtureName)) return;
+    // Skip the connected commander itself — it appears in the passive cache via fpc bootstrap
+    // but cannot respond to fsf queries while acting as the active commander.
+    // Other commanders (e.g. BKLK_CMDR_2 seen from CMDR_1's API) are treated as normal fixtures.
+    const selfName = this.health()?.commander?.detected_fixture_name ?? null;
+    if (selfName && fixtureName.toUpperCase() === selfName.toUpperCase()) return;
     if (this._passiveQueryInFlight.has(fixtureName)) return;
     const existing = this.fixtureStore.fixturesByName()[fixtureName];
     if (existing) {

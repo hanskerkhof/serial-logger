@@ -385,6 +385,7 @@
               <div><strong>last reboot reason:</strong> {{ commanderHealth.last_reboot_reason || '-' }}</div>
               <div><strong>last reboot:</strong> {{ commanderHealth.last_reboot_at_utc || '-' }} ({{ relativeTime(commanderHealth.last_reboot_at_utc) || '-' }})</div>
               <div><strong>serial port:</strong> {{ commanderHealth.port || '-' }}</div>
+              <div><strong>commander baud rate:</strong> {{ commanderHealth.baud ?? '-' }}</div>
               <div><strong>resolver source:</strong> {{ commanderHealth.resolver_source || '-' }}</div>
               @if (commanderHealth.proxy; as proxyHealth) {
                 <div><strong>proxy state:</strong> {{ proxyHealth.state || '-' }}</div>

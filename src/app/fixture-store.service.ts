@@ -148,6 +148,27 @@ export class FixtureStoreService {
     this.persistToStorage();
   }
 
+  /**
+   * Merge a partial set of `raw` fields into an existing fixture record without
+   * replacing the whole record. Silently no-ops when the fixture is not in the
+   * store. Used by passive discovery to keep fw_version / build_date / build_time
+   * up-to-date from heartbeat data without waiting for a full query.
+   */
+  patchFixtureRaw(fixtureName: string, fields: Record<string, unknown>): void {
+    this.fixturesByName.update((current) => {
+      if (!(fixtureName in current)) return current;
+      const existing = current[fixtureName];
+      return {
+        ...current,
+        [fixtureName]: {
+          ...existing,
+          raw: { ...existing.raw, ...fields },
+        },
+      };
+    });
+    this.persistToStorage();
+  }
+
   removeFixture(fixtureName: string): void {
     this.fixturesByName.update((current) => {
       if (!(fixtureName in current)) return current;

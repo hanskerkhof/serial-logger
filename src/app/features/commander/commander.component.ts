@@ -1692,6 +1692,11 @@ export class CommanderComponent implements OnInit {
       if (!name) return;
       const lastSeen = typeof msg.data?.['last_seen_ms'] === 'number' ? msg.data['last_seen_ms'] : Date.now();
       this.updateFixtureLastSeen(name, lastSeen);
+      const versionPatch: Record<string, unknown> = {};
+      if (typeof msg.data?.['fw_version'] === 'string' && msg.data['fw_version']) versionPatch['fw_version'] = msg.data['fw_version'];
+      if (typeof msg.data?.['build_date'] === 'string' && msg.data['build_date']) versionPatch['build_date'] = msg.data['build_date'];
+      if (typeof msg.data?.['build_time'] === 'string' && msg.data['build_time']) versionPatch['build_time'] = msg.data['build_time'];
+      if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
       this.autoQueryPassiveFixture(name);
     });
     this.destroyRef.onDestroy(() => {
@@ -1769,11 +1774,14 @@ export class CommanderComponent implements OnInit {
       this.sidebarRefreshingFixture.set(null);
       return;
     }
-    const fixture = this.fixtureName().trim();
+    const fixture = this.normalizeKnownFixtureName(this.fixtureName());
     if (!fixture) {
-      this.error.set('Fixture name is required.');
+      this.error.set('Valid fixture name is required.');
       this.sidebarRefreshingFixture.set(null);
       return;
+    }
+    if (fixture !== this.fixtureName()) {
+      this.fixtureName.set(fixture);
     }
 
     this.fixtureQueryLoading.set(true);
@@ -2203,7 +2211,9 @@ export class CommanderComponent implements OnInit {
   }
 
   protected onFixtureSelected(value: string): void {
-    this.fixtureName.set(value);
+    const normalized = this.normalizeKnownFixtureName(value);
+    if (!normalized) return;
+    this.fixtureName.set(normalized);
   }
 
   protected onPlanSelected(value: string): void {
@@ -2217,7 +2227,9 @@ export class CommanderComponent implements OnInit {
   /** Auto-run when item selected via keyboard (Enter). Mouse selections require the Run button. */
   protected onFixtureSelectChange(event: SelectChangeEvent): void {
     if (!(event.originalEvent instanceof KeyboardEvent)) return;
-    this.fixtureName.set(event.value);
+    const normalized = this.normalizeKnownFixtureName(event.value);
+    if (!normalized) return;
+    this.fixtureName.set(normalized);
     this.runFixtureQuery();
   }
 
@@ -2812,6 +2824,15 @@ export class CommanderComponent implements OnInit {
     const fixtures = this.extractFixtures(result, source, storeKeyOverride);
     if (!fixtures.length) {
       return null;
+    }
+
+    if (source === 'fixture_query') {
+      const nowMs = Date.now();
+      for (const fixture of fixtures) {
+        const rawLastSeenMs = fixture.raw['last_seen_ms'];
+        const resolvedLastSeenMs = typeof rawLastSeenMs === 'number' ? rawLastSeenMs : nowMs;
+        this.updateFixtureLastSeen(fixture.fixture_name, resolvedLastSeenMs);
+      }
     }
 
     return this.fixtureStore.upsertFixtures(fixtures);
@@ -4186,10 +4207,18 @@ export class CommanderComponent implements OnInit {
       next: (response) => {
         if (!response.ok || !Array.isArray(response.fixtures)) return;
         for (const entry of response.fixtures) {
-          const name = String(entry['fixture_name'] ?? '').trim();
+          const name = this.normalizeKnownFixtureName(entry['fixture_name']);
           if (!name) continue;
           const lastSeen = typeof entry['last_seen_ms'] === 'number' ? entry['last_seen_ms'] : null;
           if (lastSeen !== null) this.updateFixtureLastSeen(name, lastSeen);
+          // Patch fw_version / build_date / build_time into the store from
+          // heartbeat data so the fixture list reflects the latest version
+          // without requiring a full query.
+          const versionPatch: Record<string, unknown> = {};
+          if (typeof entry['fw_version'] === 'string' && entry['fw_version']) versionPatch['fw_version'] = entry['fw_version'];
+          if (typeof entry['build_date'] === 'string' && entry['build_date']) versionPatch['build_date'] = entry['build_date'];
+          if (typeof entry['build_time'] === 'string' && entry['build_time']) versionPatch['build_time'] = entry['build_time'];
+          if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
           this.autoQueryPassiveFixture(name);
         }
       },
@@ -4211,27 +4240,39 @@ export class CommanderComponent implements OnInit {
    * store with complete data (capabilities + plan_state both present).
    */
   private autoQueryPassiveFixture(fixtureName: string): void {
+    const normalizedFixtureName = this.normalizeKnownFixtureName(fixtureName);
+    if (!normalizedFixtureName) return;
     // Skip the connected commander itself — it appears in the passive cache via fpc bootstrap
     // but cannot respond to fsf queries while acting as the active commander.
     // Other commanders (e.g. BKLK_CMDR_2 seen from CMDR_1's API) are treated as normal fixtures.
     const selfName = this.health()?.commander?.detected_fixture_name ?? null;
-    if (selfName && fixtureName.toUpperCase() === selfName.toUpperCase()) return;
-    if (this._passiveQueryInFlight.has(fixtureName)) return;
-    const existing = this.fixtureStore.fixturesByName()[fixtureName];
+    if (selfName && normalizedFixtureName.toUpperCase() === selfName.toUpperCase()) return;
+    if (this._passiveQueryInFlight.has(normalizedFixtureName)) return;
+    const existing = this.fixtureStore.fixturesByName()[normalizedFixtureName];
     if (existing) {
       const hasCapabilities = existing.raw['capabilities'] != null;
       const hasPlanState = existing.raw['plan_state'] != null;
       if (hasCapabilities && hasPlanState) return;
     }
-    this._passiveQueryInFlight.add(fixtureName);
-    this.commanderApi.getFixtureVersion(fixtureName, { preferQueryTokenAuth: true }).subscribe({
+    this._passiveQueryInFlight.add(normalizedFixtureName);
+    this.commanderApi.getFixtureVersion(normalizedFixtureName, { preferQueryTokenAuth: true }).subscribe({
       next: (result) => {
-        this.ingestQueryResult(result, 'fixture_query', fixtureName);
-        this._passiveQueryInFlight.delete(fixtureName);
+        this.ingestQueryResult(result, 'fixture_query', normalizedFixtureName);
+        this._passiveQueryInFlight.delete(normalizedFixtureName);
       },
       error: () => {
-        this._passiveQueryInFlight.delete(fixtureName);
+        this._passiveQueryInFlight.delete(normalizedFixtureName);
       },
     });
+  }
+
+  private normalizeKnownFixtureName(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const name = value.trim();
+    if (!name) return null;
+    if (!/^[A-Za-z0-9_-]{2,64}$/.test(name)) return null;
+    if (!/[A-Za-z]/.test(name)) return null;
+    const match = this.fixtureOptions().find((item) => item.value.toUpperCase() === name.toUpperCase());
+    return match?.value ?? null;
   }
 }

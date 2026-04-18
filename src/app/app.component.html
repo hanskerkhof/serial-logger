@@ -65,6 +65,9 @@
                   @if (s.port) {
                     <dt>Port</dt><dd>{{ s.port }}</dd>
                   }
+                  @if (s.baud !== null) {
+                    <dt>Commander Baud rate</dt><dd>{{ s.baud }}</dd>
+                  }
                 </dl>
               }
               <div class="health-pop__footer">

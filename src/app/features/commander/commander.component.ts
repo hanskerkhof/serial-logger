@@ -159,6 +159,9 @@ export class CommanderComponent implements OnInit {
   private static readonly AUTO_STABILIZE_STEPS_MS: readonly number[] = [500, 750, 1000];
   private static readonly AUTO_STABILIZE_WINDOW_SAMPLES = 8;
   private static readonly AUTO_STABILIZE_TRIGGER_COUNT = 5;
+  // Throttle passive auto-queries so we do not flood commander fsf requests.
+  private static readonly PASSIVE_QUERY_MIN_GAP_MS = 2500;
+  private static readonly PASSIVE_QUERY_RETRY_DELAY_MS = 1500;
 
   protected readonly frontendVersion = APP_VERSION;
   protected readonly frontendBuildDate = BUILD_DATE;
@@ -445,6 +448,16 @@ export class CommanderComponent implements OnInit {
 
   // Tracks fixture names currently being queried via passive discovery to avoid duplicate requests.
   private readonly _passiveQueryInFlight = new Set<string>();
+  // Deduped FIFO queue for passive auto-queries (one request at a time).
+  private readonly _passiveQueryQueue: string[] = [];
+  private readonly _passiveQueryQueued = new Set<string>();
+  private _passiveQueryDrainTimer: ReturnType<typeof setTimeout> | null = null;
+  private _passiveQueryLastStartedAtMs = 0;
+  protected readonly passiveQueryQueuedCount = signal(0);
+  protected readonly passiveQueryInFlightCount = signal(0);
+  protected readonly passiveQueryDebugLabel = computed(() =>
+    `Passive query queue: ${this.passiveQueryQueuedCount()} · in-flight: ${this.passiveQueryInFlightCount()}`,
+  );
 
   // Last-seen timestamps (ms since epoch) from the passive heartbeat cache, keyed by fixture name.
   protected readonly fixtureLastSeenMs = signal<Map<string, number>>(new Map());
@@ -1714,6 +1727,10 @@ export class CommanderComponent implements OnInit {
       if (this._progressToastClearTimer !== null) {
         clearTimeout(this._progressToastClearTimer);
         this._progressToastClearTimer = null;
+      }
+      if (this._passiveQueryDrainTimer !== null) {
+        clearTimeout(this._passiveQueryDrainTimer);
+        this._passiveQueryDrainTimer = null;
       }
       this._activeProgressToastMode = null;
     });
@@ -4248,22 +4265,78 @@ export class CommanderComponent implements OnInit {
     const selfName = this.health()?.commander?.detected_fixture_name ?? null;
     if (selfName && normalizedFixtureName.toUpperCase() === selfName.toUpperCase()) return;
     if (this._passiveQueryInFlight.has(normalizedFixtureName)) return;
+    if (this._passiveQueryQueued.has(normalizedFixtureName)) return;
     const existing = this.fixtureStore.fixturesByName()[normalizedFixtureName];
     if (existing) {
       const hasCapabilities = existing.raw['capabilities'] != null;
       const hasPlanState = existing.raw['plan_state'] != null;
       if (hasCapabilities && hasPlanState) return;
     }
-    this._passiveQueryInFlight.add(normalizedFixtureName);
-    this.commanderApi.getFixtureVersion(normalizedFixtureName, { preferQueryTokenAuth: true }).subscribe({
+    this._passiveQueryQueued.add(normalizedFixtureName);
+    this._passiveQueryQueue.push(normalizedFixtureName);
+    this.syncPassiveQueryDebugCounts();
+    this.schedulePassiveQueryDrain(0);
+  }
+
+  private schedulePassiveQueryDrain(delayMs: number): void {
+    if (this._passiveQueryDrainTimer !== null) return;
+    this._passiveQueryDrainTimer = setTimeout(() => {
+      this._passiveQueryDrainTimer = null;
+      this.drainPassiveQueryQueue();
+    }, Math.max(0, delayMs));
+  }
+
+  private drainPassiveQueryQueue(): void {
+    if (this._passiveQueryInFlight.size > 0) return;
+    if (this._passiveQueryQueue.length === 0) return;
+    if (this.healthError()) {
+      this.schedulePassiveQueryDrain(CommanderComponent.PASSIVE_QUERY_RETRY_DELAY_MS);
+      return;
+    }
+
+    const nowMs = Date.now();
+    const elapsedMs = nowMs - this._passiveQueryLastStartedAtMs;
+    if (elapsedMs < CommanderComponent.PASSIVE_QUERY_MIN_GAP_MS) {
+      this.schedulePassiveQueryDrain(CommanderComponent.PASSIVE_QUERY_MIN_GAP_MS - elapsedMs);
+      return;
+    }
+
+    const nextFixtureName = this._passiveQueryQueue.shift() ?? null;
+    if (!nextFixtureName) return;
+    this._passiveQueryQueued.delete(nextFixtureName);
+    this.syncPassiveQueryDebugCounts();
+
+    const existing = this.fixtureStore.fixturesByName()[nextFixtureName];
+    if (existing) {
+      const hasCapabilities = existing.raw['capabilities'] != null;
+      const hasPlanState = existing.raw['plan_state'] != null;
+      if (hasCapabilities && hasPlanState) {
+        this.schedulePassiveQueryDrain(0);
+        return;
+      }
+    }
+
+    this._passiveQueryInFlight.add(nextFixtureName);
+    this.syncPassiveQueryDebugCounts();
+    this._passiveQueryLastStartedAtMs = Date.now();
+    this.commanderApi.getFixtureVersion(nextFixtureName, { preferQueryTokenAuth: true }).subscribe({
       next: (result) => {
-        this.ingestQueryResult(result, 'fixture_query', normalizedFixtureName);
-        this._passiveQueryInFlight.delete(normalizedFixtureName);
+        this.ingestQueryResult(result, 'fixture_query', nextFixtureName);
+        this._passiveQueryInFlight.delete(nextFixtureName);
+        this.syncPassiveQueryDebugCounts();
+        this.schedulePassiveQueryDrain(0);
       },
       error: () => {
-        this._passiveQueryInFlight.delete(normalizedFixtureName);
+        this._passiveQueryInFlight.delete(nextFixtureName);
+        this.syncPassiveQueryDebugCounts();
+        this.schedulePassiveQueryDrain(CommanderComponent.PASSIVE_QUERY_RETRY_DELAY_MS);
       },
     });
+  }
+
+  private syncPassiveQueryDebugCounts(): void {
+    this.passiveQueryQueuedCount.set(this._passiveQueryQueue.length);
+    this.passiveQueryInFlightCount.set(this._passiveQueryInFlight.size);
   }
 
   private normalizeKnownFixtureName(value: unknown): string | null {

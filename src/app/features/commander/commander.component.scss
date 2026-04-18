@@ -200,6 +200,12 @@
   }
 }
 
+.commander__sidebar-debug {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+}
+
 .commander__sidebar-discovery-ws-row {
   display: flex;
   align-items: center;

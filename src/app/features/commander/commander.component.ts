@@ -440,8 +440,8 @@ export class CommanderComponent implements OnInit {
   private _skipNextProgressHold = false;
   private _discoveryInProgressToastLastAtMs = 0;
 
-  // Ensures auto-discovery on empty store fires at most once per session.
-  private _autoDiscoveryTriggered = false;
+  // TODO: auto-discovery on empty store disabled — passive heartbeat discovery replaces it.
+  // private _autoDiscoveryTriggered = false;
 
   // Tracks fixture names currently being queried via passive discovery to avoid duplicate requests.
   private readonly _passiveQueryInFlight = new Set<string>();
@@ -1716,17 +1716,18 @@ export class CommanderComponent implements OnInit {
 
   private handleFirstHealthSuccess(wasOffline: boolean): void {
     if (wasOffline) this.runRecoveryCallbacks();
-    if (!this._autoDiscoveryTriggered && this.fixtureStore.fixtureCount() === 0) {
-      this._autoDiscoveryTriggered = true;
-      setTimeout(() => {
-        if (
-          this.fixtureStore.fixtureCount() === 0 &&
-          this.healthService.health()?.commander?.detected === true
-        ) {
-          this.runFullDiscoveryWsThenFixtures();
-        }
-      }, 3000);
-    }
+    // TODO: auto-discovery on empty store disabled — passive heartbeat discovery replaces it.
+    // if (!this._autoDiscoveryTriggered && this.fixtureStore.fixtureCount() === 0) {
+    //   this._autoDiscoveryTriggered = true;
+    //   setTimeout(() => {
+    //     if (
+    //       this.fixtureStore.fixtureCount() === 0 &&
+    //       this.healthService.health()?.commander?.detected === true
+    //     ) {
+    //       this.runFullDiscoveryWsThenFixtures();
+    //     }
+    //   }, 3000);
+    // }
   }
 
   protected reloadHealth(): void {

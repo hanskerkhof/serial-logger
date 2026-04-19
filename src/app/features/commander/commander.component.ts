@@ -406,7 +406,10 @@ export class CommanderComponent implements OnInit {
   protected readonly commanderUnavailableReason = computed<string | null>(() => {
     if (!this.commanderUnavailable()) return null;
     if (this.loading()) return null;
-    if (this.healthError()) return 'API unreachable';
+    if (this.healthError()) {
+      const err = String(this.healthError() ?? '').trim();
+      return err ? `API unreachable (${err})` : 'API unreachable';
+    }
     const commander = this.health()?.commander;
     if (!commander) return 'Commander not detected';
     if (commander['serial_hold_active'] === true) {
@@ -414,6 +417,16 @@ export class CommanderComponent implements OnInit {
       const label = raw ? raw.replace(/_/g, ' ') : 'serial hold';
       return `Serial port held (${label})`;
     }
+    const proxy = commander['proxy'] as Record<string, unknown> | null | undefined;
+    const proxyState = String(proxy?.['state'] ?? '').trim();
+    const transitionReason = String(proxy?.['last_transition_reason'] ?? '').trim();
+    const serialError = String(proxy?.['serial_error'] ?? '').trim();
+    if (serialError) return `Proxy ${proxyState || 'offline'} (${serialError})`;
+    if (transitionReason) {
+      const label = transitionReason.replace(/_/g, ' ');
+      return proxyState ? `Proxy ${proxyState} (${label})` : label;
+    }
+    if (proxyState) return `Proxy ${proxyState}`;
     return 'Commander not detected';
   });
   /** True when the serial port was released via manual override (POST /commander/serial/release). */

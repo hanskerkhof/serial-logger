@@ -8,6 +8,9 @@
           @else if (commanderManualOverride()) { Serial port released — manual override active — run queries are disabled. }
           @else { Commander not detected — run queries are disabled. }
         </span>
+        @if (commanderUnavailableReason(); as reason) {
+          <span class="cmdr-offline-toast__detail">Reason: {{ reason }}</span>
+        }
         <span class="cmdr-offline-toast__footer">
           {{ offlineRetryStatusLabel() }}
           · <button class="cmdr-offline-toast__retry" (click)="retryHealth()">↻ retry</button>

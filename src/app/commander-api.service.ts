@@ -11,6 +11,7 @@ import type {
   CmdrRawResponse,
   CmdrVersionsResponse,
   CmdrDiscoveryResponse,
+  CmdrFixturesDiscoveredResponse,
   CmdrQueryResponse,
   CmdrMessagesResponse,
   CmdrFixtureDocsListResponse,
@@ -145,8 +146,8 @@ export class CommanderApiService {
     );
   }
 
-  getFixturesDiscovered(): Observable<{ ok: boolean; fixtures: Record<string, unknown>[]; count: number; source: string }> {
-    return this.http.get<{ ok: boolean; fixtures: Record<string, unknown>[]; count: number; source: string }>(
+  getFixturesDiscovered(): Observable<CmdrFixturesDiscoveredResponse> {
+    return this.http.get<CmdrFixturesDiscoveredResponse>(
       `${this.getRequestBaseUrl()}/fixtures/discovered`,
     );
   }

@@ -1,6 +1,7 @@
 import { Injectable, Signal, computed, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { CommanderApiService, CommanderHealthResponse } from './commander-api.service';
+import type { CmdrPassiveSeenFixture } from './api/cmdr-models';
 
 export interface PlanStateWsMessage {
   type: 'plan_state';
@@ -45,7 +46,7 @@ export interface DiscoveryWsMessage {
 export interface FixtureSeenWsMessage {
   type: 'fixture_seen';
   fixture_name: string;
-  data: Record<string, unknown>;
+  data: CmdrPassiveSeenFixture;
 }
 
 @Injectable({ providedIn: 'root' })

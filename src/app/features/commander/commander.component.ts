@@ -461,6 +461,8 @@ export class CommanderComponent implements OnInit {
 
   // Last-seen timestamps (ms since epoch) from the passive heartbeat cache, keyed by fixture name.
   protected readonly fixtureLastSeenMs = signal<Map<string, number>>(new Map());
+  // Expected next passive heartbeat time (ms since epoch), keyed by fixture name.
+  protected readonly fixtureNextSeenExpectedAtMs = signal<Map<string, number>>(new Map());
   private readonly discoveryLockStorageKey = 'cmdr.discovery.lock.v1';
   private readonly discoveryLockTtlMs = 5 * 60 * 1000;
   private readonly discoveryTabId =
@@ -1704,7 +1706,7 @@ export class CommanderComponent implements OnInit {
       const name = String(msg.fixture_name ?? '').trim();
       if (!name) return;
       const lastSeen = typeof msg.data?.['last_seen_ms'] === 'number' ? msg.data['last_seen_ms'] : Date.now();
-      this.updateFixtureLastSeen(name, lastSeen);
+      this.updateFixturePassiveTiming(name, lastSeen, this.resolveNextPassiveSeenInMs(msg.data?.['next_passive_seen_in_ms']));
       const versionPatch: Record<string, unknown> = {};
       if (typeof msg.data?.['fw_version'] === 'string' && msg.data['fw_version']) versionPatch['fw_version'] = msg.data['fw_version'];
       if (typeof msg.data?.['build_date'] === 'string' && msg.data['build_date']) versionPatch['build_date'] = msg.data['build_date'];
@@ -2848,7 +2850,11 @@ export class CommanderComponent implements OnInit {
       for (const fixture of fixtures) {
         const rawLastSeenMs = fixture.raw['last_seen_ms'];
         const resolvedLastSeenMs = typeof rawLastSeenMs === 'number' ? rawLastSeenMs : nowMs;
-        this.updateFixtureLastSeen(fixture.fixture_name, resolvedLastSeenMs);
+        this.updateFixturePassiveTiming(
+          fixture.fixture_name,
+          resolvedLastSeenMs,
+          this.resolveNextPassiveSeenInMs(fixture.raw['next_passive_seen_in_ms']),
+        );
       }
     }
 
@@ -4188,6 +4194,14 @@ export class CommanderComponent implements OnInit {
     return `${prefix}: ${String(err)}`;
   }
 
+  /** Human-readable status: elapsed since last passive heartbeat + expected-next countdown. */
+  protected fixtureSeenStatusLabel(fixtureName: string): string | null {
+    const lastSeen = this.fixtureLastSeenLabel(fixtureName);
+    if (lastSeen == null) return null;
+    const expected = this.fixtureExpectedNextLabel(fixtureName);
+    return expected ? `${lastSeen} / ${expected}` : lastSeen;
+  }
+
   /** Human-readable elapsed time since the fixture last sent a passive heartbeat (e.g. "5s", "2m3s"). */
   protected fixtureLastSeenLabel(fixtureName: string): string | null {
     const lastSeenMs = this.fixtureLastSeenMs().get(fixtureName);
@@ -4196,8 +4210,20 @@ export class CommanderComponent implements OnInit {
     return this.formatElapsedMs(elapsedMs);
   }
 
-  /** True when elapsed since last heartbeat exceeds the 30 s broadcast interval + grace margin. */
+  /** Human-readable countdown until the next expected passive heartbeat. */
+  protected fixtureExpectedNextLabel(fixtureName: string): string | null {
+    const expectedAtMs = this.fixtureNextSeenExpectedAtMs().get(fixtureName);
+    if (expectedAtMs == null) return null;
+    const remainingMs = Math.max(0, expectedAtMs - this.now());
+    return this.formatElapsedMs(remainingMs);
+  }
+
+  /** True when the fixture passed its expected heartbeat time + 2 s margin. */
   protected fixtureHeartbeatOverdue(fixtureName: string): boolean {
+    const expectedAtMs = this.fixtureNextSeenExpectedAtMs().get(fixtureName);
+    if (expectedAtMs != null) {
+      return this.now() > (expectedAtMs + 2_000);
+    }
     const lastSeenMs = this.fixtureLastSeenMs().get(fixtureName);
     if (lastSeenMs == null) return false;
     return (this.now() - lastSeenMs) > 35_000;
@@ -4227,7 +4253,13 @@ export class CommanderComponent implements OnInit {
           const name = this.normalizeKnownFixtureName(entry['fixture_name']);
           if (!name) continue;
           const lastSeen = typeof entry['last_seen_ms'] === 'number' ? entry['last_seen_ms'] : null;
-          if (lastSeen !== null) this.updateFixtureLastSeen(name, lastSeen);
+          if (lastSeen !== null) {
+            this.updateFixturePassiveTiming(
+              name,
+              lastSeen,
+              this.resolveNextPassiveSeenInMs(entry['next_passive_seen_in_ms']),
+            );
+          }
           // Patch fw_version / build_date / build_time into the store from
           // heartbeat data so the fixture list reflects the latest version
           // without requiring a full query.
@@ -4249,6 +4281,31 @@ export class CommanderComponent implements OnInit {
       next.set(fixtureName, lastSeenMs);
       return next;
     });
+  }
+
+  private updateFixturePassiveTiming(
+    fixtureName: string,
+    lastSeenMs: number,
+    nextPassiveSeenInMs: number | null,
+  ): void {
+    this.updateFixtureLastSeen(fixtureName, lastSeenMs);
+    this.fixtureNextSeenExpectedAtMs.update((map) => {
+      const next = new Map(map);
+      if (nextPassiveSeenInMs === null) {
+        next.delete(fixtureName);
+      } else {
+        next.set(fixtureName, lastSeenMs + nextPassiveSeenInMs);
+      }
+      return next;
+    });
+  }
+
+  private resolveNextPassiveSeenInMs(value: unknown): number | null {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+    const rounded = Math.round(value);
+    // Heartbeat throttle is expected in a bounded seconds/minutes window.
+    if (rounded < 1000 || rounded > 600000) return null;
+    return rounded;
   }
 
   /**

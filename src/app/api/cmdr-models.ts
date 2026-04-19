@@ -18,6 +18,28 @@ export type CmdrDiscoveryResponse      = components['schemas']['DiscoveryRespons
 /** Union of all version/discovery query response shapes — used by the component query-result signal. */
 export type CmdrQueryResponse = CmdrVersionsResponse | CmdrDiscoveryResponse;
 
+export interface CmdrPassiveSeenFixture {
+  fixture_name: string;
+  target_wifi_mac?: string;
+  universe?: number;
+  channel?: number;
+  fw_version?: string;
+  build_date?: string;
+  build_time?: string;
+  uptime_ms?: number;
+  next_passive_seen_in_ms?: number;
+  rssi_dbm?: number;
+  rssi_quality?: string;
+  last_seen_ms?: number;
+}
+
+export interface CmdrFixturesDiscoveredResponse {
+  ok: boolean;
+  fixtures: CmdrPassiveSeenFixture[];
+  count: number;
+  source: string;
+}
+
 export type CmdrFixtureCapabilities = components['schemas']['FixtureCapabilities'];
 export type CmdrPlanControls        = components['schemas']['PlanControls'];
 export type CmdrPlayerCapabilities  = components['schemas']['PlayerCapabilities'];

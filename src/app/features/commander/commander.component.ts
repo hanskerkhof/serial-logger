@@ -4217,7 +4217,8 @@ export class CommanderComponent implements OnInit {
     const lastSeen = this.fixtureLastSeenLabel(fixtureName);
     if (lastSeen == null) return null;
     const expected = this.fixtureExpectedNextLabel(fixtureName);
-    return expected ? `${lastSeen} / ${expected}` : lastSeen;
+    // return expected ? `${lastSeen} / ${expected}` : lastSeen;
+    return expected ? `${lastSeen}` : lastSeen;
   }
 
   /** Human-readable elapsed time since the fixture last sent a passive heartbeat (e.g. "5s", "2m3s"). */

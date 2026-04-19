@@ -2,7 +2,13 @@
   <ng-template pTemplate="message" let-message>
     @if (message.data?.mode === 'offline') {
       <div class="cmdr-offline-toast">
-        <strong class="cmdr-offline-toast__summary">Commander unavailable</strong>
+        <strong class="cmdr-offline-toast__summary">
+          @if (commanderUnavailableReason(); as reason) {
+            Commander unavailable ({{ reason }})
+          } @else {
+            Commander unavailable
+          }
+        </strong>
         <span class="cmdr-offline-toast__detail">
           @if (healthError()) { API unreachable — run queries are disabled. }
           @else if (commanderManualOverride()) { Serial port released — manual override active — run queries are disabled. }

@@ -448,6 +448,7 @@ export class CommanderComponent implements OnInit {
   // so the "back online" toast only fires on recovery, never on initial load.
   private _wasUnavailable = false;
   private _offlineToastShown = false;
+  private _lastUnavailableReason: string | null = null;
   private _unavailableToastTimer: ReturnType<typeof setTimeout> | null = null;
   private _progressToastClearTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly progressToastHoldMs = 3000;
@@ -667,7 +668,9 @@ export class CommanderComponent implements OnInit {
       // setTimeout: p-toast subscribes to MessageService during view init,
       // after this constructor effect fires — defer so the message isn't lost.
       setTimeout(() => {
+        const unavailableReason = this.commanderUnavailableReason();
         if (unavailable && !stillLoading && !refreshing) {
+          if (unavailableReason) this._lastUnavailableReason = unavailableReason;
           // Debounce: only alarm after persistent unavailability.
           // Brief WS reconnects (sleep/wake) resolve in ~3 s — 5 s grace avoids false positives.
           if (this._unavailableToastTimer === null) {
@@ -704,11 +707,13 @@ export class CommanderComponent implements OnInit {
             this.modalQueryError.set(null);
             this.fixtureActionMessage.set(null);
             this.fixtureActionResult.set(null);
+            const recoveryReason = this._lastUnavailableReason ? ` Reason: ${this._lastUnavailableReason}.` : '';
+            this._lastUnavailableReason = null;
             this.messageService.add({
               key: 'app',
               severity: 'success',
               summary: 'Commander available',
-              detail: 'Connection restored.',
+              detail: `Connection restored.${recoveryReason}`,
               life: 4000,
               data: { mode: 'normal' },
             });

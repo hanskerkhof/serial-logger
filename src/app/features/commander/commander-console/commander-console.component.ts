@@ -195,8 +195,10 @@ export class CommanderConsoleComponent {
       }
     }
 
-    if (!this.showPassiveSeenLines() && typeof event.line === 'string' && event.line.includes('BK_PASSIVE_SEEN')) {
-      return;
+    if (!this.showPassiveSeenLines() && typeof event.line === 'string') {
+      if (event.line.includes('BK_PASSIVE_SEEN') || event.line.includes('[PASSIVE_ACK]')) {
+        return;
+      }
     }
 
     const isTransportCommandLifecycleEvent =

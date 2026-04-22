@@ -320,6 +320,13 @@
     border-bottom: 0;
   }
 
+  // Keep Fixture column compact so Steps + timing gets more room.
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 30%;
+    max-width: 28rem;
+  }
+
   // Keep Result/Total compact and single-line (emoji + label, time strings).
   th:nth-child(2),
   td:nth-child(2),
@@ -345,6 +352,7 @@
   font-size: 0.74rem;
   color: var(--p-text-muted-color);
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .commander__update-report-step-line {

@@ -160,7 +160,7 @@ export class CommanderComponent implements OnInit {
   private static readonly AUTO_STABILIZE_WINDOW_SAMPLES = 8;
   private static readonly AUTO_STABILIZE_TRIGGER_COUNT = 5;
   // Throttle passive auto-queries so we do not flood commander fsf requests.
-  private static readonly PASSIVE_QUERY_MIN_GAP_MS = 2500;
+  private static readonly PASSIVE_QUERY_MIN_GAP_MS = 1000;
   private static readonly PASSIVE_QUERY_RETRY_DELAY_MS = 1500;
 
   protected readonly frontendVersion = APP_VERSION;

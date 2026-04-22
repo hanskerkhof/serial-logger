@@ -114,6 +114,20 @@ interface DiscoveryTimingRow {
   completeMs: number;
 }
 
+interface UpdateReportStepEntry {
+  atMs: number;
+  step: string;
+  message: string | null;
+}
+
+interface UpdateReportFixtureEntry {
+  fixtureName: string;
+  startedAtMs: number;
+  completedAtMs: number | null;
+  success: boolean | null;
+  steps: UpdateReportStepEntry[];
+}
+
 interface CustomCommandPostRunSyncToken {
   targets: string[];
   baselineByCommand: Record<string, Record<string, CustomCommandValue>>;
@@ -124,6 +138,42 @@ interface CustomCommandPostRunSyncToken {
 interface LiveValueChange {
   previous: CustomCommandValue;
   next: CustomCommandValue;
+}
+
+interface PersistedUpdateFixturesState {
+  loading: boolean;
+  updatedAtMs?: number;
+  currentFixture: string | null;
+  currentStep: string | null;
+  total: number;
+  processed: number;
+  failed: number;
+  succeeded: number;
+  queue: string[];
+  pendingFixture: string | null;
+  pendingSinceMs?: number | null;
+  failures: string[];
+  outcomes: Array<{ fixture: string; ok: boolean }>;
+  cancelRequested: boolean;
+  report?: UpdateReportFixtureEntry[];
+}
+
+interface UpdateReportStepView {
+  step: string;
+  message: string | null;
+  sincePrevMs: number | null;
+  sinceStartMs: number;
+}
+
+interface UpdateReportFixtureView {
+  fixtureName: string;
+  fixtureFqbn: string;
+  fixturePlayerType: string;
+  fixtureMac: string;
+  result: 'SUCCESS' | 'FAILED' | 'PENDING';
+  totalMs: number | null;
+  steps: UpdateReportStepView[];
+  startedAtMs: number;
 }
 
 function compareVersions(a: string, b: string): number {
@@ -212,6 +262,49 @@ export class CommanderComponent implements OnInit {
   private readonly discoveryTimingRowsByFixture = signal<Map<string, number>>(new Map());
   private readonly discoveryTimingLastSweepElapsedMs = signal<number | null>(null);
   private readonly discoveryWsUpsertedFixtureNames = new Set<string>();
+  protected readonly updateReportDialogVisible = signal(false);
+  private readonly updateReportByFixture = signal<Map<string, UpdateReportFixtureEntry>>(new Map());
+  protected readonly updateReportRows = computed<UpdateReportFixtureView[]>(() => {
+    const rows: UpdateReportFixtureView[] = [];
+    const fixturesByName = this.fixtureStore.fixturesByName();
+    this.updateReportByFixture().forEach((entry) => {
+      const raw = fixturesByName[entry.fixtureName]?.raw ?? {};
+      const fqbn = String(raw['fqbn'] ?? '').trim() || '-';
+      const playerType = String(raw['player_type'] ?? '').trim() || '-';
+      const mac =
+        String(raw['wifi_mac_address'] ?? '').trim()
+        || String(raw['target_wifi_mac'] ?? '').trim()
+        || '-';
+      const steps: UpdateReportStepView[] = [];
+      for (let i = 0; i < entry.steps.length; i += 1) {
+        const current = entry.steps[i];
+        const previous = i > 0 ? entry.steps[i - 1] : null;
+        const sincePrevMs = previous ? Math.max(0, current.atMs - previous.atMs) : null;
+        const sinceStartMs = Math.max(0, current.atMs - entry.startedAtMs);
+        steps.push({
+          step: current.step,
+          message: current.message,
+          sincePrevMs,
+          sinceStartMs,
+        });
+      }
+      rows.push({
+        fixtureName: entry.fixtureName,
+        fixtureFqbn: fqbn,
+        fixturePlayerType: playerType,
+        fixtureMac: mac,
+        result: entry.success === true ? 'SUCCESS' : entry.success === false ? 'FAILED' : 'PENDING',
+        totalMs: entry.completedAtMs !== null ? Math.max(0, entry.completedAtMs - entry.startedAtMs) : null,
+        steps,
+        startedAtMs: entry.startedAtMs,
+      });
+    });
+    rows.sort((a, b) => b.startedAtMs - a.startedAtMs);
+    return rows;
+  });
+  protected readonly updateReportAvailable = computed<boolean>(() =>
+    this.updateReportRows().length > 0,
+  );
   protected readonly discoverFixturesLoading = signal(false);
   protected readonly discoverFixturesCurrentFixture = signal<string | null>(null);
   protected readonly discoverFixturesElapsedS = signal<number>(0);
@@ -230,6 +323,40 @@ export class CommanderComponent implements OnInit {
     const current = this.discoverFixturesCurrentFixture();
     if (total <= 0) return 'Preparing fixture query...';
     return current ? `${processed}/${total} · ${current}` : `${processed}/${total}`;
+  });
+  protected readonly updateFixturesLoading = signal(false);
+  protected readonly updateFixturesCurrentFixture = signal<string | null>(null);
+  protected readonly updateFixturesCurrentStep = signal<string | null>(null);
+  protected readonly updateFixturesTotal = signal<number>(0);
+  protected readonly updateFixturesProcessed = signal<number>(0);
+  protected readonly updateFixturesFailed = signal<number>(0);
+  protected readonly updateFixturesSucceeded = signal<number>(0);
+  protected readonly updateFixturesOutcomeLog = signal<Array<{ fixture: string; ok: boolean }>>([]);
+  protected readonly updateFixturesProgressPct = computed(() => {
+    const total = this.updateFixturesTotal();
+    if (total <= 0) return 0;
+    const processed = this.updateFixturesProcessed();
+    return Math.max(0, Math.min(100, (processed / total) * 100));
+  });
+  protected readonly updateFixturesProgressLabel = computed(() => {
+    const total = this.updateFixturesTotal();
+    const processed = this.updateFixturesProcessed();
+    const failed = this.updateFixturesFailed();
+    const fixture = this.updateFixturesCurrentFixture();
+    const step = this.updateFixturesCurrentStep();
+    if (total <= 0) return 'Preparing OTA update queue...';
+    const base = `${processed}/${total}${failed > 0 ? ` · failed ${failed}` : ''}`;
+    const fixturePart = fixture ? ` · ${fixture}` : '';
+    const stepPart = step ? ` · ${step}` : '';
+    return `${base}${fixturePart}${stepPart}`;
+  });
+  protected readonly updateFixturesOutcomeSummaryLabel = computed(() => {
+    const processed = this.updateFixturesProcessed();
+    const total = this.updateFixturesTotal();
+    if (processed <= 0 || total <= 0) return null;
+    const latest = this.updateFixturesOutcomeLog().at(-1);
+    if (!latest) return null;
+    return `${processed}/${total} · ${latest.ok ? '✅' : '❌'} ${latest.fixture}`;
   });
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
@@ -285,27 +412,13 @@ export class CommanderComponent implements OnInit {
     const t = this.discoveryTimings();
     return t.length > 0 ? t.reduce((s, v) => s + v, 0) / t.length : null;
   });
-  protected readonly discoveryButtonLabel = computed(() => {
-    const last = this.discoveryLastS();
-    const avg = this.discoveryAvgS();
-    const cnt = this.discoveryTimings().length;
-    if (this.discoveryLoading()) {
-      return avg !== null ? `Full Discovery · ~${avg.toFixed(1)}s` : 'Full Discovery';
-    }
-    if (last === null) return 'Full Discovery';
-    if (cnt < 2) return `Full Discovery · ${last.toFixed(1)}s`;
-    return `Full Discovery · ${last.toFixed(1)}s · avg ${avg!.toFixed(1)}s`;
-  });
   protected readonly discoveryWsButtonLabel = computed(() => {
-    const last = this.discoveryLastS();
     const avg = this.discoveryAvgS();
-    const cnt = this.discoveryTimings().length;
     if (this.discoveryWsLoading()) {
-      return avg !== null ? `Full Discovery (WS) · ~${avg.toFixed(1)}s` : 'Full Discovery (WS)…';
+      return avg !== null ? `Full Discovery ~${avg.toFixed(1)}s` : 'Full Discovery…';
     }
-    if (last === null) return 'Full Discovery (WS)';
-    if (cnt < 2) return `Full Discovery (WS) · ${last.toFixed(1)}s`;
-    return `Full Discovery (WS) · ${last.toFixed(1)}s · avg ${avg!.toFixed(1)}s`;
+    if (avg === null) return 'Full Discovery';
+    return `Full Discovery ~${avg.toFixed(1)}s`;
   });
   protected readonly discoveryWsProgressLabel = computed<string>(() => {
     const seen = this.discoveryWsFixturesSeen();
@@ -349,11 +462,8 @@ export class CommanderComponent implements OnInit {
   });
   protected readonly discoverFixturesButtonLabel = computed(() => {
     if (this.discoverFixturesLoading()) {
-      const current = this.discoverFixturesCurrentFixture();
       const elapsed = this.discoverFixturesElapsedS().toFixed(1);
-      return current
-        ? `Query fixtures - ${current} - ${elapsed}s`
-        : `Query fixtures - ${elapsed}s`;
+      return `Query fixtures - ${elapsed}s`;
     }
     const duration = this.discoverFixturesLastDurationS();
     if (duration === null) return 'Query fixtures';
@@ -395,6 +505,7 @@ export class CommanderComponent implements OnInit {
     () =>
       this.discoveryLoading() ||
       this.discoveryWsLoading() ||
+      this.updateFixturesLoading() ||
       this.fixtureQueryLoading() ||
       this.planQueryLoading() ||
       this.planGroupQueryLoading(),
@@ -452,7 +563,7 @@ export class CommanderComponent implements OnInit {
   private _unavailableToastTimer: ReturnType<typeof setTimeout> | null = null;
   private _progressToastClearTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly progressToastHoldMs = 3000;
-  private _activeProgressToastMode: 'progress_full_ws' | 'progress_full' | 'progress_fixtures' | 'progress_query' | null = null;
+  private _activeProgressToastMode: 'progress_full_ws' | 'progress_full' | 'progress_fixtures' | 'progress_updates' | 'progress_query' | null = null;
   private _discoveryWsStartedAtMs: number | null = null;
   private _skipNextProgressHold = false;
   private _discoveryInProgressToastLastAtMs = 0;
@@ -478,6 +589,9 @@ export class CommanderComponent implements OnInit {
   // Expected next passive heartbeat time (ms since epoch), keyed by fixture name.
   protected readonly fixtureNextSeenExpectedAtMs = signal<Map<string, number>>(new Map());
   private readonly discoveryLockStorageKey = 'cmdr.discovery.lock.v1';
+  private readonly updateFixturesStorageKey = 'cmdr.updateFixtures.state.v1';
+  private readonly updateFixturesStorageMaxAgeMs = 10 * 60 * 1000;
+  private readonly updateFixturesPendingResultTimeoutMs = 2 * 60 * 1000;
   private readonly discoveryLockTtlMs = 5 * 60 * 1000;
   private readonly discoveryTabId =
     globalThis.crypto?.randomUUID?.() ?? `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -582,6 +696,7 @@ export class CommanderComponent implements OnInit {
     if (mode === 'progress_full_ws') return this.discoveryWsLoading();
     if (mode === 'progress_full') return this.discoveryLoading();
     if (mode === 'progress_fixtures') return this.discoverFixturesLoading();
+    if (mode === 'progress_updates') return this.updateFixturesLoading();
     return false;
   }
 
@@ -726,9 +841,10 @@ export class CommanderComponent implements OnInit {
       const isDiscovery = this.discoveryLoading();
       const isDiscoveryWs = this.discoveryWsLoading();
       const isFixtureDiscovery = this.discoverFixturesLoading();
+      const isFixtureUpdateRun = this.updateFixturesLoading();
       const isFixtureQuery = this.fixtureQueryLoading();
       const isQuery = isFixtureQuery || this.planQueryLoading() || this.planGroupQueryLoading();
-      const hasProgress = isDiscoveryWs || isDiscovery || isFixtureDiscovery || isQuery;
+      const hasProgress = isDiscoveryWs || isDiscovery || isFixtureDiscovery || isFixtureUpdateRun || isQuery;
 
       if (this._progressToastClearTimer !== null) {
         clearTimeout(this._progressToastClearTimer);
@@ -798,6 +914,19 @@ export class CommanderComponent implements OnInit {
           });
           this._activeProgressToastMode = 'progress_fixtures';
         }
+      } else if (isFixtureUpdateRun) {
+        if (this._activeProgressToastMode !== 'progress_updates') {
+          this.messageService.clear('app');
+          this.messageService.add({
+            key: 'app',
+            severity: 'contrast',
+            summary: 'Updating fixtures',
+            sticky: true,
+            closable: false,
+            data: { mode: 'progress_updates', cancellable: 'updates' },
+          });
+          this._activeProgressToastMode = 'progress_updates';
+        }
       } else if (isQuery) {
         const fixtureName = this.fixtureName().trim();
         const summary = isFixtureQuery && fixtureName
@@ -816,6 +945,14 @@ export class CommanderComponent implements OnInit {
           this._activeProgressToastMode = 'progress_query';
         }
       }
+    });
+
+    this.restoreUpdateFixturesState();
+
+    effect(() => {
+      this.health();
+      if (!this.updateFixturesLoading()) return;
+      this.reconcileUpdateStateWithBackend();
     });
   }
 
@@ -951,19 +1088,6 @@ export class CommanderComponent implements OnInit {
       .map(([name]) => name),
   );
 
-  protected readonly fullDiscoveryMenuItems = computed<MenuItem[]>(() => [
-    {
-      label: 'Full discovery + fixtures',
-      icon: 'pi pi-list',
-      disabled:
-        this.backendBusy() ||
-        this.commanderUnavailable() ||
-        this.discoveryLoading() ||
-        this.discoveryWsLoading() ||
-        this.discoverFixturesLoading(),
-      command: () => this.runFullDiscoveryThenFixtures(),
-    },
-  ]);
   protected readonly fullDiscoveryWsMenuItems = computed<MenuItem[]>(() => [
     {
       label: 'Full discovery (WS) + fixtures',
@@ -986,6 +1110,12 @@ export class CommanderComponent implements OnInit {
         icon: 'pi pi-exclamation-triangle',
         disabled: this.backendBusy() || this.commanderUnavailable() || outdatedCount === 0,
         command: () => this.runSidebarFixtureDiscoveryOutdated(),
+      },
+      {
+        label: outdatedCount > 0 ? `Update Fixtures (${outdatedCount})` : 'Update Fixtures',
+        icon: 'pi pi-upload',
+        disabled: this.backendBusy() || this.commanderUnavailable() || outdatedCount === 0 || !this.compileSupported(),
+        command: () => this.runSidebarFixtureUpdateOutdated(),
       },
     ];
   });
@@ -1327,8 +1457,45 @@ export class CommanderComponent implements OnInit {
     });
   }
 
+  protected onOtaProgress(event: OtaStreamEvent): void {
+    if (!this.updateFixturesLoading()) return;
+    if (this.updateFixturesPendingFixture !== event.fixture_name) return;
+    const normalizedStep = String(event.step ?? '').trim().toLowerCase();
+    const stepLabel =
+      normalizedStep === 'compiling' ? 'compiling' :
+      normalizedStep === 'uploading' ? 'uploading' :
+      normalizedStep === 'verifying' ? 'verifying' :
+      normalizedStep === 'complete' ? 'completing' :
+      normalizedStep === 'error' ? 'error reported' :
+      'in progress';
+    const suffix = event.message ? ` · ${event.message}` : '';
+    this.updateFixturesCurrentStep.set(`${stepLabel}${suffix}`);
+    this.appendUpdateReportStep(event.fixture_name, normalizedStep || 'progress', event.message ?? null);
+    this.persistUpdateFixturesState();
+  }
+
   protected onOtaComplete(event: { fixture_name: string; fw_version?: string }): void {
     this.otaInProgress.update((s) => { const n = new Set(s); n.delete(event.fixture_name); return n; });
+    if (this.updateFixturesLoading() && this.updateFixturesPendingFixture === event.fixture_name) {
+      this.updateFixturesPendingFixture = null;
+      this.updateFixturesPendingSinceMs = null;
+      this.updateFixturesProcessed.update((v) => v + 1);
+      this.updateFixturesSucceeded.update((v) => v + 1);
+      this.updateFixturesOutcomeLog.update((log) => [...log, { fixture: event.fixture_name, ok: true }]);
+      this.updateFixturesCurrentStep.set('completed');
+      this.appendUpdateReportStep(
+        event.fixture_name,
+        'complete',
+        event.fw_version ? `updated to ${event.fw_version}` : null,
+        { markSuccess: true, markCompleted: true },
+      );
+      if (event.fw_version) {
+        this.fixtureStore.patchFixtureRaw(event.fixture_name, { fw_version: event.fw_version });
+      }
+      this.persistUpdateFixturesState();
+      this.startNextOutdatedFixtureUpdate();
+      return;
+    }
     this.messageService.add({
       key: 'app',
       severity: 'success',
@@ -1345,6 +1512,24 @@ export class CommanderComponent implements OnInit {
 
   protected onOtaError(event: { fixture_name: string; message?: string }): void {
     this.otaInProgress.update((s) => { const n = new Set(s); n.delete(event.fixture_name); return n; });
+    if (this.updateFixturesLoading() && this.updateFixturesPendingFixture === event.fixture_name) {
+      this.updateFixturesPendingFixture = null;
+      this.updateFixturesPendingSinceMs = null;
+      this.updateFixturesFailures.push(event.fixture_name);
+      this.updateFixturesFailed.set(this.updateFixturesFailures.length);
+      this.updateFixturesOutcomeLog.update((log) => [...log, { fixture: event.fixture_name, ok: false }]);
+      this.updateFixturesProcessed.update((v) => v + 1);
+      this.updateFixturesCurrentStep.set(event.message ? `failed · ${event.message}` : 'failed');
+      this.appendUpdateReportStep(
+        event.fixture_name,
+        'error',
+        event.message ?? null,
+        { markFailure: true, markCompleted: true },
+      );
+      this.persistUpdateFixturesState();
+      this.startNextOutdatedFixtureUpdate();
+      return;
+    }
     this.messageService.add({
       key: 'app',
       severity: 'error',
@@ -1423,6 +1608,10 @@ export class CommanderComponent implements OnInit {
     this.pollPassiveDiscovery();
     const passiveDiscoveryTimer = setInterval(() => this.pollPassiveDiscovery(), 15_000);
     this.destroyRef.onDestroy(() => clearInterval(passiveDiscoveryTimer));
+
+    // If an update queue was restored from localStorage, replay the sticky progress toast
+    // after view init so operators keep seeing live phase updates across page reloads.
+    setTimeout(() => this.replayUpdateProgressToastIfNeeded(), 0);
 
     // If health arrived before this component mounted (rare), clear loading immediately.
     if (this.healthService.health() !== null || this.healthService.healthError() !== null) {
@@ -1850,14 +2039,6 @@ export class CommanderComponent implements OnInit {
     this.discoveryTimings.set([]);
   }
 
-  protected runFullDiscovery(): void {
-    this.doFullDiscovery();
-  }
-
-  protected runFullDiscoveryThenFixtures(): void {
-    this.doFullDiscovery(() => this.runSidebarFixtureDiscovery());
-  }
-
   protected runFullDiscoveryWs(): void {
     this.discoveryWsThenFixturesPending = false;
     this.doFullDiscoveryWs();
@@ -1868,8 +2049,12 @@ export class CommanderComponent implements OnInit {
     this.doFullDiscoveryWs();
   }
 
-  private discoverySubscription: Subscription | null = null;
   private discoverFixturesCancelRequested = false;
+  private updateFixturesCancelRequested = false;
+  private updateFixturesQueue: string[] = [];
+  private updateFixturesPendingFixture: string | null = null;
+  private updateFixturesPendingSinceMs: number | null = null;
+  private updateFixturesFailures: string[] = [];
   private discoveryWsThenFixturesPending = false;
 
   private parseDiscoveryLock(raw: string | null): { owner: string; startedAtMs: number } | null {
@@ -1914,48 +2099,6 @@ export class CommanderComponent implements OnInit {
       localStorage.removeItem(this.discoveryLockStorageKey);
     }
     this.refreshDiscoveryLockState();
-  }
-
-  private doFullDiscovery(then?: () => void): void {
-    if (this.hasDiscoveryLockFromAnotherTab()) {
-      this.messageService.add({
-        key: 'app',
-        severity: 'contrast',
-        summary: 'Another window lock detected. Verifying with API…',
-        life: 2500,
-      });
-      this.refreshDiscoveryLockState();
-    }
-    if (!this.checkApiReachable()) return;
-    this.claimDiscoveryLock();
-    this.discoveryLoading.set(true);
-    this.error.set(null);
-    const startedAt = performance.now();
-
-    this.discoverySubscription = this.commanderApi.getFixtureDiscovery().subscribe({
-      next: (result) => {
-        this.discoverySubscription = null;
-        const durationS = (performance.now() - startedAt) / 1000;
-        this.addDiscoveryTiming(durationS);
-        this.queryResult.set(result);
-        const stats = this.ingestQueryResult(result, 'discovery_query');
-        this.discoveryLoading.set(false);
-        this.releaseDiscoveryLock();
-        this.showQueryResultToast(stats, durationS, true);
-        if (then) setTimeout(then, 0);
-      },
-      error: (err: unknown) => {
-        this.discoverySubscription = null;
-        this.discoveryLoading.set(false);
-        this.releaseDiscoveryLock();
-        if (err instanceof HttpErrorResponse && err.status === 409) {
-          this.showDiscoveryAlreadyInProgressToast();
-          this.refreshDiscoveryLockState();
-          return;
-        }
-        this.showErrorToast(this.formatError('Full discovery failed', err));
-      },
-    });
   }
 
   private doFullDiscoveryWs(): void {
@@ -2008,10 +2151,17 @@ export class CommanderComponent implements OnInit {
   }
 
   protected cancelCurrentDiscovery(): void {
-    if (this.discoverySubscription) {
+    if (this.updateFixturesLoading()) {
+      this.updateFixturesCancelRequested = true;
+      this.updateFixturesQueue = [];
+      if (this.updateFixturesPendingFixture) {
+        this.updateFixturesCurrentStep.set('cancel requested · waiting for current fixture');
+        this.persistUpdateFixturesState();
+      } else {
+        this.finishOutdatedFixtureUpdateRun(true);
+      }
+    } else if (this.discoveryLoading()) {
       this.clearProgressToastImmediately();
-      this.discoverySubscription.unsubscribe();
-      this.discoverySubscription = null;
       this.discoveryLoading.set(false);
       this.discoveryWsLoading.set(false);
       this.discoveryWsLatestFixture.set(null);
@@ -2085,6 +2235,20 @@ export class CommanderComponent implements OnInit {
     });
   }
 
+  private replayUpdateProgressToastIfNeeded(): void {
+    if (!this.updateFixturesLoading()) return;
+    this.messageService.clear('app');
+    this.messageService.add({
+      key: 'app',
+      severity: 'contrast',
+      summary: 'Updating fixtures',
+      sticky: true,
+      closable: false,
+      data: { mode: 'progress_updates', cancellable: 'updates' },
+    });
+    this._activeProgressToastMode = 'progress_updates';
+  }
+
   protected runSidebarFixtureDiscovery(): void {
     if (!this.checkApiReachable() || this.discoverFixturesLoading()) return;
 
@@ -2139,6 +2303,390 @@ export class CommanderComponent implements OnInit {
     this.discoverFixturesTotal.set(fixtureNames.length);
     this.discoverFixturesProcessed.set(0);
     void this.runSidebarFixtureDiscoverySequential(fixtureNames);
+  }
+
+  protected runSidebarFixtureUpdateOutdated(): void {
+    if (!this.checkApiReachable() || this.updateFixturesLoading()) return;
+
+    const connectedCommander = (this.health()?.commander?.detected_fixture_name ?? '').trim().toUpperCase();
+    const fixtureNames = this.outdatedFixtureNames().filter((name) =>
+      !connectedCommander || name.trim().toUpperCase() !== connectedCommander,
+    );
+
+    if (!fixtureNames.length) {
+      this.messageService.add({
+        key: 'app',
+        severity: 'contrast',
+        summary: connectedCommander
+          ? 'No updatable outdated fixtures found (connected commander is skipped)'
+          : 'No outdated fixtures found',
+        life: 3500,
+      });
+      return;
+    }
+
+    this.error.set(null);
+    this.updateFixturesCancelRequested = false;
+    this.updateFixturesQueue = [...fixtureNames];
+    this.updateFixturesPendingFixture = null;
+    this.updateFixturesPendingSinceMs = null;
+    this.updateFixturesFailures = [];
+    this.updateFixturesLoading.set(true);
+    this.updateFixturesCurrentFixture.set(null);
+    this.updateFixturesCurrentStep.set('starting queue');
+    this.updateFixturesTotal.set(fixtureNames.length);
+    this.updateFixturesProcessed.set(0);
+    this.updateFixturesFailed.set(0);
+    this.updateFixturesSucceeded.set(0);
+    this.updateFixturesOutcomeLog.set([]);
+    this.updateReportByFixture.set(new Map());
+    this.persistUpdateFixturesState();
+    this.startNextOutdatedFixtureUpdate();
+  }
+
+  private startNextOutdatedFixtureUpdate(): void {
+    if (!this.updateFixturesLoading()) return;
+    if (this.updateFixturesPendingFixture) return;
+
+    if (this.updateFixturesCancelRequested) {
+      this.finishOutdatedFixtureUpdateRun(true);
+      return;
+    }
+
+    const nextFixtureName = this.updateFixturesQueue.shift() ?? null;
+    if (!nextFixtureName) {
+      this.finishOutdatedFixtureUpdateRun(false);
+      return;
+    }
+
+    this.updateFixturesPendingFixture = nextFixtureName;
+    this.updateFixturesPendingSinceMs = Date.now();
+    this.updateFixturesCurrentFixture.set(nextFixtureName);
+    this.updateFixturesCurrentStep.set('requesting OTA start');
+    this.otaInProgress.update((s) => new Set([...s, nextFixtureName]));
+    this.appendUpdateReportStep(nextFixtureName, 'queue_start', 'requesting OTA start');
+    this.persistUpdateFixturesState();
+
+    this.commanderApi.postOtaUpdate(nextFixtureName).subscribe({
+      next: () => {
+        // 202 accepted — now wait for ota_complete / ota_error stream events.
+        this.updateFixturesCurrentStep.set('accepted · waiting for backend update');
+        this.appendUpdateReportStep(nextFixtureName, 'accepted', 'backend accepted OTA request');
+        this.persistUpdateFixturesState();
+      },
+      error: (err: unknown) => {
+        const fixtureName = this.updateFixturesPendingFixture ?? nextFixtureName;
+        this.otaInProgress.update((s) => {
+          const n = new Set(s);
+          n.delete(fixtureName);
+          return n;
+        });
+        this.updateFixturesPendingFixture = null;
+        this.updateFixturesPendingSinceMs = null;
+        this.updateFixturesFailures.push(fixtureName);
+        this.updateFixturesFailed.set(this.updateFixturesFailures.length);
+        this.updateFixturesOutcomeLog.update((log) => [...log, { fixture: fixtureName, ok: false }]);
+        this.updateFixturesProcessed.update((v) => v + 1);
+
+        const status = (err as { status?: number } | null | undefined)?.status;
+        if (status === 409) {
+          this.updateFixturesCurrentStep.set('busy (409) · moving to next fixture');
+          this.appendUpdateReportStep(
+            fixtureName,
+            'start_failed',
+            'busy (409)',
+            { markFailure: true, markCompleted: true },
+          );
+        } else {
+          this.updateFixturesCurrentStep.set('start failed · moving to next fixture');
+          this.appendUpdateReportStep(
+            fixtureName,
+            'start_failed',
+            'failed to start OTA request',
+            { markFailure: true, markCompleted: true },
+          );
+        }
+        this.persistUpdateFixturesState();
+        this.startNextOutdatedFixtureUpdate();
+      },
+    });
+  }
+
+  private appendUpdateReportStep(
+    fixtureName: string,
+    step: string,
+    message: string | null = null,
+    options?: { markSuccess?: boolean; markFailure?: boolean; markCompleted?: boolean },
+  ): void {
+    const normalizedFixture = String(fixtureName || '').trim();
+    if (!normalizedFixture) return;
+    const stepName = String(step || '').trim() || 'step';
+    const atMs = Date.now();
+    this.updateReportByFixture.update((map) => {
+      const next = new Map(map);
+      const existing = next.get(normalizedFixture);
+      const entry: UpdateReportFixtureEntry = existing
+        ? {
+            fixtureName: existing.fixtureName,
+            startedAtMs: existing.startedAtMs,
+            completedAtMs: existing.completedAtMs,
+            success: existing.success,
+            steps: [...existing.steps],
+          }
+        : {
+            fixtureName: normalizedFixture,
+            startedAtMs: atMs,
+            completedAtMs: null,
+            success: null,
+            steps: [],
+          };
+      entry.steps.push({
+        atMs,
+        step: stepName,
+        message: message ? String(message).trim() : null,
+      });
+      if (options?.markSuccess) entry.success = true;
+      if (options?.markFailure) entry.success = false;
+      if (options?.markCompleted) entry.completedAtMs = atMs;
+      next.set(normalizedFixture, entry);
+      return next;
+    });
+  }
+
+  private finishOutdatedFixtureUpdateRun(cancelled: boolean): void {
+    const total = this.updateFixturesTotal();
+    const processed = this.updateFixturesProcessed();
+    const failed = this.updateFixturesFailed();
+    const success = Math.max(0, processed - failed);
+    this.updateFixturesSucceeded.set(success);
+
+    this.updateFixturesLoading.set(false);
+    this.updateFixturesCurrentFixture.set(null);
+    this.updateFixturesCurrentStep.set(null);
+    this.updateFixturesQueue = [];
+    this.updateFixturesPendingFixture = null;
+    this.updateFixturesPendingSinceMs = null;
+    this.updateFixturesCancelRequested = false;
+
+    if (cancelled) {
+      this.messageService.add({
+        key: 'app',
+        severity: 'contrast',
+        summary: `Update run cancelled — ${processed}/${total} finished`,
+        detail: failed > 0 ? `Successful: ${success} · Failed: ${failed}` : `Successful: ${success}`,
+        life: 5000,
+      });
+      this.clearPersistedUpdateFixturesState();
+      return;
+    }
+
+    const detailFailed =
+      failed > 0
+        ? `Failed: ${this.updateFixturesFailures.slice(0, 5).join(', ')}${failed > 5 ? ', ...' : ''}`
+        : undefined;
+    this.messageService.add({
+      key: 'app',
+      severity: failed > 0 ? 'warn' : 'success',
+      summary: `Update run finished: ${success}/${total} successful${failed > 0 ? `, ${failed} failed` : ''}`,
+      detail: detailFailed,
+      life: 7000,
+    });
+    this.clearPersistedUpdateFixturesState();
+  }
+
+  private persistUpdateFixturesState(): void {
+    const payload: PersistedUpdateFixturesState = {
+      loading: this.updateFixturesLoading(),
+      updatedAtMs: Date.now(),
+      currentFixture: this.updateFixturesCurrentFixture(),
+      currentStep: this.updateFixturesCurrentStep(),
+      total: this.updateFixturesTotal(),
+      processed: this.updateFixturesProcessed(),
+      failed: this.updateFixturesFailed(),
+      succeeded: this.updateFixturesSucceeded(),
+      queue: [...this.updateFixturesQueue],
+      pendingFixture: this.updateFixturesPendingFixture,
+      pendingSinceMs: this.updateFixturesPendingSinceMs,
+      failures: [...this.updateFixturesFailures],
+      outcomes: [...this.updateFixturesOutcomeLog()],
+      cancelRequested: this.updateFixturesCancelRequested,
+      report: Array.from(this.updateReportByFixture().values()),
+    };
+    try {
+      localStorage.setItem(this.updateFixturesStorageKey, JSON.stringify(payload));
+    } catch {
+      // ignore storage failures; run remains active in memory
+    }
+  }
+
+  private clearPersistedUpdateFixturesState(): void {
+    try {
+      localStorage.removeItem(this.updateFixturesStorageKey);
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  private restoreUpdateFixturesState(): void {
+    let raw: string | null = null;
+    try {
+      raw = localStorage.getItem(this.updateFixturesStorageKey);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+
+    let parsed: PersistedUpdateFixturesState | null = null;
+    try {
+      parsed = JSON.parse(raw) as PersistedUpdateFixturesState;
+    } catch {
+      this.clearPersistedUpdateFixturesState();
+      return;
+    }
+    if (!parsed || parsed.loading !== true) {
+      this.clearPersistedUpdateFixturesState();
+      return;
+    }
+    const updatedAtMs =
+      typeof parsed.updatedAtMs === 'number' && Number.isFinite(parsed.updatedAtMs)
+        ? Math.round(parsed.updatedAtMs)
+        : NaN;
+    if (!Number.isFinite(updatedAtMs) || (Date.now() - updatedAtMs) > this.updateFixturesStorageMaxAgeMs) {
+      this.clearPersistedUpdateFixturesState();
+      return;
+    }
+
+    this.updateFixturesQueue = Array.isArray(parsed.queue) ? parsed.queue.filter((v) => typeof v === 'string' && v.trim()) : [];
+    this.updateFixturesPendingFixture =
+      typeof parsed.pendingFixture === 'string' && parsed.pendingFixture.trim()
+        ? parsed.pendingFixture.trim()
+        : null;
+    this.updateFixturesPendingSinceMs =
+      typeof parsed.pendingSinceMs === 'number' && Number.isFinite(parsed.pendingSinceMs)
+        ? Math.max(0, Math.round(parsed.pendingSinceMs))
+        : null;
+    if (this.updateFixturesPendingFixture && this.updateFixturesPendingSinceMs === null) {
+      this.updateFixturesPendingSinceMs = Date.now();
+    }
+    this.updateFixturesFailures = Array.isArray(parsed.failures) ? parsed.failures.filter((v) => typeof v === 'string' && v.trim()) : [];
+    this.updateFixturesCancelRequested = parsed.cancelRequested === true;
+
+    this.updateFixturesLoading.set(true);
+    this.updateFixturesCurrentFixture.set(
+      typeof parsed.currentFixture === 'string' && parsed.currentFixture.trim() ? parsed.currentFixture.trim() : null,
+    );
+    this.updateFixturesCurrentStep.set(
+      typeof parsed.currentStep === 'string' && parsed.currentStep.trim()
+        ? `${parsed.currentStep.trim()} · resumed after reload`
+        : 'resumed after reload',
+    );
+    this.updateFixturesTotal.set(Number.isFinite(parsed.total) ? Math.max(0, Math.round(parsed.total)) : 0);
+    this.updateFixturesProcessed.set(Number.isFinite(parsed.processed) ? Math.max(0, Math.round(parsed.processed)) : 0);
+    this.updateFixturesFailed.set(Number.isFinite(parsed.failed) ? Math.max(0, Math.round(parsed.failed)) : 0);
+    this.updateFixturesSucceeded.set(Number.isFinite(parsed.succeeded) ? Math.max(0, Math.round(parsed.succeeded)) : 0);
+    this.updateFixturesOutcomeLog.set(Array.isArray(parsed.outcomes) ? parsed.outcomes.slice(-50) : []);
+    this.updateReportByFixture.set(
+      new Map(
+        (Array.isArray(parsed.report) ? parsed.report : [])
+          .filter((entry) => entry && typeof entry.fixtureName === 'string' && entry.fixtureName.trim())
+          .map((entry) => [entry.fixtureName, entry] as const),
+      ),
+    );
+
+    if (!this.updateFixturesPendingFixture && this.updateFixturesQueue.length === 0) {
+      this.finishOutdatedFixtureUpdateRun(false);
+      return;
+    }
+    const total = this.updateFixturesTotal();
+    const processed = this.updateFixturesProcessed();
+    if (total <= 0 || processed >= total) {
+      this.finishOutdatedFixtureUpdateRun(false);
+      return;
+    }
+    if (!this.updateFixturesPendingFixture) {
+      this.startNextOutdatedFixtureUpdate();
+    } else {
+      this.persistUpdateFixturesState();
+    }
+    this.reconcileUpdateStateWithBackend();
+  }
+
+  private backendOtaInProgressFixtures(): Set<string> | null {
+    const commander = this.health()?.commander as Record<string, unknown> | null | undefined;
+    if (!commander) return null;
+    const raw = commander['ota_in_progress_fixtures'];
+    if (!Array.isArray(raw)) return null;
+    const fixtures = raw
+      .map((value) => (typeof value === 'string' ? value.trim() : ''))
+      .filter((value) => value.length > 0)
+      .map((value) => value.toUpperCase());
+    return new Set(fixtures);
+  }
+
+  private reconcileUpdateStateWithBackend(): void {
+    const backendFixtures = this.backendOtaInProgressFixtures();
+    if (backendFixtures === null) return; // backend doesn't expose status yet
+    if (!this.updateFixturesLoading()) return;
+
+    const pending = (this.updateFixturesPendingFixture ?? '').trim().toUpperCase();
+    const hasPending = pending.length > 0;
+    const pendingAgeMs = this.updateFixturesPendingSinceMs !== null
+      ? Math.max(0, Date.now() - this.updateFixturesPendingSinceMs)
+      : 0;
+    const queueHasItems = this.updateFixturesQueue.length > 0;
+    const backendHasActive = backendFixtures.size > 0;
+
+    // Keep updates strictly sequential: do not advance while waiting for backend result
+    // (ota_complete / ota_error). Recover only if backend result never arrives.
+    if (hasPending && !backendFixtures.has(pending)) {
+      if (pendingAgeMs < this.updateFixturesPendingResultTimeoutMs) {
+        return;
+      }
+      const timedOutFixtureName = this.updateFixturesPendingFixture ?? pending;
+      this.updateFixturesPendingFixture = null;
+      this.updateFixturesPendingSinceMs = null;
+      this.updateFixturesFailures.push(timedOutFixtureName);
+      this.updateFixturesFailed.set(this.updateFixturesFailures.length);
+      this.updateFixturesOutcomeLog.update((log) => [...log, { fixture: timedOutFixtureName, ok: false }]);
+      this.updateFixturesProcessed.update((v) => v + 1);
+      this.updateFixturesCurrentStep.set('backend result timeout · moving to next fixture');
+      this.appendUpdateReportStep(
+        timedOutFixtureName,
+        'backend_timeout',
+        'no ota_complete/ota_error event received before timeout',
+        { markFailure: true, markCompleted: true },
+      );
+      if (queueHasItems && !this.updateFixturesCancelRequested) {
+        this.persistUpdateFixturesState();
+        this.startNextOutdatedFixtureUpdate();
+        return;
+      }
+      if (!backendHasActive) {
+        this.updateFixturesLoading.set(false);
+        this.updateFixturesCurrentFixture.set(null);
+        this.updateFixturesCurrentStep.set(null);
+        this.updateFixturesQueue = [];
+        this.updateFixturesCancelRequested = false;
+        this.updateFixturesPendingSinceMs = null;
+        this.clearPersistedUpdateFixturesState();
+        return;
+      }
+      this.persistUpdateFixturesState();
+      return;
+    }
+
+    if (!hasPending && queueHasItems && !this.updateFixturesCancelRequested) {
+      this.startNextOutdatedFixtureUpdate();
+      return;
+    }
+
+    if (!hasPending && !queueHasItems && !backendHasActive) {
+      this.updateFixturesLoading.set(false);
+      this.updateFixturesCurrentFixture.set(null);
+      this.updateFixturesCurrentStep.set(null);
+      this.updateFixturesCancelRequested = false;
+      this.clearPersistedUpdateFixturesState();
+    }
   }
 
   private async runSidebarFixtureDiscoverySequential(fixtureNames: string[]): Promise<void> {
@@ -4257,6 +4805,28 @@ export class CommanderComponent implements OnInit {
     const h = Math.floor(m / 60);
     const rem = m % 60;
     return rem > 0 ? `${h}h${rem}m` : `${h}h`;
+  }
+
+  protected formatUpdateReportMs(valueMs: number | null): string {
+    if (valueMs === null || !Number.isFinite(valueMs)) return '—';
+    const ms = Math.max(0, Math.round(valueMs));
+    if (ms < 1000) return `${ms}ms`;
+    const seconds = ms / 1000;
+    if (seconds < 60) return `${seconds.toFixed(1)}s`;
+    const mins = Math.floor(seconds / 60);
+    const rem = seconds - mins * 60;
+    if (mins < 60) return rem > 0.05 ? `${mins}m ${rem.toFixed(1)}s` : `${mins}m`;
+    const hours = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+  }
+
+  protected formatUpdateReportTotalMs(valueMs: number | null): string {
+    if (valueMs === null || !Number.isFinite(valueMs)) return '—';
+    const totalSeconds = Math.max(0, Math.floor(valueMs / 1000));
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}m${secs}s`;
   }
 
   /**

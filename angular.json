@@ -28,6 +28,19 @@
             "polyfills": [
               "zone.js"
             ],
+            "allowedCommonJsDependencies": [
+              "@braintree/sanitize-url",
+              "cytoscape-cose-bilkent",
+              "cytoscape-fcose",
+              "dayjs",
+              "dayjs/plugin/advancedFormat.js",
+              "dayjs/plugin/customParseFormat.js",
+              "dayjs/plugin/duration.js",
+              "dayjs/plugin/isoWeek.js",
+              "vscode-jsonrpc/lib/common/cancellation.js",
+              "vscode-jsonrpc/lib/common/events.js",
+              "vscode-languageserver-protocol"
+            ],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -44,13 +57,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1000kB",
-                  "maximumError": "1600kB"
+                  "maximumWarning": "1600kB",
+                  "maximumError": "1800kB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "14kB",
-                  "maximumError": "20kB"
+                  "maximumWarning": "20kB",
+                  "maximumError": "24kB"
                 }
               ],
               "outputHashing": "all",

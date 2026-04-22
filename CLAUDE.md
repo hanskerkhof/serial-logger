@@ -122,3 +122,9 @@ Compare `raw['fw_version']` (string) against `health().api.release_version` to d
 - State is managed with Angular **signals** (`signal()`, `computed()`, `linkedSignal()`). Avoid introducing new RxJS `BehaviorSubject` patterns — `SerialService` is a legacy exception.
 - Use `inject()` over constructor injection for new code.
 - Prettier config: `printWidth: 100`, `singleQuote: true`, Angular HTML parser for templates.
+
+## Angular build warning policy
+
+- Keep `npm run build` warning-clean by default.
+- If Angular budget warnings/errors appear after intentional FE growth, rebalance `angular.json` budgets (`initial`, `anyComponentStyle`) in the same change set.
+- If known/accepted CommonJS optimization warnings appear, update `allowedCommonJsDependencies` in `angular.json` to avoid recurring warning noise.

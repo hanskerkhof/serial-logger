@@ -217,6 +217,17 @@
   }
 }
 
+.commander__sidebar-query-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  p-splitbutton {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .commander__discovery-timing {
   display: flex;
   flex-direction: column;
@@ -265,6 +276,98 @@
 }
 
 .commander__discovery-timing-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color);
+}
+
+.commander__update-report {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.commander__update-report-table-wrap {
+  max-height: min(62vh, 520px);
+  overflow: auto;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.5rem;
+}
+
+.commander__update-report-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 0.5rem 0.65rem;
+    border-bottom: 1px solid var(--p-content-border-color);
+    font-size: 0.82rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--p-content-background);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  // Keep Result/Total compact and single-line (emoji + label, time strings).
+  th:nth-child(2),
+  td:nth-child(2),
+  th:nth-child(3),
+  td:nth-child(3) {
+    white-space: nowrap;
+    width: 1%;
+  }
+}
+
+.commander__update-report-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.commander__update-report-fixture-name {
+  font-weight: 600;
+}
+
+.commander__update-report-fixture-meta {
+  margin-top: 0.15rem;
+  font-size: 0.74rem;
+  color: var(--p-text-muted-color);
+  word-break: break-word;
+}
+
+.commander__update-report-step-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.commander__update-report-step-time,
+.commander__update-report-step-total {
+  color: var(--p-text-muted-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.commander__update-report-step-name {
+  font-weight: 600;
+}
+
+.commander__update-report-step-msg {
+  color: var(--p-text-muted-color);
+}
+
+.commander__update-report-empty {
   margin: 0;
   font-size: 0.9rem;
   color: var(--p-text-muted-color);

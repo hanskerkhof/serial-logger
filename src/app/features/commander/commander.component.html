@@ -53,6 +53,17 @@
             [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
           ></p-progressbar>
           <span class="discovery-progress-toast__detail">{{ discoverFixturesProgressLabel() }}</span>
+        } @else if (message.data?.mode === 'progress_updates') {
+          <p-progressbar
+            [value]="updateFixturesProgressPct()"
+            [showValue]="false"
+            styleClass="discovery-progress-toast__bar"
+            [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
+          ></p-progressbar>
+          <span class="discovery-progress-toast__detail">{{ updateFixturesProgressLabel() }}</span>
+          @if (updateFixturesOutcomeSummaryLabel(); as outcomeSummary) {
+            <span class="discovery-progress-toast__detail">{{ outcomeSummary }}</span>
+          }
         }
         @if (message.data?.mode === 'progress_full_ws') {
           <span class="discovery-progress-toast__detail">{{ discoveryWsProgressLabel() }}</span>
@@ -117,6 +128,69 @@
     }
   </section>
 </p-dialog>
+<p-dialog
+  header="Update Report"
+  [visible]="updateReportDialogVisible()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(900px, 98vw)' }"
+  (visibleChange)="updateReportDialogVisible.set(!!$event)"
+>
+  <section class="commander__update-report">
+    @if (updateReportRows().length > 0) {
+      <div class="commander__update-report-table-wrap">
+        <table class="commander__update-report-table">
+          <thead>
+            <tr>
+              <th>Fixture</th>
+              <th>Result</th>
+              <th>Total</th>
+              <th>Steps + timing</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of updateReportRows(); track row.fixtureName) {
+              <tr>
+                <td>
+                  <div class="commander__update-report-fixture-name">{{ row.fixtureName }}</div>
+                  <div class="commander__update-report-fixture-meta">
+                    <strong>FQBN:</strong> {{ row.fixtureFqbn }} · <strong>Player:</strong> {{ row.fixturePlayerType }} · <strong>MAC:</strong> {{ row.fixtureMac }}
+                  </div>
+                </td>
+                <td>
+                  @if (row.result === 'SUCCESS') { ✅ success }
+                  @else if (row.result === 'FAILED') { ❌ failed }
+                  @else { ⏳ pending }
+                </td>
+                <td>{{ formatUpdateReportTotalMs(row.totalMs) }}</td>
+                <td>
+                  <div class="commander__update-report-steps">
+                    @for (step of row.steps; track $index) {
+                      <div class="commander__update-report-step-line">
+                        <span class="commander__update-report-step-time">
+                          @if (step.sincePrevMs === null) { start }
+                          @else { +{{ formatUpdateReportMs(step.sincePrevMs) }} }
+                        </span>
+                        <span class="commander__update-report-step-name">{{ step.step }}</span>
+                        <span class="commander__update-report-step-total">({{ formatUpdateReportMs(step.sinceStartMs) }})</span>
+                        @if (step.message) {
+                          <span class="commander__update-report-step-msg">{{ step.message }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="commander__update-report-empty">No update report data yet.</p>
+    }
+  </section>
+</p-dialog>
 <section class="commander" aria-label="Commander mode">
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">
@@ -128,16 +202,6 @@
     </header>
 
     <div class="commander__sidebar-actions">
-      <p-splitbutton
-        [label]="discoveryButtonLabel()"
-        icon="pi pi-play"
-        iconPos="right"
-        severity="secondary"
-        size="small"
-        [model]="fullDiscoveryMenuItems()"
-        (onClick)="runFullDiscovery()"
-        [disabled]="backendBusy() || commanderUnavailable() || discoveryLoading() || discoverFixturesLoading()"
-      ></p-splitbutton>
       <div class="commander__sidebar-discovery-ws-row">
         <p-splitbutton
           [label]="discoveryWsButtonLabel()"
@@ -164,16 +228,32 @@
           aria-label="Open discovery timing"
         ></button>
       </div>
-      <p-splitbutton
-        [label]="discoverFixturesButtonLabel()"
-        [icon]="discoverFixturesLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"
-        iconPos="right"
-        severity="secondary"
-        size="small"
-        [model]="discoverFixturesMenuItems()"
-        (onClick)="runSidebarFixtureDiscovery()"
-        [disabled]="backendBusy() || commanderUnavailable() || discoverFixturesLoading()"
-      ></p-splitbutton>
+      <div class="commander__sidebar-query-row">
+        <p-splitbutton
+          [label]="discoverFixturesButtonLabel()"
+          [icon]="discoverFixturesLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"
+          iconPos="right"
+          severity="secondary"
+          size="small"
+          [model]="discoverFixturesMenuItems()"
+          (onClick)="runSidebarFixtureDiscovery()"
+          [disabled]="backendBusy() || commanderUnavailable() || discoverFixturesLoading()"
+        ></p-splitbutton>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-list-check"
+          severity="secondary"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          pTooltip="Update report"
+          tooltipPosition="bottom"
+          (click)="updateReportDialogVisible.set(true)"
+          [disabled]="!updateReportAvailable()"
+          aria-label="Open update report"
+        ></button>
+      </div>
     </div>
     <p class="commander__sidebar-debug">{{ passiveQueryDebugLabel() }}</p>
 
@@ -530,6 +610,7 @@
 
     <app-commander-console
       [apiBaseUrl]="activeApiUrl()"
+      (otaProgress)="onOtaProgress($event)"
       (otaComplete)="onOtaComplete($event)"
       (otaError)="onOtaError($event)"
     ></app-commander-console>

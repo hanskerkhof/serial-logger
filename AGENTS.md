@@ -119,6 +119,9 @@ Run `./scripts/update_studio_pi.sh` from the **root** `bauklank-micros` repo. Th
 
 - Prefer `npm test` for logic or UI behavior changes.
 - Prefer `npm run build` for non-trivial changes and before deployment-related updates.
+- Keep Angular builds warning-clean by default.
+- If `npm run build` reports Angular budget warnings/errors after intentional FE growth, rebalance `angular.json` budgets (`initial`, `anyComponentStyle`) in the same change set.
+- If `npm run build` reports known/accepted CommonJS optimization warnings, update `allowedCommonJsDependencies` in `angular.json` to avoid recurring warning noise.
 - For BAUKLANK releases, always run `npm run deploy:bauklank-studio` before the root `bauklank-micros` release commit so the deployed bundle lands in `bauklank-micros/web/serial-logger-app` in that same release.
 - Default deploy target is `../../web/serial-logger-app` when running in-repo unless `BAUKLANK_DEPLOY_TARGET` overrides it.
 - Before a BAUKLANK release, validate the FE repo with at least:

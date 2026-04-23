@@ -90,6 +90,7 @@ Run `./scripts/update_studio_pi.sh` from the **root** `bauklank-micros` repo. Th
 - Restarts `cmdr-api.service` and verifies the frontend bundle.
 - Requires a **clean Mac-side repo** — only the files being released need to be committed. Do **not** stash or commit unrelated dirty files (e.g. `arduino/BAUKLANK_FIXTURE_v2/Version.h`) just to satisfy the script; let them remain dirty and unstaged.
 - The `curl` health check at the end sometimes fails due to boot timing; `active (running)` in the service status is the reliable indicator.
+- Hard rule: do not run `compile_fixture --ota` on the Pi as part of FE/release update flow. Pi-side operation is repo sync + service restart + verification only.
 
 ## Fixture capabilities access pattern
 

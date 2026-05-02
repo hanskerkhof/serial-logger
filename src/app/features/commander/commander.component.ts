@@ -355,13 +355,12 @@ export class CommanderComponent implements OnInit {
     const stepPart = step ? ` · ${step}` : '';
     return `${base}${fixturePart}${stepPart}`;
   });
-  protected readonly updateFixturesOutcomeSummaryLabel = computed(() => {
-    const processed = this.updateFixturesProcessed();
+  protected readonly updateFixturesOutcomeSummaryLines = computed(() => {
     const total = this.updateFixturesTotal();
-    if (processed <= 0 || total <= 0) return null;
-    const latest = this.updateFixturesOutcomeLog().at(-1);
-    if (!latest) return null;
-    return `${processed}/${total} · ${latest.ok ? '✅' : '❌'} ${latest.fixture}`;
+    if (total <= 0) return [] as string[];
+    return this.updateFixturesOutcomeLog().map((entry, index) =>
+      `${Math.min(index + 1, total)}/${total} · ${entry.ok ? '✅' : '❌'} ${entry.fixture}`,
+    );
   });
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
@@ -1461,6 +1460,7 @@ export class CommanderComponent implements OnInit {
     const stepLabel =
       normalizedStep === 'compiling' ? 'compiling' :
       normalizedStep === 'uploading' ? 'uploading' :
+      normalizedStep === 'dark_side_of_the_moon' ? 'dark side of the moon' :
       normalizedStep === 'verifying' ? 'verifying' :
       normalizedStep === 'complete' ? 'completing' :
       normalizedStep === 'error' ? 'error reported' :

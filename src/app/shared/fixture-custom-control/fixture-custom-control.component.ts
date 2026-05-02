@@ -320,12 +320,26 @@ export class FixtureCustomControlComponent {
     const value = this.liveCommandArgValue(commandId, arg);
     const optionLabel = this.optionLabelForValue(arg, value);
     if (optionLabel) return optionLabel;
+    // REMSEC should render as a right-aligned 4-char seven-segment field.
+    if (this.isStatusRemsecArg(arg)) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) {
+        const secondsText = `${Math.max(0, Math.trunc(numeric))}`;
+        return secondsText.padStart(4, ' ');
+      }
+      return `${value}`;
+    }
     const explicitSuffix = this.statusDisplaySuffix(arg);
     if (explicitSuffix) return `${value}${explicitSuffix}`;
     if (typeof value === 'number' && this.isSecondsLikeArgName(arg.name)) {
       return `${value}s`;
     }
     return `${value}`;
+  }
+
+  protected statusRemsecDigits(commandId: string, arg: CmdrCustomCommandUiArg): string[] {
+    const text = this.statusDisplayText(commandId, arg).padStart(4, ' ').slice(-4);
+    return text.split('');
   }
 
   protected selectOptions(arg: CmdrCustomCommandUiArg): SelectOption[] {

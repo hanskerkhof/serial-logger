@@ -68,6 +68,73 @@
   font-variant-numeric: tabular-nums;
 }
 
+.fixture-custom-control__status-value--remsec-led {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  font-family: "DSEG7 Classic", monospace;
+  font-weight: 700;
+  color: #ff4a1f;
+  letter-spacing: 0;
+  font-size: 2.4rem;
+  line-height: 1;
+  box-sizing: border-box;
+  padding: 0.14em 0.25em 0.1em;
+  white-space: nowrap;
+  border-radius: 0.18rem;
+  background: #0a0a0a;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 0 12px rgba(0, 0, 0, 0.45);
+}
+
+.fixture-custom-control__status-value--remsec-led-digit {
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  box-sizing: border-box;
+  width: 1.6rem;
+  line-height: 1;
+}
+
+.fixture-custom-control__status-value--remsec-led-sep {
+  width: 0;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  margin-inline: -0.175rem;
+
+  > .fixture-custom-control__status-value--remsec-led-ghost {
+    display: block;
+    transform: translateX(-50%);
+  }
+}
+
+.fixture-custom-control__status-value--remsec-led-ghost,
+.fixture-custom-control__status-value--remsec-led-lit {
+  grid-area: 1 / 1;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fixture-custom-control__status-value--remsec-led-ghost {
+  color: rgba(180, 50, 20, 0.22);
+  text-shadow: none;
+  pointer-events: none;
+}
+
+.fixture-custom-control__status-value--remsec-led-lit {
+  color: #ff8800;
+  text-shadow: none;
+}
+
+.fixture-custom-control__status-value--remsec-led-lit.fixture-custom-control__status-value--remsec-led-digit-empty {
+  color: transparent;
+  text-shadow: none;
+}
+
 .fixture-custom-control__card {
   border: 1px solid var(--p-content-border-color);
   border-radius: 0.5rem;

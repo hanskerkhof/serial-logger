@@ -848,7 +848,7 @@
                         iconPos="left"
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
-                        (click)="startOtaUpdate(selectedFixtureName()!)"
+                        (click)="runDialogFixtureUpdateSingle()"
                         class="commander__dialog-fw-update-btn"
                       ></button>
                     }
@@ -867,7 +867,7 @@
                         iconPos="left"
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
-                        (click)="startOtaUpdate(selectedFixtureName()!)"
+                        (click)="runDialogFixtureUpdateSingle()"
                         class="commander__dialog-fw-update-btn"
                       ></button>
                     }

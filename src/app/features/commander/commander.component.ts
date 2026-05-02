@@ -1444,40 +1444,14 @@ export class CommanderComponent implements OnInit {
     });
   }
 
-  protected startOtaUpdate(fixtureName: string): void {
-    if (this.otaInProgress().has(fixtureName) || this.modalQueryLoading()) return;
-
-    const releaseVersion = this.health()?.api?.release_version ?? null;
-
-    // Phase 1: run the fixture query (same as "Run query" button) to get the live version
-    this.runModalFixtureQuery((result) => {
-      const fixtureVersion = result.summary?.fw_version ?? null;
-
-      if (releaseVersion && fixtureVersion === releaseVersion) {
-        this.messageService.add({
-          key: 'app',
-          severity: 'contrast',
-          summary: 'Already up to date',
-          detail: `${fixtureName} is already on v${fixtureVersion}`,
-          life: 5000,
-        });
-        return;
-      }
-
-      // Phase 2: fixture confirmed outdated — start OTA
-      this.otaInProgress.update((s) => new Set([...s, fixtureName]));
-      this.commanderApi.postOtaUpdate(fixtureName).subscribe({
-        error: (err: unknown) => {
-          this.otaInProgress.update((s) => { const n = new Set(s); n.delete(fixtureName); return n; });
-          const status = (err as { status?: number })?.status;
-          const detail = status === 409
-            ? 'An update is already running for this fixture'
-            : `Failed to start update for ${fixtureName}`;
-          this.messageService.add({ key: 'app', severity: 'error', summary: 'OTA error', detail, life: 6000 });
-        },
-        // 202 success — wait for ota_complete via commander stream
-      });
-    });
+  protected runDialogFixtureUpdateSingle(): void {
+    const fixtureName = (this.selectedFixtureName() ?? '').trim();
+    if (!fixtureName) {
+      this.modalQueryError.set('No fixture selected.');
+      return;
+    }
+    if (!this.checkApiReachable() || this.updateFixturesLoading() || this.modalQueryLoading()) return;
+    this.startFixtureUpdateQueue([fixtureName]);
   }
 
   protected onOtaProgress(event: OtaStreamEvent): void {
@@ -2427,6 +2401,11 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
+    this.startFixtureUpdateQueue(fixtureNames);
+  }
+
+  private startFixtureUpdateQueue(fixtureNames: string[]): void {
+    if (!fixtureNames.length) return;
     this.error.set(null);
     this.updateFixturesCancelRequested = false;
     this.updateFixturesQueue = [...fixtureNames];

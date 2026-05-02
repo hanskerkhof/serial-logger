@@ -29,6 +29,7 @@ import { SplitButtonModule } from 'primeng/splitbutton';
 import { TabsModule } from 'primeng/tabs';
 import { DrawerModule } from 'primeng/drawer';
 import { ProgressBarModule } from 'primeng/progressbar';
+import { TableModule } from 'primeng/table';
 import { NgTemplateOutlet } from '@angular/common';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import { FIXTURE_DETAIL_DRAWER } from '../../feature-flags';
@@ -55,6 +56,8 @@ import {
   CmdrRelayStateItem,
   CmdrFixturePlanStatusResponse,
   CmdrVersionsResponse,
+  CmdrCommanderFixtureCacheResponse,
+  CmdrCommanderFixtureCacheEntry,
 } from '../../api/cmdr-models';
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
@@ -78,6 +81,7 @@ import {
   ScannedFixtureCommand,
 } from '../../shared/qr-scanner-demo/qr-scanned-command.service';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
+import { DurationMsCompactPipe } from '../../shared/pipes/duration-ms-compact.pipe';
 
 interface SelectOption {
   label: string;
@@ -189,7 +193,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe, DurationMsCompactPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -563,6 +567,7 @@ export class CommanderComponent implements OnInit {
   private _lastUnavailableReason: string | null = null;
   private _unavailableToastTimer: ReturnType<typeof setTimeout> | null = null;
   private _progressToastClearTimer: ReturnType<typeof setTimeout> | null = null;
+  private commanderCachePollTimer: ReturnType<typeof setInterval> | null = null;
   private readonly progressToastHoldMs = 3000;
   private _activeProgressToastMode: 'progress_full_ws' | 'progress_full' | 'progress_fixtures' | 'progress_updates' | 'progress_query' | null = null;
   private _discoveryWsStartedAtMs: number | null = null;
@@ -1056,6 +1061,23 @@ export class CommanderComponent implements OnInit {
   );
   protected readonly fixtureCount = this.fixtureStore.fixtureCount;
   protected readonly storageWarning = this.fixtureStore.storageWarning;
+  protected readonly commanderCacheDialogVisible = signal(false);
+  protected readonly commanderCacheLoading = signal(false);
+  protected readonly commanderCachePollingEnabled = signal(true);
+  protected readonly commanderCacheData = signal<CmdrCommanderFixtureCacheResponse | null>(null);
+  protected readonly commanderCacheEntries = computed<CmdrCommanderFixtureCacheEntry[]>(
+    () =>
+      [...(this.commanderCacheData()?.entries ?? [])].sort((a, b) =>
+        String(a.fixture_name ?? '').localeCompare(String(b.fixture_name ?? ''), undefined, {
+          sensitivity: 'base',
+        }),
+      ),
+  );
+  protected readonly commanderCacheCount = computed<number>(() => {
+    const data = this.commanderCacheData();
+    if (!data) return 0;
+    return Number.isFinite(data.used) ? data.used : data.entries.length;
+  });
 
   /** Per-fixture fw version status keyed by fixture_name. Recomputes whenever health or store changes. */
   protected readonly fixtureFwStatusMap = computed(() => {
@@ -1942,6 +1964,7 @@ export class CommanderComponent implements OnInit {
         clearTimeout(this._passiveQueryDrainTimer);
         this._passiveQueryDrainTimer = null;
       }
+      this.stopCommanderCachePolling();
       this._activeProgressToastMode = null;
     });
   }
@@ -2038,6 +2061,84 @@ export class CommanderComponent implements OnInit {
   protected clearList(): void {
     this.fixtureStore.clearAllFixtures();
     this.discoveryTimings.set([]);
+  }
+
+  protected openCommanderCacheDialog(): void {
+    if (!this.checkApiReachable()) return;
+    this.onCommanderCacheDialogVisibleChange(true);
+  }
+
+  protected onCommanderCacheDialogVisibleChange(visible: boolean): void {
+    this.commanderCacheDialogVisible.set(!!visible);
+    if (!visible) {
+      this.stopCommanderCachePolling();
+      return;
+    }
+    this.loadCommanderCache();
+    this.restartCommanderCachePolling();
+  }
+
+  protected onCommanderCachePollingToggle(): void {
+    if (!this.commanderCacheDialogVisible()) return;
+    if (this.commanderCachePollingEnabled()) {
+      this.restartCommanderCachePolling();
+    } else {
+      this.stopCommanderCachePolling();
+    }
+  }
+
+  protected refreshCommanderCacheNow(): void {
+    if (!this.commanderCacheDialogVisible()) return;
+    this.loadCommanderCache();
+    this.restartCommanderCachePolling();
+  }
+
+  protected clearCommanderCacheNow(): void {
+    if (!this.commanderCacheDialogVisible()) return;
+    this.commanderCacheLoading.set(true);
+    this.commanderApi.clearCommanderFixtureCache(3.0).subscribe({
+      next: (result) => {
+        this.commanderCacheData.set(result);
+        this.commanderCacheLoading.set(false);
+        this.restartCommanderCachePolling();
+      },
+      error: (err: unknown) => {
+        this.commanderCacheData.set(null);
+        this.commanderCacheLoading.set(false);
+        this.showErrorToast(this.formatError('Failed to clear commander cache', err));
+      },
+    });
+  }
+
+  private loadCommanderCache(): void {
+    this.commanderCacheLoading.set(true);
+    this.commanderApi.getCommanderFixtureCache(3.0).subscribe({
+      next: (result) => {
+        this.commanderCacheData.set(result);
+        this.commanderCacheLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.commanderCacheData.set(null);
+        this.commanderCacheLoading.set(false);
+        this.showErrorToast(this.formatError('Failed to load commander cache', err));
+      },
+    });
+  }
+
+  private restartCommanderCachePolling(): void {
+    this.stopCommanderCachePolling();
+    if (!this.commanderCachePollingEnabled()) return;
+    this.commanderCachePollTimer = setInterval(() => {
+      if (!this.commanderCacheDialogVisible()) return;
+      this.loadCommanderCache();
+    }, 20_000);
+  }
+
+  private stopCommanderCachePolling(): void {
+    if (this.commanderCachePollTimer !== null) {
+      clearInterval(this.commanderCachePollTimer);
+      this.commanderCachePollTimer = null;
+    }
   }
 
   protected runFullDiscoveryWs(): void {

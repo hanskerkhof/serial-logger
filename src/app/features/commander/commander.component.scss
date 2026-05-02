@@ -81,6 +81,61 @@
   opacity: 0.6;
 }
 
+.commander__cache-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.commander__cache-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.commander__cache-header-title {
+  font-size: var(--p-dialog-title-font-size, 1.25rem);
+  font-weight: var(--p-dialog-title-font-weight, 600);
+  line-height: 1.2;
+}
+
+.commander__cache-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.commander__cache-polling-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+}
+
+.commander__cache-table-wrap {
+  overflow: auto;
+  max-height: calc(70vh - 11rem);
+}
+
+::ng-deep .commander__cache-dialog .p-dialog-content {
+  height: calc(70vh - 5.5rem);
+  overflow: hidden;
+}
+
+.commander__cache-table {
+  font-size: 0.9rem;
+}
+
+::ng-deep .commander__cache-table .p-datatable-table th,
+::ng-deep .commander__cache-table .p-datatable-table td {
+  text-align: left;
+  white-space: nowrap;
+}
+
 .commander__dialog-run-query-btn {
   min-width: 12rem;
   max-width: 12rem;

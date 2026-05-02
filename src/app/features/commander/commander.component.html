@@ -191,13 +191,111 @@
     }
   </section>
 </p-dialog>
+<p-dialog
+  [visible]="commanderCacheDialogVisible()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(56rem, 96vw)', height: '70vh' }"
+  styleClass="commander__cache-dialog"
+  (visibleChange)="onCommanderCacheDialogVisibleChange(!!$event)"
+>
+  <ng-template pTemplate="header">
+    <div class="commander__cache-header">
+      <span class="commander__cache-header-title">Commander Fixture Cache</span>
+      <div class="commander__cache-header-actions">
+        <button
+          pButton
+          type="button"
+          label="clear cache"
+          severity="secondary"
+          size="small"
+          [text]="true"
+          [disabled]="commanderCacheLoading()"
+          (click)="clearCommanderCacheNow()"
+          aria-label="Clear commander cache"
+        ></button>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-refresh"
+          severity="secondary"
+          [text]="true"
+          [rounded]="true"
+          [disabled]="commanderCacheLoading()"
+          pTooltip="Refresh now"
+          tooltipPosition="bottom"
+          (click)="refreshCommanderCacheNow()"
+          aria-label="Refresh commander cache"
+        ></button>
+        <label class="commander__cache-polling-toggle">
+          <span>Auto refresh</span>
+          <p-toggleswitch
+            [ngModel]="commanderCachePollingEnabled()"
+            (ngModelChange)="commanderCachePollingEnabled.set(!!$event); onCommanderCachePollingToggle()"
+          ></p-toggleswitch>
+        </label>
+      </div>
+    </div>
+  </ng-template>
+  @if (commanderCacheLoading() && !commanderCacheData()) {
+    <p>Loading cache…</p>
+  } @else if (commanderCacheData(); as cache) {
+    <div class="commander__cache-meta">
+      <span><strong>Used:</strong> {{ cache.used }} / {{ cache.capacity }}</span>
+      <span><strong>Reason:</strong> {{ cache.reason }}</span>
+      @if (commanderCacheLoading()) {
+        <span><strong>Status:</strong> refreshing…</span>
+      }
+    </div>
+    @if (commanderCacheEntries().length === 0) {
+      <p>No cached fixtures.</p>
+    } @else {
+      <div class="commander__cache-table-wrap">
+        <p-table
+          styleClass="commander__cache-table"
+          [value]="commanderCacheEntries()"
+          [sortField]="'fixture_name'"
+          [sortOrder]="1"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="fixture_name">
+                Name
+                <p-sortIcon field="fixture_name"></p-sortIcon>
+              </th>
+              <th>MAC</th>
+              <th>U/Ch</th>
+              <th>Source</th>
+              <th pSortableColumn="age_ms">
+                Age
+                <p-sortIcon field="age_ms"></p-sortIcon>
+              </th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-entry>
+            <tr>
+              <td>{{ entry.fixture_name }}</td>
+              <td>{{ entry.wifi_mac_address }}</td>
+              <td>{{ entry.universe }}/{{ entry.channel }}</td>
+              <td>{{ entry.source }}</td>
+              <td>{{ entry.age_ms | durationMsCompact }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    }
+  } @else {
+    <p>No cache data available.</p>
+  }
+</p-dialog>
 <section class="commander" aria-label="Commander mode">
   <aside class="commander__sidebar" aria-label="Fixtures by plan">
     <header class="commander__sidebar-header">
       <h3>Fixtures</h3>
-      @if (fixtureCount() > 0) {
-        <button type="button" class="commander__clear-list-link" (click)="clearList()">empty list</button>
-      }
+      <button type="button" class="commander__clear-list-link" (click)="clearList()">empty list</button>
+      <button type="button" class="commander__clear-list-link" (click)="openCommanderCacheDialog()">CMDR cache</button>
+      <p-badge class="commander__fixture-count" [value]="commanderCacheCount()" severity="contrast" />
       <p-badge class="commander__fixture-count" [value]="fixtureCount()" severity="secondary" />
     </header>
 

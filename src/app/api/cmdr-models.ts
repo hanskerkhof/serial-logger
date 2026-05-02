@@ -40,6 +40,28 @@ export interface CmdrFixturesDiscoveredResponse {
   source: string;
 }
 
+export interface CmdrCommanderFixtureCacheEntry {
+  index: number;
+  fixture_name: string;
+  wifi_mac_address: string;
+  universe: number;
+  channel: number;
+  source: string;
+  age_ms: number;
+}
+
+export interface CmdrCommanderFixtureCacheResponse {
+  ok: boolean;
+  reason: string;
+  capacity: number;
+  used: number;
+  updated_fixture_name: string;
+  updated_target_wifi_mac: string;
+  entries: CmdrCommanderFixtureCacheEntry[];
+  command: string;
+  serial_error: string | null;
+}
+
 export type CmdrFixtureCapabilities = components['schemas']['FixtureCapabilities'];
 export type CmdrPlanControls        = components['schemas']['PlanControls'];
 export type CmdrPlayerCapabilities  = components['schemas']['PlayerCapabilities'];

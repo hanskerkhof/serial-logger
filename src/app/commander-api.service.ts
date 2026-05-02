@@ -16,6 +16,7 @@ import type {
   CmdrMessagesResponse,
   CmdrFixtureDocsListResponse,
   CmdrFixturePlanStatusResponse,
+  CmdrCommanderFixtureCacheResponse,
 } from './api/cmdr-models';
 import { AuthService } from './auth/auth.service';
 import { SKIP_AUTH_HEADER } from './auth/auth-http-interceptor';
@@ -149,6 +150,19 @@ export class CommanderApiService {
   getFixturesDiscovered(): Observable<CmdrFixturesDiscoveredResponse> {
     return this.http.get<CmdrFixturesDiscoveredResponse>(
       `${this.getRequestBaseUrl()}/fixtures/discovered`,
+    );
+  }
+
+  getCommanderFixtureCache(listenSeconds = 0.8): Observable<CmdrCommanderFixtureCacheResponse> {
+    return this.http.get<CmdrCommanderFixtureCacheResponse>(
+      `${this.getRequestBaseUrl()}/commander/fixture-cache?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
+    );
+  }
+
+  clearCommanderFixtureCache(listenSeconds = 0.8): Observable<CmdrCommanderFixtureCacheResponse> {
+    return this.http.post<CmdrCommanderFixtureCacheResponse>(
+      `${this.getRequestBaseUrl()}/commander/fixture-cache/clear?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
+      {},
     );
   }
 

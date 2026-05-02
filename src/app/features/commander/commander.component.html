@@ -87,48 +87,6 @@
   </ng-template>
 </p-toast>
 <p-dialog
-  header="Discovery Timing"
-  [visible]="discoveryTimingDialogVisible()"
-  [modal]="true"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: 'min(760px, 96vw)' }"
-  (visibleChange)="discoveryTimingDialogVisible.set(!!$event)"
->
-  <section class="commander__discovery-timing">
-    @if (discoveryTimingSummary(); as summary) {
-        <div class="commander__discovery-timing-summary">
-          <span>Responders: <strong>{{ summary.responders }}</strong></span>
-          <span>Sweep: <strong>{{ summary.sweepElapsedMs !== null ? ((summary.sweepElapsedMs / 1000).toFixed(1) + ' s') : 'n/a' }}</strong></span>
-          <span>Slowest: <strong>{{ summary.slowestFixture ?? 'n/a' }}</strong></span>
-          <span>Complete: <strong>{{ summary.slowestMs !== null ? ((summary.slowestMs / 1000).toFixed(1) + ' s') : 'n/a' }}</strong></span>
-        </div>
-      }
-    @if (discoveryTimingTopRows().length > 0) {
-      <div class="commander__discovery-timing-table-wrap">
-        <table class="commander__discovery-timing-table">
-          <thead>
-              <tr>
-                <th>Fixture</th>
-                <th>Complete (s)</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of discoveryTimingTopRows(); track row.fixtureName) {
-                <tr>
-                  <td>{{ row.fixtureName }}</td>
-                  <td>{{ (row.completeMs / 1000).toFixed(1) }} s</td>
-                </tr>
-              }
-            </tbody>
-        </table>
-      </div>
-    } @else {
-      <p class="commander__discovery-timing-empty">No discovery timing data yet.</p>
-    }
-  </section>
-</p-dialog>
-<p-dialog
   header="Update Report"
   [visible]="updateReportDialogVisible()"
   [modal]="true"
@@ -300,38 +258,12 @@
     </header>
 
     <div class="commander__sidebar-actions">
-      <div class="commander__sidebar-discovery-ws-row">
-        <p-splitbutton
-          [label]="discoveryWsButtonLabel()"
-          [icon]="discoveryWsLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-bolt'"
-          iconPos="right"
-          severity="success"
-          size="small"
-          [model]="fullDiscoveryWsMenuItems()"
-          (onClick)="runFullDiscoveryWs()"
-          [disabled]="backendBusy() || commanderUnavailable() || discoveryWsLoading()"
-        ></p-splitbutton>
-        <button
-          pButton
-          type="button"
-          icon="pi pi-chart-line"
-          severity="secondary"
-          size="small"
-          [rounded]="true"
-          [text]="true"
-          pTooltip="Discovery timing"
-          tooltipPosition="bottom"
-          (click)="discoveryTimingDialogVisible.set(true)"
-          [disabled]="!discoveryTimingAvailable()"
-          aria-label="Open discovery timing"
-        ></button>
-      </div>
       <div class="commander__sidebar-query-row">
         <p-splitbutton
           [label]="discoverFixturesButtonLabel()"
           [icon]="discoverFixturesLoading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"
           iconPos="right"
-          severity="secondary"
+          severity="success"
           size="small"
           [model]="discoverFixturesMenuItems()"
           (onClick)="runSidebarFixtureDiscovery()"

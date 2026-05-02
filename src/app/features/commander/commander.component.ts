@@ -416,14 +416,6 @@ export class CommanderComponent implements OnInit {
     const t = this.discoveryTimings();
     return t.length > 0 ? t.reduce((s, v) => s + v, 0) / t.length : null;
   });
-  protected readonly discoveryWsButtonLabel = computed(() => {
-    const avg = this.discoveryAvgS();
-    if (this.discoveryWsLoading()) {
-      return avg !== null ? `Full Discovery ~${avg.toFixed(1)}s` : 'Full Discovery…';
-    }
-    if (avg === null) return 'Full Discovery';
-    return `Full Discovery ~${avg.toFixed(1)}s`;
-  });
   protected readonly discoveryWsProgressLabel = computed<string>(() => {
     const seen = this.discoveryWsFixturesSeen();
     const complete = this.discoveryWsFixturesComplete();
@@ -1110,20 +1102,6 @@ export class CommanderComponent implements OnInit {
       .map(([name]) => name),
   );
 
-  protected readonly fullDiscoveryWsMenuItems = computed<MenuItem[]>(() => [
-    {
-      label: 'Full discovery (WS) + fixtures',
-      icon: 'pi pi-list',
-      disabled:
-        this.backendBusy() ||
-        this.commanderUnavailable() ||
-        this.discoveryLoading() ||
-        this.discoveryWsLoading() ||
-        this.discoverFixturesLoading(),
-      command: () => this.runFullDiscoveryWsThenFixtures(),
-    },
-  ]);
-
   protected readonly discoverFixturesMenuItems = computed<MenuItem[]>(() => {
     const outdatedCount = this.outdatedFixtureNames().length;
     return [
@@ -1685,7 +1663,6 @@ export class CommanderComponent implements OnInit {
       const eventType = String(msg.type || '').trim();
       if (!eventType) return;
       if (eventType === 'discovery_rejected') {
-        this.discoveryWsThenFixturesPending = false;
         this.discoveryWsLoading.set(false);
         this.releaseDiscoveryLock();
         this.showDiscoveryAlreadyInProgressToast();
@@ -1797,8 +1774,6 @@ export class CommanderComponent implements OnInit {
         if (Number.isFinite(sweepElapsedMs) && sweepElapsedMs >= 0) {
           this.discoveryTimingLastSweepElapsedMs.set(Math.floor(sweepElapsedMs));
         }
-        const shouldQueryFixtures = this.discoveryWsThenFixturesPending;
-        this.discoveryWsThenFixturesPending = false;
         this.discoveryWsLatestFixture.set(null);
         const durationS =
           this._discoveryWsStartedAtMs !== null
@@ -1855,13 +1830,9 @@ export class CommanderComponent implements OnInit {
         this.discoveryWsLoading.set(false);
         this.discoveryWsUpsertedFixtureNames.clear();
         this.releaseDiscoveryLock();
-        if (shouldQueryFixtures) {
-          setTimeout(() => this.runSidebarFixtureDiscovery(), 0);
-        }
         return;
       }
       if (eventType === 'discovery_failed') {
-        this.discoveryWsThenFixturesPending = false;
         this.discoveryWsLatestFixture.set(null);
         this.discoveryWsFixturesSeen.set(0);
         this.discoveryWsFixturesComplete.set(0);
@@ -1888,7 +1859,6 @@ export class CommanderComponent implements OnInit {
         return;
       }
       if (eventType === 'discovery_cancelled') {
-        this.discoveryWsThenFixturesPending = false;
         this.discoveryWsLatestFixture.set(null);
         this.discoveryWsFixturesSeen.set(0);
         this.discoveryWsFixturesComplete.set(0);
@@ -1957,7 +1927,7 @@ export class CommanderComponent implements OnInit {
     //       this.fixtureStore.fixtureCount() === 0 &&
     //       this.healthService.health()?.commander?.detected === true
     //     ) {
-    //       this.runFullDiscoveryWsThenFixtures();
+    //       this.runSidebarFixtureDiscovery();
     //     }
     //   }, 3000);
     // }
@@ -2119,23 +2089,12 @@ export class CommanderComponent implements OnInit {
     }
   }
 
-  protected runFullDiscoveryWs(): void {
-    this.discoveryWsThenFixturesPending = false;
-    this.doFullDiscoveryWs();
-  }
-
-  protected runFullDiscoveryWsThenFixtures(): void {
-    this.discoveryWsThenFixturesPending = true;
-    this.doFullDiscoveryWs();
-  }
-
   private discoverFixturesCancelRequested = false;
   private updateFixturesCancelRequested = false;
   private updateFixturesQueue: string[] = [];
   private updateFixturesPendingFixture: string | null = null;
   private updateFixturesPendingSinceMs: number | null = null;
   private updateFixturesFailures: string[] = [];
-  private discoveryWsThenFixturesPending = false;
 
   private parseDiscoveryLock(raw: string | null): { owner: string; startedAtMs: number } | null {
     if (!raw) return null;
@@ -2181,55 +2140,6 @@ export class CommanderComponent implements OnInit {
     this.refreshDiscoveryLockState();
   }
 
-  private doFullDiscoveryWs(): void {
-    if (this.hasDiscoveryLockFromAnotherTab()) {
-      this.messageService.add({
-        key: 'app',
-        severity: 'contrast',
-        summary: 'Another window lock detected. Verifying with API…',
-        life: 2500,
-      });
-      this.refreshDiscoveryLockState();
-    }
-    if (!this.checkApiReachable()) return;
-    this.claimDiscoveryLock();
-    this.discoveryWsLoading.set(true);
-    this.discoveryWsSessionId.set(null);
-    this._discoveryWsStartedAtMs = performance.now();
-    this.error.set(null);
-    this.commanderApi.startFixtureDiscoveryWs().subscribe({
-      next: (result) => {
-        this.discoveryWsSessionId.set(String(result.session_id || '').trim() || null);
-        // Progress toast is managed by the discoveryWsLoading effect on the shared app toast channel.
-      },
-      error: (err: unknown) => {
-        this.discoveryWsThenFixturesPending = false;
-        this.discoveryWsLatestFixture.set(null);
-        this.discoveryWsFixturesSeen.set(0);
-        this.discoveryWsFixturesComplete.set(0);
-        this.discoveryWsIdentifyCount.set(0);
-        this.discoveryWsConfigCount.set(0);
-        this.discoveryWsCapabilitiesCount.set(0);
-        this.discoveryWsPlanStateCount.set(0);
-        this.discoveryWsFixturesWithIdentify.set(0);
-        this.discoveryWsFixturesWithConfig.set(0);
-        this.discoveryWsFixturesWithCapabilities.set(0);
-        this.discoveryWsFixturesWithPlanState.set(0);
-        this.discoveryWsFixturesReportsComplete.set(0);
-        this.discoveryWsUpsertedFixtureNames.clear();
-        this._discoveryWsStartedAtMs = null;
-        this.discoveryWsLoading.set(false);
-        this.releaseDiscoveryLock();
-        if (err instanceof HttpErrorResponse && err.status === 409) {
-          this.showDiscoveryAlreadyInProgressToast();
-          this.refreshDiscoveryLockState();
-          return;
-        }
-        this.showErrorToast(this.formatError('Full discovery (WS) failed to start', err));
-      },
-    });
-  }
-
   protected cancelCurrentDiscovery(): void {
     if (this.updateFixturesLoading()) {
       this.updateFixturesCancelRequested = true;
@@ -2257,7 +2167,6 @@ export class CommanderComponent implements OnInit {
       this.discoveryWsFixturesWithPlanState.set(0);
       this.discoveryWsFixturesReportsComplete.set(0);
       this.discoveryWsUpsertedFixtureNames.clear();
-      this.discoveryWsThenFixturesPending = false;
       this.releaseDiscoveryLock();
       this.messageService.add({ key: 'app', severity: 'contrast', summary: 'Full discovery cancelled', life: 3000 });
     } else if (this.discoveryWsLoading()) {
@@ -2282,7 +2191,6 @@ export class CommanderComponent implements OnInit {
       this.discoveryWsFixturesWithPlanState.set(0);
       this.discoveryWsFixturesReportsComplete.set(0);
       this._discoveryWsStartedAtMs = null;
-      this.discoveryWsThenFixturesPending = false;
       this.releaseDiscoveryLock();
       this.messageService.add({ key: 'app', severity: 'contrast', summary: 'Stopped waiting for Full Discovery (WS)', life: 3000 });
     } else if (this.discoverFixturesLoading()) {

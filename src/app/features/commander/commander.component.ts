@@ -1457,17 +1457,21 @@ export class CommanderComponent implements OnInit {
     if (!this.updateFixturesLoading()) return;
     if (this.updateFixturesPendingFixture !== event.fixture_name) return;
     const normalizedStep = String(event.step ?? '').trim().toLowerCase();
+    const messageText = String(event.message ?? '').trim();
+    const isIdentifyProgress = normalizedStep === 'uploading' && /^identifying\b/i.test(messageText);
+    const uiStep = isIdentifyProgress ? 'identify' : normalizedStep;
     const stepLabel =
-      normalizedStep === 'compiling' ? 'compiling' :
-      normalizedStep === 'uploading' ? 'uploading' :
-      normalizedStep === 'dark_side_of_the_moon' ? 'dark side of the moon' :
-      normalizedStep === 'verifying' ? 'verifying' :
-      normalizedStep === 'complete' ? 'completing' :
-      normalizedStep === 'error' ? 'error reported' :
+      uiStep === 'compiling' ? 'compiling' :
+      uiStep === 'identify' ? 'identify' :
+      uiStep === 'uploading' ? 'uploading' :
+      uiStep === 'dark_side_of_the_moon' ? 'dark side of the moon' :
+      uiStep === 'verifying' ? 'verifying' :
+      uiStep === 'complete' ? 'completing' :
+      uiStep === 'error' ? 'error reported' :
       'in progress';
-    const suffix = event.message ? ` · ${event.message}` : '';
+    const suffix = messageText ? ` · ${messageText}` : '';
     this.updateFixturesCurrentStep.set(`${stepLabel}${suffix}`);
-    this.appendUpdateReportStep(event.fixture_name, normalizedStep || 'progress', event.message ?? null);
+    this.appendUpdateReportStep(event.fixture_name, uiStep || 'progress', messageText || null);
     this.persistUpdateFixturesState();
   }
 

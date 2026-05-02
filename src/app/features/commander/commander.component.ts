@@ -345,7 +345,8 @@ export class CommanderComponent implements OnInit {
     const fixture = this.updateFixturesCurrentFixture();
     const step = this.updateFixturesCurrentStep();
     if (total <= 0) return 'Preparing OTA update queue...';
-    const base = `${processed}/${total}${failed > 0 ? ` · failed ${failed}` : ''}`;
+    const displayCount = fixture ? Math.min(total, processed + 1) : processed;
+    const base = `${displayCount}/${total}${failed > 0 ? ` · failed ${failed}` : ''}`;
     const fixturePart = fixture ? ` · ${fixture}` : '';
     const stepPart = step ? ` · ${step}` : '';
     return `${base}${fixturePart}${stepPart}`;
@@ -2026,7 +2027,7 @@ export class CommanderComponent implements OnInit {
         this.showQueryResultToast(stats, durationS);
       },
       error: (err: unknown) => {
-        this.showErrorToast(this.formatError(`Fixture query failed for ${fixture}`, err));
+        this.showErrorToast(this.formatError(`Fixture query failed for ${fixture}`, err), { sticky: true });
         this.queryResult.set(null);
         this.fixtureQueryLoading.set(false);
         this.sidebarRefreshingFixture.set(null);
@@ -3107,6 +3108,7 @@ export class CommanderComponent implements OnInit {
         const text = this.formatError('Fixture query failed', err);
         const compact = text.length > 180 ? `${text.slice(0, 177)}...` : text;
         this.modalQueryError.set(compact);
+        this.showErrorToast(text, { sticky: true });
         this.modalQueryLoading.set(false);
       },
     });
@@ -3456,9 +3458,13 @@ export class CommanderComponent implements OnInit {
     this.discoveryTimings.set([...this.discoveryTimings(), durationS].slice(-10));
   }
 
-  private showErrorToast(message: string): void {
+  private showErrorToast(message: string, options?: { sticky?: boolean }): void {
     // Suppress redundant errors when the offline toast already covers the unavailable state.
     if (this.commanderUnavailable()) return;
+    if (options?.sticky) {
+      this.messageService.add({ key: 'app', severity: 'error', summary: message, sticky: true });
+      return;
+    }
     this.messageService.add({ key: 'app', severity: 'error', summary: message, life: 6000 });
   }
 

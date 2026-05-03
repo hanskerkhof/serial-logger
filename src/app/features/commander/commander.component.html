@@ -292,7 +292,7 @@
     }
 
     @if (groupedFixturesByPlanGroup().length === 0) {
-      <p class="commander__sidebar-empty">No fixtures yet. Run fixture/plan queries to populate.</p>
+      <p class="commander__sidebar-empty">No fixtures yet. Fixtures will appear here automatically when the commander starts seeing them.</p>
     } @else {
       <div class="commander__groups">
         @for (outerGroup of groupedFixturesByPlanGroup(); track outerGroup.plan_group) {

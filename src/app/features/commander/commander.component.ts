@@ -3705,15 +3705,47 @@ export class CommanderComponent implements OnInit {
       error: (err: unknown) => {
         const durationMs = performance.now() - startedAt;
         this.fixtureActionResult.set(null);
-        this.setFixtureModalFeedback(
-          `Command failed for ${fixture}: ${this.formatError('', err)}`,
-          'error',
-          durationMs,
-        );
+        this.setFixtureModalFeedback(this.buildFixtureCommandErrorFeedback(fixture, wireCommand, err), 'error', durationMs);
         this.fixtureActionLoading.set(false);
         onError?.(err, durationMs);
       },
     });
+  }
+
+  private buildFixtureCommandErrorFeedback(
+    fixture: string,
+    wireCommand: string,
+    err: unknown,
+  ): string {
+    const fallback = `Command failed for ${fixture}: ${wireCommand}`;
+    if (!err || typeof err !== 'object') return fallback;
+
+    const errorObject = err as Record<string, unknown>;
+    const payload = (errorObject['error'] && typeof errorObject['error'] === 'object')
+      ? (errorObject['error'] as Record<string, unknown>)
+      : errorObject;
+    const detail = (payload['detail'] && typeof payload['detail'] === 'object')
+      ? (payload['detail'] as Record<string, unknown>)
+      : payload;
+
+    const step = typeof detail['step'] === 'string' ? detail['step'] : '';
+    const commandResult = (detail['command_result'] && typeof detail['command_result'] === 'object')
+      ? (detail['command_result'] as Record<string, unknown>)
+      : null;
+    const ack = commandResult && commandResult['ack'] && typeof commandResult['ack'] === 'object'
+      ? (commandResult['ack'] as Record<string, unknown>)
+      : null;
+
+    const errShort = ack && typeof ack['err_short'] === 'string' ? ack['err_short'] : '';
+    const fixtureAckOk = ack?.['fixture_ack_ok'] === true;
+
+    if (step === 'command_rejected' && errShort === 'timeout' && !fixtureAckOk) {
+      return `Command failed for ${fixture} (ACK timeout): ${wireCommand}`;
+    }
+    if (step) {
+      return `Command failed for ${fixture} (${step}): ${wireCommand}`;
+    }
+    return fallback;
   }
 
   private executeScannedFixtureCommand(scanned: ScannedFixtureCommand): void {

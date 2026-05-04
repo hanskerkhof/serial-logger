@@ -40,6 +40,12 @@ export interface CmdrFixturesDiscoveredResponse {
   source: string;
 }
 
+export interface CmdrFixturesDiscoveredClearResponse {
+  ok: boolean;
+  cleared_count: number;
+  source: 'passive_cache' | 'no_proxy' | string;
+}
+
 export interface CmdrCommanderFixtureCacheEntry {
   index: number;
   fixture_name: string;

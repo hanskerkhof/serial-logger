@@ -12,6 +12,7 @@ import type {
   CmdrVersionsResponse,
   CmdrDiscoveryResponse,
   CmdrFixturesDiscoveredResponse,
+  CmdrFixturesDiscoveredClearResponse,
   CmdrQueryResponse,
   CmdrMessagesResponse,
   CmdrFixtureDocsListResponse,
@@ -150,6 +151,13 @@ export class CommanderApiService {
   getFixturesDiscovered(): Observable<CmdrFixturesDiscoveredResponse> {
     return this.http.get<CmdrFixturesDiscoveredResponse>(
       `${this.getRequestBaseUrl()}/fixtures/discovered`,
+    );
+  }
+
+  clearFixturesDiscovered(): Observable<CmdrFixturesDiscoveredClearResponse> {
+    return this.http.post<CmdrFixturesDiscoveredClearResponse>(
+      `${this.getRequestBaseUrl()}/fixtures/discovered/clear`,
+      {},
     );
   }
 

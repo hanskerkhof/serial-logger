@@ -2009,6 +2009,14 @@ export class CommanderComponent implements OnInit {
   protected clearList(): void {
     this.fixtureStore.clearAllFixtures();
     this.discoveryTimings.set([]);
+    this.commanderApi.clearFixturesDiscovered().subscribe({
+      next: () => {
+        // Local list reset is authoritative for UX; backend clear is a sync step.
+      },
+      error: (err: unknown) => {
+        this.showWarningToast(this.formatError('List was emptied locally, but backend passive cache clear failed', err));
+      },
+    });
   }
 
   protected openCommanderCacheDialog(): void {
@@ -3458,6 +3466,11 @@ export class CommanderComponent implements OnInit {
       return;
     }
     this.messageService.add({ key: 'app', severity: 'error', summary: message, life: 6000 });
+  }
+
+  private showWarningToast(message: string): void {
+    if (this.commanderUnavailable()) return;
+    this.messageService.add({ key: 'app', severity: 'warn', summary: message, life: 6000 });
   }
 
   /** Returns false if the API is known to be unreachable (offline toast covers the state). */

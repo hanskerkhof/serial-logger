@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom, Subscription } from 'rxjs';
+import { firstValueFrom, forkJoin, Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { InputGroupModule } from 'primeng/inputgroup';
@@ -2007,14 +2007,39 @@ export class CommanderComponent implements OnInit {
   }
 
   protected clearList(): void {
+    // Stop any in-progress "query fixtures" run so offline fixtures are not
+    // continued from a stale pre-clear snapshot.
+    this.discoverFixturesCancelRequested = true;
+    this.discoverFixturesLoading.set(false);
+    this.discoverFixturesCurrentFixture.set(null);
+    this.sidebarRefreshingFixture.set(null);
+
+    // Drop passive auto-query runtime state (queue + timers + in-flight guards)
+    // before clearing store/backend cache.
+    this.resetPassiveQueryRuntimeState();
+
     this.fixtureStore.clearAllFixtures();
     this.discoveryTimings.set([]);
-    this.commanderApi.clearFixturesDiscovered().subscribe({
+    this.fixtureLastSeenMs.set(new Map());
+    this.fixtureNextSeenExpectedAtMs.set(new Map());
+    forkJoin({
+      passive: this.commanderApi.clearFixturesDiscovered(),
+      commander: this.commanderApi.clearCommanderFixtureCache(3.0),
+    }).subscribe({
       next: () => {
-        // Local list reset is authoritative for UX; backend clear is a sync step.
+        if (this.commanderCacheDialogVisible()) {
+          this.loadCommanderCache();
+          this.restartCommanderCachePolling();
+        }
+        this.messageService.add({
+          key: 'app',
+          severity: 'success',
+          summary: 'Caches cleared',
+          life: 3000,
+        });
       },
       error: (err: unknown) => {
-        this.showWarningToast(this.formatError('List was emptied locally, but backend passive cache clear failed', err));
+        this.showWarningToast(this.formatError('List was emptied locally, but one or more backend caches failed to clear', err));
       },
     });
   }
@@ -2030,6 +2055,8 @@ export class CommanderComponent implements OnInit {
       this.stopCommanderCachePolling();
       return;
     }
+    // Reset stale dialog data so we don't flash old rows before the fresh fetch returns.
+    this.commanderCacheData.set(null);
     this.loadCommanderCache();
     this.restartCommanderCachePolling();
   }
@@ -2047,23 +2074,6 @@ export class CommanderComponent implements OnInit {
     if (!this.commanderCacheDialogVisible()) return;
     this.loadCommanderCache();
     this.restartCommanderCachePolling();
-  }
-
-  protected clearCommanderCacheNow(): void {
-    if (!this.commanderCacheDialogVisible()) return;
-    this.commanderCacheLoading.set(true);
-    this.commanderApi.clearCommanderFixtureCache(3.0).subscribe({
-      next: (result) => {
-        this.commanderCacheData.set(result);
-        this.commanderCacheLoading.set(false);
-        this.restartCommanderCachePolling();
-      },
-      error: (err: unknown) => {
-        this.commanderCacheData.set(null);
-        this.commanderCacheLoading.set(false);
-        this.showErrorToast(this.formatError('Failed to clear commander cache', err));
-      },
-    });
   }
 
   private loadCommanderCache(): void {
@@ -5026,6 +5036,18 @@ export class CommanderComponent implements OnInit {
   private syncPassiveQueryDebugCounts(): void {
     this.passiveQueryQueuedCount.set(this._passiveQueryQueue.length);
     this.passiveQueryInFlightCount.set(this._passiveQueryInFlight.size);
+  }
+
+  private resetPassiveQueryRuntimeState(): void {
+    if (this._passiveQueryDrainTimer !== null) {
+      clearTimeout(this._passiveQueryDrainTimer);
+      this._passiveQueryDrainTimer = null;
+    }
+    this._passiveQueryQueue.length = 0;
+    this._passiveQueryQueued.clear();
+    this._passiveQueryInFlight.clear();
+    this._passiveQueryLastStartedAtMs = 0;
+    this.syncPassiveQueryDebugCounts();
   }
 
   private normalizeKnownFixtureName(value: unknown): string | null {

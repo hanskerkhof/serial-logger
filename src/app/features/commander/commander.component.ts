@@ -2022,6 +2022,7 @@ export class CommanderComponent implements OnInit {
     this.discoveryTimings.set([]);
     this.fixtureLastSeenMs.set(new Map());
     this.fixtureNextSeenExpectedAtMs.set(new Map());
+    this.commanderCacheData.set(null);
     forkJoin({
       passive: this.commanderApi.clearFixturesDiscovered(),
       commander: this.commanderApi.clearCommanderFixtureCache(3.0),
@@ -2055,8 +2056,6 @@ export class CommanderComponent implements OnInit {
       this.stopCommanderCachePolling();
       return;
     }
-    // Reset stale dialog data so we don't flash old rows before the fresh fetch returns.
-    this.commanderCacheData.set(null);
     this.loadCommanderCache();
     this.restartCommanderCachePolling();
   }
@@ -2938,6 +2937,19 @@ export class CommanderComponent implements OnInit {
       this.fixtureName.set('');
       this.closeFixtureModal();
     }
+
+    // Keep backend passive cache + commander cache aligned with local removals.
+    forkJoin({
+      passive: this.commanderApi.removeFixtureDiscovered(record.fixture_name),
+      commander: this.commanderApi.removeCommanderFixtureCacheEntry(record.fixture_name, 3.0),
+    }).subscribe({
+      next: ({ commander }) => {
+        this.commanderCacheData.set(commander);
+      },
+      error: (err: unknown) => {
+        this.showWarningToast(this.formatError('Fixture removed locally, but backend cache removal failed', err));
+      },
+    });
   }
 
   protected removePlan(planName: string, event: Event): void {

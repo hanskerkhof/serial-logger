@@ -13,6 +13,7 @@ import type {
   CmdrDiscoveryResponse,
   CmdrFixturesDiscoveredResponse,
   CmdrFixturesDiscoveredClearResponse,
+  CmdrFixturesDiscoveredRemoveResponse,
   CmdrQueryResponse,
   CmdrMessagesResponse,
   CmdrFixtureDocsListResponse,
@@ -161,6 +162,13 @@ export class CommanderApiService {
     );
   }
 
+  removeFixtureDiscovered(fixtureName: string): Observable<CmdrFixturesDiscoveredRemoveResponse> {
+    return this.http.post<CmdrFixturesDiscoveredRemoveResponse>(
+      `${this.getRequestBaseUrl()}/fixtures/discovered/remove/${encodeURIComponent(fixtureName)}`,
+      {},
+    );
+  }
+
   getCommanderFixtureCache(listenSeconds = 0.8): Observable<CmdrCommanderFixtureCacheResponse> {
     return this.http.get<CmdrCommanderFixtureCacheResponse>(
       `${this.getRequestBaseUrl()}/commander/fixture-cache?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
@@ -170,6 +178,13 @@ export class CommanderApiService {
   clearCommanderFixtureCache(listenSeconds = 0.8): Observable<CmdrCommanderFixtureCacheResponse> {
     return this.http.post<CmdrCommanderFixtureCacheResponse>(
       `${this.getRequestBaseUrl()}/commander/fixture-cache/clear?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
+      {},
+    );
+  }
+
+  removeCommanderFixtureCacheEntry(fixtureName: string, listenSeconds = 0.8): Observable<CmdrCommanderFixtureCacheResponse> {
+    return this.http.post<CmdrCommanderFixtureCacheResponse>(
+      `${this.getRequestBaseUrl()}/commander/fixture-cache/remove/${encodeURIComponent(fixtureName)}?listen_seconds=${encodeURIComponent(String(listenSeconds))}`,
       {},
     );
   }

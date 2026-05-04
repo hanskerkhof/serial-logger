@@ -46,6 +46,13 @@ export interface CmdrFixturesDiscoveredClearResponse {
   source: 'passive_cache' | 'no_proxy' | string;
 }
 
+export interface CmdrFixturesDiscoveredRemoveResponse {
+  ok: boolean;
+  fixture_name: string;
+  removed: boolean;
+  source: 'passive_cache' | 'no_proxy' | string;
+}
+
 export interface CmdrCommanderFixtureCacheEntry {
   index: number;
   fixture_name: string;

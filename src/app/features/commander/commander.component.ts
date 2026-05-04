@@ -819,7 +819,14 @@ export class CommanderComponent implements OnInit {
             this.modalQueryError.set(null);
             this.fixtureActionMessage.set(null);
             this.fixtureActionResult.set(null);
-            const recoveryReason = this._lastUnavailableReason ? ` Reason: ${this._lastUnavailableReason}.` : '';
+            const reasonText = String(this._lastUnavailableReason ?? '').trim();
+            const reasonKey = reasonText.toLowerCase();
+            const suppressRecoveryReason =
+              reasonKey.includes('not initialized')
+              || reasonKey.includes('proxy probing')
+              || reasonKey.includes('proxy reconnecting')
+              || reasonKey === 'proxy offline';
+            const recoveryReason = !suppressRecoveryReason && reasonText ? ` Reason: ${reasonText}.` : '';
             this._lastUnavailableReason = null;
             this.messageService.add({
               key: 'app',

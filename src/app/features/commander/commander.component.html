@@ -784,6 +784,22 @@
                         class="commander__dialog-fw-update-btn"
                       ></button>
                     }
+                    @if (selectedFixtureBinaryUpdateAvailable()) {
+                      <button
+                        pButton
+                        type="button"
+                        [text]="true"
+                        size="small"
+                        severity="secondary"
+                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update from binary'"
+                        icon="pi pi-box"
+                        iconPos="left"
+                        [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
+                        [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
+                        (click)="runDialogFixtureUpdateFromBinarySingle()"
+                        class="commander__dialog-fw-update-btn"
+                      ></button>
+                    }
                   }
                   @case ('fixture-ahead') {
                     v{{ fws.fw }} · API outdated · release: v{{ fws.release }}
@@ -800,6 +816,22 @@
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
                         (click)="runDialogFixtureUpdateSingle()"
+                        class="commander__dialog-fw-update-btn"
+                      ></button>
+                    }
+                    @if (selectedFixtureBinaryUpdateAvailable()) {
+                      <button
+                        pButton
+                        type="button"
+                        [text]="true"
+                        size="small"
+                        severity="secondary"
+                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update from binary'"
+                        icon="pi pi-box"
+                        iconPos="left"
+                        [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
+                        [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
+                        (click)="runDialogFixtureUpdateFromBinarySingle()"
                         class="commander__dialog-fw-update-btn"
                       ></button>
                     }

@@ -115,6 +115,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/commander/fixture-cache": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Commander Fixture Cache */
+        get: operations["commander_fixture_cache_commander_fixture_cache_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/commander/fixture-cache/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commander Fixture Cache Clear */
+        post: operations["commander_fixture_cache_clear_commander_fixture_cache_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/commander/fixture-cache/remove/{fixture_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commander Fixture Cache Remove */
+        post: operations["commander_fixture_cache_remove_commander_fixture_cache_remove__fixture_name__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/commander/raw": {
         parameters: {
             query?: never;
@@ -200,17 +251,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/fixtures/discovery": {
+    "/fixtures/discovered": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Fixture Discovery */
-        get: operations["fixture_discovery_fixtures_discovery_get"];
+        /**
+         * Fixture Discovered
+         * @description Return all fixtures passively discovered via BK_PASSIVE_SEEN heartbeats.
+         *
+         *     The cache is populated automatically as fixtures broadcast their identity
+         *     every 30 s and is also pre-populated via the ``fpc`` command sent to the
+         *     commander on serial connect.  No sweep or serial traffic is triggered by
+         *     this endpoint — it simply returns the current in-memory cache.
+         */
+        get: operations["fixture_discovered_fixtures_discovered_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/discovered/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear Fixture Discovered
+         * @description Clear the in-memory passive BK_PASSIVE_SEEN cache used by /fixtures/discovered.
+         */
+        post: operations["clear_fixture_discovered_fixtures_discovered_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/discovered/remove/{fixture_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove Fixture Discovered
+         * @description Remove one fixture from the in-memory passive BK_PASSIVE_SEEN cache.
+         */
+        post: operations["remove_fixture_discovered_fixtures_discovered_remove__fixture_name__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -337,6 +436,26 @@ export interface paths {
          *     Returns 409 if an update for this fixture is already running.
          */
         post: operations["fixture_ota_update_fixtures__fixture_name__ota_update_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/{fixture_name}/ota-update-from-binary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fixture Ota Update From Binary
+         * @description OTA update a single fixture from prebuilt binary only (no compile fallback).
+         */
+        post: operations["fixture_ota_update_from_binary_fixtures__fixture_name__ota_update_from_binary_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -633,6 +752,48 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** CommanderFixtureCacheEntry */
+        CommanderFixtureCacheEntry: {
+            /** Age Ms */
+            age_ms: number;
+            /** Channel */
+            channel: number;
+            /** Fixture Name */
+            fixture_name: string;
+            /** Index */
+            index: number;
+            /** Source */
+            source: string;
+            /** Universe */
+            universe: number;
+            /** Wifi Mac Address */
+            wifi_mac_address: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** CommanderFixtureCacheResponse */
+        CommanderFixtureCacheResponse: {
+            /** Capacity */
+            capacity: number;
+            /** Command */
+            command: string;
+            /** Entries */
+            entries: components["schemas"]["CommanderFixtureCacheEntry"][];
+            /** Ok */
+            ok: boolean;
+            /** Reason */
+            reason: string;
+            /** Serial Error */
+            serial_error: string | null;
+            /** Updated Fixture Name */
+            updated_fixture_name: string;
+            /** Updated Target Wifi Mac */
+            updated_target_wifi_mac: string;
+            /** Used */
+            used: number;
+        } & {
+            [key: string]: unknown;
+        };
         /** CommanderHealthStatus */
         CommanderHealthStatus: {
             /** Baud */
@@ -657,6 +818,12 @@ export interface components {
             last_reboot_at_utc: string | null;
             /** Last Reboot Reason */
             last_reboot_reason: string | null;
+            /** Ota In Progress */
+            ota_in_progress: boolean | null;
+            /** Ota In Progress Count */
+            ota_in_progress_count: number | null;
+            /** Ota In Progress Fixtures */
+            ota_in_progress_fixtures: string[] | null;
             /** Port */
             port: string | null;
             /** Probe Elapsed Ms */
@@ -881,18 +1048,6 @@ export interface components {
             /** Targets */
             targets?: string[] | null;
         };
-        /** DiscoveryResponse */
-        DiscoveryResponse: {
-            /** Issued Commands */
-            issued_commands: string[];
-            /** Ok */
-            ok: boolean;
-            /** Service */
-            service: string;
-            summary: components["schemas"]["VersionsSummary"];
-        } & {
-            [key: string]: unknown;
-        };
         /** ExposedPlan */
         ExposedPlan: {
             /** Fixture Count */
@@ -913,11 +1068,18 @@ export interface components {
         };
         /** FixtureCommandRequest */
         FixtureCommandRequest: {
+            /**
+             * Allow Ack Timeout Fallback
+             * @default false
+             */
+            allow_ack_timeout_fallback: boolean;
             /** Command */
             command: string;
         };
         /** FixtureCommandResponse */
         FixtureCommandResponse: {
+            /** Acceptance Mode */
+            acceptance_mode: string;
             /** Ack Requested */
             ack_requested: boolean;
             command_result: components["schemas"]["CommandResult"];
@@ -1143,6 +1305,16 @@ export interface components {
             fw_version: string | null;
             /** Last Recv */
             last_recv: string | null;
+            /** Next Passive Seen In Ms */
+            next_passive_seen_in_ms?: number | null;
+            /** Ota Binary Available */
+            ota_binary_available?: boolean | null;
+            /** Ota Binary Path */
+            ota_binary_path?: string | null;
+            /** Ota Binary Reason */
+            ota_binary_reason?: string | null;
+            /** Ota Binary Version */
+            ota_binary_version?: string | null;
             /** Plan Group */
             plan_group: string | null;
             /** Plan Name */
@@ -1155,6 +1327,12 @@ export interface components {
             player_type: string | null;
             /** Request Id */
             request_id: string | null;
+            /** Resolution Source */
+            resolution_source?: string | null;
+            /** Resolution Strategy */
+            resolution_strategy?: string | null;
+            /** Resolved Target Mac */
+            resolved_target_mac?: string | null;
             rssi: components["schemas"]["FixtureRssiReport"] | null;
             /** Rssi Dbm */
             rssi_dbm: number | null;
@@ -1166,6 +1344,43 @@ export interface components {
             uptime: string | null;
             /** Wifi Mac Address */
             wifi_mac_address: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixturesDiscoveredClearResponse */
+        FixturesDiscoveredClearResponse: {
+            /** Cleared Count */
+            cleared_count: number;
+            /** Ok */
+            ok: boolean;
+            /** Source */
+            source: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixturesDiscoveredRemoveResponse */
+        FixturesDiscoveredRemoveResponse: {
+            /** Fixture Name */
+            fixture_name: string;
+            /** Ok */
+            ok: boolean;
+            /** Removed */
+            removed: boolean;
+            /** Source */
+            source: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixturesDiscoveredResponse */
+        FixturesDiscoveredResponse: {
+            /** Count */
+            count: number;
+            /** Fixtures */
+            fixtures: components["schemas"]["PassiveSeenFixture"][];
+            /** Ok */
+            ok: boolean;
+            /** Source */
+            source: string;
         } & {
             [key: string]: unknown;
         };
@@ -1284,6 +1499,35 @@ export interface components {
             label: string;
             /** Value */
             value: unknown;
+        };
+        /** PassiveSeenFixture */
+        PassiveSeenFixture: {
+            /** Build Date */
+            build_date?: string | null;
+            /** Build Time */
+            build_time?: string | null;
+            /** Channel */
+            channel?: number | null;
+            /** Fixture Name */
+            fixture_name: string;
+            /** Fw Version */
+            fw_version?: string | null;
+            /** Last Seen Ms */
+            last_seen_ms?: number | null;
+            /** Next Passive Seen In Ms */
+            next_passive_seen_in_ms?: number | null;
+            /** Rssi Dbm */
+            rssi_dbm?: number | null;
+            /** Rssi Quality */
+            rssi_quality?: string | null;
+            /** Target Wifi Mac */
+            target_wifi_mac?: string | null;
+            /** Universe */
+            universe?: number | null;
+            /** Uptime Ms */
+            uptime_ms?: number | null;
+        } & {
+            [key: string]: unknown;
         };
         /** PlanControlAction */
         PlanControlAction: {
@@ -1735,6 +1979,101 @@ export interface operations {
             };
         };
     };
+    commander_fixture_cache_commander_fixture_cache_get: {
+        parameters: {
+            query?: {
+                listen_seconds?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommanderFixtureCacheResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commander_fixture_cache_clear_commander_fixture_cache_clear_post: {
+        parameters: {
+            query?: {
+                listen_seconds?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommanderFixtureCacheResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commander_fixture_cache_remove_commander_fixture_cache_remove__fixture_name__post: {
+        parameters: {
+            query?: {
+                listen_seconds?: number;
+            };
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommanderFixtureCacheResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     commander_raw_command_commander_raw_post: {
         parameters: {
             query?: never;
@@ -1885,11 +2224,9 @@ export interface operations {
             };
         };
     };
-    fixture_discovery_fixtures_discovery_get: {
+    fixture_discovered_fixtures_discovered_get: {
         parameters: {
-            query?: {
-                listen_seconds?: number;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1902,7 +2239,49 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DiscoveryResponse"];
+                    "application/json": components["schemas"]["FixturesDiscoveredResponse"];
+                };
+            };
+        };
+    };
+    clear_fixture_discovered_fixtures_discovered_clear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixturesDiscoveredClearResponse"];
+                };
+            };
+        };
+    };
+    remove_fixture_discovered_fixtures_discovered_remove__fixture_name__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixturesDiscoveredRemoveResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2116,6 +2495,39 @@ export interface operations {
         };
     };
     fixture_ota_update_fixtures__fixture_name__ota_update_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_ota_update_from_binary_fixtures__fixture_name__ota_update_from_binary_post: {
         parameters: {
             query?: never;
             header?: never;

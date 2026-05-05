@@ -13,7 +13,7 @@ export type CmdrPlanGroupsResponse     = components['schemas']['PlanGroupsRespon
 export type CmdrFixtureCommandResponse = components['schemas']['FixtureCommandResponse'];
 export type CmdrRawResponse            = components['schemas']['CommanderRawResponse'];
 export type CmdrVersionsResponse       = components['schemas']['VersionsResponse'];
-export type CmdrDiscoveryResponse      = components['schemas']['DiscoveryResponse'];
+export type CmdrDiscoveryResponse      = components['schemas']['VersionsResponse'];
 
 /** Union of all version/discovery query response shapes — used by the component query-result signal. */
 export type CmdrQueryResponse = CmdrVersionsResponse | CmdrDiscoveryResponse;

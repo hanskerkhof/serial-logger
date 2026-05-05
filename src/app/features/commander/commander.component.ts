@@ -95,6 +95,7 @@ interface PollIntervalOption {
 
 type CustomCommandValue = string | number | boolean | Record<string, unknown>;
 type FixtureModalFeedbackTone = 'info' | 'success' | 'warn' | 'error';
+type OtaUpdateMode = 'compile' | 'binary';
 type SendCommandMode = 'default' | 'force_ack' | 'force_no_ack';
 
 interface LiveUpdateTimingSample {
@@ -1109,8 +1110,24 @@ export class CommanderComponent implements OnInit {
       .map(([name]) => name),
   );
 
+  private readonly outdatedFixtureNamesWithBinary = computed(() => {
+    const outdated = new Set(this.outdatedFixtureNames().map((name) => name.trim().toUpperCase()));
+    const selected: string[] = [];
+    for (const group of this.groupedFixturesByPlanGroup()) {
+      for (const plan of group.plans) {
+        for (const fixture of plan.fixtures) {
+          const key = fixture.fixture_name.trim().toUpperCase();
+          if (!outdated.has(key)) continue;
+          if (fixture.raw['ota_binary_available'] === true) selected.push(fixture.fixture_name);
+        }
+      }
+    }
+    return selected;
+  });
+
   protected readonly discoverFixturesMenuItems = computed<MenuItem[]>(() => {
     const outdatedCount = this.outdatedFixtureNames().length;
+    const outdatedBinaryCount = this.outdatedFixtureNamesWithBinary().length;
     return [
       {
         label: outdatedCount > 0 ? `Query outdated (${outdatedCount})` : 'Query outdated',
@@ -1123,6 +1140,12 @@ export class CommanderComponent implements OnInit {
         icon: 'pi pi-upload',
         disabled: this.backendBusy() || this.commanderUnavailable() || outdatedCount === 0 || !this.compileSupported(),
         command: () => this.runSidebarFixtureUpdateOutdated(),
+      },
+      {
+        label: outdatedBinaryCount > 0 ? `Update fixtures from bin (${outdatedBinaryCount})` : 'Update fixtures from bin',
+        icon: 'pi pi-box',
+        disabled: this.backendBusy() || this.commanderUnavailable() || outdatedBinaryCount === 0,
+        command: () => this.runSidebarFixtureUpdateOutdatedFromBinary(),
       },
     ];
   });
@@ -1435,7 +1458,17 @@ export class CommanderComponent implements OnInit {
       return;
     }
     if (!this.checkApiReachable() || this.updateFixturesLoading() || this.modalQueryLoading()) return;
-    this.startFixtureUpdateQueue([fixtureName]);
+    this.startFixtureUpdateQueue([fixtureName], 'compile');
+  }
+
+  protected runDialogFixtureUpdateFromBinarySingle(): void {
+    const fixtureName = (this.selectedFixtureName() ?? '').trim();
+    if (!fixtureName) {
+      this.modalQueryError.set('No fixture selected.');
+      return;
+    }
+    if (!this.checkApiReachable() || this.updateFixturesLoading() || this.modalQueryLoading()) return;
+    this.startFixtureUpdateQueue([fixtureName], 'binary');
   }
 
   protected onOtaProgress(event: OtaStreamEvent): void {
@@ -1552,6 +1585,14 @@ export class CommanderComponent implements OnInit {
       : cmp < 0        ? 'fixture-outdated'
       :                  'fixture-ahead';
     return { fw: v, release, upToDate: direction === 'up-to-date', direction };
+  });
+
+  protected readonly selectedFixtureBinaryUpdateAvailable = computed<boolean>(() => {
+    const selected = this.selectedFixture();
+    if (!selected) return false;
+    const fwStatus = this.selectedFixtureFwStatus();
+    if (!fwStatus || fwStatus.direction === 'up-to-date') return false;
+    return selected.raw['ota_binary_available'] === true;
   });
 
   protected readonly commanderVersionParityWarning = computed<string | null>(() => {
@@ -2119,6 +2160,7 @@ export class CommanderComponent implements OnInit {
   private updateFixturesPendingFixture: string | null = null;
   private updateFixturesPendingSinceMs: number | null = null;
   private updateFixturesFailures: string[] = [];
+  private updateFixturesMode: OtaUpdateMode = 'compile';
 
   private parseDiscoveryLock(raw: string | null): { owner: string; startedAtMs: number } | null {
     if (!raw) return null;
@@ -2337,12 +2379,36 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    this.startFixtureUpdateQueue(fixtureNames);
+    this.startFixtureUpdateQueue(fixtureNames, 'compile');
   }
 
-  private startFixtureUpdateQueue(fixtureNames: string[]): void {
+  protected runSidebarFixtureUpdateOutdatedFromBinary(): void {
+    if (!this.checkApiReachable() || this.updateFixturesLoading()) return;
+
+    const connectedCommander = (this.health()?.commander?.detected_fixture_name ?? '').trim().toUpperCase();
+    const fixtureNames = this.outdatedFixtureNamesWithBinary().filter((name) =>
+      !connectedCommander || name.trim().toUpperCase() !== connectedCommander,
+    );
+
+    if (!fixtureNames.length) {
+      this.messageService.add({
+        key: 'app',
+        severity: 'contrast',
+        summary: connectedCommander
+          ? 'No binary-updatable outdated fixtures found (connected commander is skipped)'
+          : 'No outdated fixtures with matching binary found',
+        life: 3500,
+      });
+      return;
+    }
+
+    this.startFixtureUpdateQueue(fixtureNames, 'binary');
+  }
+
+  private startFixtureUpdateQueue(fixtureNames: string[], mode: OtaUpdateMode): void {
     if (!fixtureNames.length) return;
     this.error.set(null);
+    this.updateFixturesMode = mode;
     this.updateFixturesCancelRequested = false;
     this.updateFixturesQueue = [...fixtureNames];
     this.updateFixturesPendingFixture = null;
@@ -2384,11 +2450,21 @@ export class CommanderComponent implements OnInit {
     this.appendUpdateReportStep(nextFixtureName, 'queue_start', 'requesting OTA start');
     this.persistUpdateFixturesState();
 
-    this.commanderApi.postOtaUpdate(nextFixtureName).subscribe({
+    const startRequest$ = this.updateFixturesMode === 'binary'
+      ? this.commanderApi.postOtaUpdateFromBinary(nextFixtureName)
+      : this.commanderApi.postOtaUpdate(nextFixtureName);
+
+    startRequest$.subscribe({
       next: () => {
         // 202 accepted — now wait for ota_complete / ota_error stream events.
         this.updateFixturesCurrentStep.set('accepted · waiting for backend update');
-        this.appendUpdateReportStep(nextFixtureName, 'accepted', 'backend accepted OTA request');
+        this.appendUpdateReportStep(
+          nextFixtureName,
+          'accepted',
+          this.updateFixturesMode === 'binary'
+            ? 'backend accepted OTA-from-binary request'
+            : 'backend accepted OTA request',
+        );
         this.persistUpdateFixturesState();
       },
       error: (err: unknown) => {

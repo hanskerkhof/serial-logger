@@ -250,6 +250,13 @@ export class CommanderApiService {
     );
   }
 
+  postOtaUpdateFromBinary(fixtureName: string): Observable<{ ok: boolean; fixture_name: string; status: string }> {
+    return this.http.post<{ ok: boolean; fixture_name: string; status: string }>(
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/ota-update-from-binary`,
+      {},
+    );
+  }
+
   postFixtureRssiSession(
     fixtureName: string,
     durationMs = 60000,

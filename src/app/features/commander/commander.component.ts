@@ -658,23 +658,24 @@ export class CommanderComponent implements OnInit {
   });
 
   protected relativeTime(ts: number | string | unknown): string | null {
-    if (ts === null || ts === undefined) return null;
-    let ms: number;
-    if (typeof ts === 'number') {
-      ms = ts * 1000;
-    } else if (typeof ts === 'string') {
-      // Handle "YYYY-MM-DD HH:MM:SS" (no timezone) by treating as UTC
-      const normalized = ts.includes('T') ? ts : ts.replace(' ', 'T') + 'Z';
-      ms = new Date(normalized).getTime();
-    } else {
-      return null;
-    }
+    const ms = this.timestampToMs(ts);
     if (isNaN(ms)) return null;
     const diffS = Math.max(0, Math.floor((this.now() - ms) / 1000));
     if (diffS < 60) return `${diffS}s ago`;
     const diffM = Math.floor(diffS / 60);
     if (diffM < 60) return `${diffM}m ago`;
     return `${Math.floor(diffM / 60)}h ago`;
+  }
+
+  private timestampToMs(ts: number | string | unknown): number {
+    if (ts === null || ts === undefined) return NaN;
+    if (typeof ts === 'number') return ts * 1000;
+    if (typeof ts === 'string') {
+      // Handle "YYYY-MM-DD HH:MM:SS" (no timezone) by treating as UTC
+      const normalized = ts.includes('T') ? ts : ts.replace(' ', 'T') + 'Z';
+      return new Date(normalized).getTime();
+    }
+    return NaN;
   }
 
   protected isProgressToastMode(mode: unknown): boolean {
@@ -1603,6 +1604,22 @@ export class CommanderComponent implements OnInit {
     if (!release || !commanderFw) return null;
     if (!explicitMismatch && compareVersions(commanderFw, release) === 0) return null;
     return `Commander FW v${commanderFw} differs from API release v${release}`;
+  });
+
+  protected readonly commanderVersionRefreshHint = computed<string | null>(() => {
+    const health = this.health();
+    const commander = health?.commander;
+    const release = health?.api?.release_version ?? health?.release_version ?? null;
+    const commanderFw = commander?.fw_version ?? null;
+    if (!commander || !release || !commanderFw) return null;
+    const explicitMismatch = commander['fw_mismatch'] === true;
+    if (!explicitMismatch && compareVersions(commanderFw, release) === 0) return null;
+
+    const rebootMs = this.timestampToMs(commander.last_reboot_at_utc);
+    if (isNaN(rebootMs)) return null;
+    const secondsSinceReboot = Math.max(0, Math.floor((this.now() - rebootMs) / 1000));
+    if (secondsSinceReboot > 120) return null;
+    return `Version may be stale right after reboot; refresh window active (${secondsSinceReboot}s since reboot).`;
   });
 
   // Callbacks run once when the API recovers from offline → online.

@@ -40,6 +40,7 @@ export class FixtureConfigControlComponent {
   protected readonly minVolume = linkedSignal(() => this.config()?.player?.min_volume ?? null);
   protected readonly maxVolume = linkedSignal(() => this.config()?.player?.max_volume ?? null);
   protected readonly eq = linkedSignal(() => this.config()?.player?.eq ?? 0);
+  protected readonly sysVolume = linkedSignal(() => this.config()?.player?.sys_volume ?? null);
   protected readonly autoOff = linkedSignal(() => !!(this.config()?.aux?.auto_off));
   protected readonly wifiSsidPass = linkedSignal(() => this.config()?.wifi_ssid_pass ?? '');
   protected readonly auxOne = linkedSignal(() => this.config()?.aux?.one ?? null);
@@ -102,6 +103,12 @@ export class FixtureConfigControlComponent {
 
   protected saveEq(): void {
     this.commandRequested.emit(`cmd;config;setEq=${this.eq()};save=1;`);
+  }
+
+  protected saveSysVolume(): void {
+    const v = this.sysVolume();
+    if (v === null) return;
+    this.commandRequested.emit(`cmd;config;setSysVolume=${v};save=1;`);
   }
 
   protected saveAutoOff(): void {

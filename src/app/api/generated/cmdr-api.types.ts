@@ -1194,6 +1194,8 @@ export interface components {
             max_volume?: number | null;
             /** Min Volume */
             min_volume?: number | null;
+            /** Sys Volume */
+            sys_volume?: number | null;
             /** Volume */
             volume?: number | null;
         } & {

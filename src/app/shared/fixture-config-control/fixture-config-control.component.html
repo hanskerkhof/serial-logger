@@ -119,6 +119,29 @@
           (click)="saveEq()"
         ></button>
       </div>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">{{ labelFor('player.sys_volume', 'Sys volume (0–30)') }}</label>
+        <input
+          type="number"
+          pInputText
+          class="fixture-config__input"
+          [ngModel]="sysVolume()"
+          (ngModelChange)="sysVolume.set($event)"
+          min="0"
+          max="30"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled() || sysVolume() === null"
+          (click)="saveSysVolume()"
+        ></button>
+      </div>
     </section>
   }
 

@@ -378,6 +378,103 @@
                       >
                         {{ fixture.fixture_name }}
                       </button>
+                      <button
+                        pButton
+                        type="button"
+                        class="commander__fixture-menu-btn"
+                        icon="pi pi-ellipsis-v"
+                        [text]="true"
+                        [rounded]="true"
+                        severity="secondary"
+                        size="small"
+                        [attr.aria-label]="'Quick actions for ' + fixture.fixture_name"
+                        (click)="toggleFixtureRowMenu(fixtureRowMenu, $event)"
+                      ></button>
+                      <p-popover #fixtureRowMenu appendTo="body">
+                        <div class="fixture-row-menu">
+                          <div class="fixture-row-menu__actions">
+                            <button
+                              pButton
+                              type="button"
+                              [text]="true"
+                              size="small"
+                              severity="secondary"
+                              icon="pi pi-play"
+                              label="Plan trigger"
+                              [disabled]="commanderUnavailable() || backendBusy()"
+                              (click)="popoverPlanAction(fixture.fixture_name, 'trigger'); fixtureRowMenu.hide()"
+                            ></button>
+                            <button
+                              pButton
+                              type="button"
+                              [text]="true"
+                              size="small"
+                              severity="secondary"
+                              icon="pi pi-stop-circle"
+                              label="Plan stop"
+                              [disabled]="commanderUnavailable() || backendBusy()"
+                              (click)="popoverPlanAction(fixture.fixture_name, 'stop'); fixtureRowMenu.hide()"
+                            ></button>
+                            @if (compileSupported() && fixtureFwStatusMap().get(fixture.fixture_name)?.outdated) {
+                              <button
+                                pButton
+                                type="button"
+                                [text]="true"
+                                size="small"
+                                severity="secondary"
+                                icon="pi pi-cloud-upload"
+                                label="Update compile"
+                                [disabled]="commanderUnavailable() || updateFixturesLoading()"
+                                (click)="popoverUpdateFixture(fixture.fixture_name, 'compile'); fixtureRowMenu.hide()"
+                              ></button>
+                            }
+                            @if (fixture.raw['ota_binary_available'] === true && fixtureFwStatusMap().get(fixture.fixture_name)?.outdated) {
+                              <button
+                                pButton
+                                type="button"
+                                [text]="true"
+                                size="small"
+                                severity="secondary"
+                                icon="pi pi-box"
+                                label="Update from binary"
+                                [disabled]="commanderUnavailable() || updateFixturesLoading()"
+                                (click)="popoverUpdateFixture(fixture.fixture_name, 'binary'); fixtureRowMenu.hide()"
+                              ></button>
+                            }
+                          </div>
+                          <div class="fixture-row-menu__rssi">
+                            <div class="fixture-row-menu__rssi-header">
+                              <span class="fixture-row-menu__rssi-title">Link Quality</span>
+                              <span class="fixture-row-menu__rssi-direction">signal received by commander</span>
+                            </div>
+                            <div class="fixture-row-menu__rssi-row">
+                              @if ($any(fixture.raw['rssi_quality']); as quality) {
+                                <span class="commander__rssi-badge commander__rssi-badge--{{ rssiQualityClass(quality) }}">
+                                  {{ quality.replace('_', ' ') }}
+                                </span>
+                              }
+                              @if ($any(fixture.raw['rssi_dbm']); as dbm) {
+                                <span class="commander__rssi-dbm">{{ dbm }} dBm</span>
+                              }
+                              @if (!fixture.raw['rssi_quality'] && !fixture.raw['rssi_dbm']) {
+                                <span class="commander__rssi-no-data">No data yet</span>
+                              }
+                            </div>
+                          </div>
+                          <div class="fixture-row-menu__divider"></div>
+                          <button
+                            pButton
+                            type="button"
+                            [text]="true"
+                            size="small"
+                            severity="danger"
+                            icon="pi pi-trash"
+                            label="Remove"
+                            title="Remove fixture from local store and CMDR cache"
+                            (click)="removeFixture(fixture, $event); fixtureRowMenu.hide()"
+                          ></button>
+                        </div>
+                      </p-popover>
                       @if (fixtureSeenStatusLabel(fixture.fixture_name); as label) {
                         <span
                           class="commander__fixture-seen"
@@ -406,19 +503,6 @@
                         title="Re-query fixture {{ fixture.fixture_name }}"
                         aria-label="Reload fixture {{ fixture.fixture_name }}"
                         (click)="sidebarRefreshFixture(fixture.fixture_name, $event)"
-                      ></button>
-                      <button
-                        pButton
-                        type="button"
-                        class="commander__trash-btn"
-                        icon="pi pi-trash"
-                        [text]="true"
-                        [rounded]="true"
-                        severity="secondary"
-                        size="small"
-                        title="Remove fixture from local store and CMDR cache"
-                        aria-label="Remove fixture {{ fixture.fixture_name }}"
-                        (click)="removeFixture(fixture, $event)"
                       ></button>
                     </li>
                   }

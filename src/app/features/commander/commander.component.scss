@@ -661,6 +661,29 @@
   min-width: 0;
 }
 
+.commander__fixture-btn.p-button {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.commander__fixture-row {
+  flex-wrap: nowrap;
+  overflow: hidden;
+
+  .commander__fixture-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .commander__fixture-seen,
+  .commander__fixture-fw,
+  .commander__fixture-menu-btn,
+  .commander__reload-btn,
+  .commander__trash-btn {
+    flex-shrink: 0;
+  }
+}
+
 .commander__fixture-fw {
   font-size: 0.7rem;
   color: var(--p-text-muted-color, #6b7280);
@@ -1263,4 +1286,65 @@
   font-size: 0.85rem;
   font-style: italic;
   padding: 0.5rem 0;
+}
+
+.commander__fixture-menu-btn {
+  flex-shrink: 0;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+
+  .commander__fixture-row:hover & {
+    opacity: 1;
+  }
+}
+
+.fixture-row-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 180px;
+}
+
+.fixture-row-menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+
+  .p-button {
+    justify-content: flex-start;
+  }
+}
+
+.fixture-row-menu__divider {
+  border-top: 1px solid var(--p-surface-200);
+}
+
+.fixture-row-menu__rssi {
+  border-top: 1px solid var(--p-surface-200);
+  padding-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fixture-row-menu__rssi-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.fixture-row-menu__rssi-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fixture-row-menu__rssi-direction {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color, #6b7280);
+}
+
+.fixture-row-menu__rssi-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }

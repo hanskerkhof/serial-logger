@@ -30,6 +30,7 @@ import { TabsModule } from 'primeng/tabs';
 import { DrawerModule } from 'primeng/drawer';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TableModule } from 'primeng/table';
+import { Popover, PopoverModule } from 'primeng/popover';
 import { NgTemplateOutlet } from '@angular/common';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import { FIXTURE_DETAIL_DRAWER } from '../../feature-flags';
@@ -194,7 +195,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe, DurationMsCompactPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe, DurationMsCompactPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -1470,6 +1471,27 @@ export class CommanderComponent implements OnInit {
     }
     if (!this.checkApiReachable() || this.updateFixturesLoading() || this.modalQueryLoading()) return;
     this.startFixtureUpdateQueue([fixtureName], 'binary');
+  }
+
+  private lastFixtureRowPopover: Popover | null = null;
+
+  protected toggleFixtureRowMenu(popover: Popover, event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.lastFixtureRowPopover && this.lastFixtureRowPopover !== popover) {
+      this.lastFixtureRowPopover.hide();
+    }
+    popover.toggle(event);
+    this.lastFixtureRowPopover = popover;
+  }
+
+  protected popoverPlanAction(fixtureName: string, action: 'trigger' | 'stop'): void {
+    if (!this.checkApiReachable()) return;
+    this.sendCommand(fixtureName, `cmd;plan;action=${action};`);
+  }
+
+  protected popoverUpdateFixture(fixtureName: string, mode: 'compile' | 'binary'): void {
+    if (!this.checkApiReachable() || this.updateFixturesLoading()) return;
+    this.startFixtureUpdateQueue([fixtureName], mode);
   }
 
   protected onOtaProgress(event: OtaStreamEvent): void {

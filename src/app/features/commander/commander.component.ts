@@ -1507,6 +1507,7 @@ export class CommanderComponent implements OnInit {
       uiStep === 'uploading' ? 'uploading' :
       uiStep === 'dark_side_of_the_moon' ? 'dark side of the moon' :
       uiStep === 'verifying' ? 'verifying' :
+      uiStep === 'cancel_requested' ? 'cancel requested' :
       uiStep === 'complete' ? 'completing' :
       uiStep === 'error' ? 'error reported' :
       'in progress';
@@ -1578,6 +1579,31 @@ export class CommanderComponent implements OnInit {
       summary: 'OTA update failed',
       detail: event.message ?? `Update failed for ${event.fixture_name}`,
       life: 8000,
+    });
+  }
+
+  protected onOtaCancelled(event: { fixture_name: string; message?: string }): void {
+    this.otaInProgress.update((s) => { const n = new Set(s); n.delete(event.fixture_name); return n; });
+    if (this.updateFixturesLoading() && this.updateFixturesPendingFixture === event.fixture_name) {
+      this.updateFixturesPendingFixture = null;
+      this.updateFixturesPendingSinceMs = null;
+      this.updateFixturesCurrentStep.set(event.message ? `cancelled · ${event.message}` : 'cancelled');
+      this.appendUpdateReportStep(
+        event.fixture_name,
+        'cancelled',
+        event.message ?? null,
+        { markCompleted: true },
+      );
+      this.persistUpdateFixturesState();
+      this.finishOutdatedFixtureUpdateRun(true);
+      return;
+    }
+    this.messageService.add({
+      key: 'app',
+      severity: 'contrast',
+      summary: 'OTA update cancelled',
+      detail: event.message ?? `Update cancelled for ${event.fixture_name}`,
+      life: 5000,
     });
   }
 
@@ -2250,8 +2276,29 @@ export class CommanderComponent implements OnInit {
       this.updateFixturesCancelRequested = true;
       this.updateFixturesQueue = [];
       if (this.updateFixturesPendingFixture) {
-        this.updateFixturesCurrentStep.set('cancel requested · waiting for current fixture');
+        const fixtureName = this.updateFixturesPendingFixture;
+        this.updateFixturesCurrentStep.set('cancel requested · stopping backend update');
+        this.appendUpdateReportStep(fixtureName, 'cancel_requested', 'requested backend cancellation');
         this.persistUpdateFixturesState();
+        this.commanderApi.cancelOtaUpdate(fixtureName).subscribe({
+          next: (response) => {
+            if (response.status === 'not_running') {
+              this.onOtaCancelled({
+                fixture_name: fixtureName,
+                message: 'backend update was no longer running',
+              });
+            }
+          },
+          error: (err: unknown) => {
+            this.messageService.add({
+              key: 'app',
+              severity: 'warn',
+              summary: 'Cancel request failed',
+              detail: this.formatError('', err),
+              life: 5000,
+            });
+          },
+        });
       } else {
         this.finishOutdatedFixtureUpdateRun(true);
       }
@@ -2769,7 +2816,7 @@ export class CommanderComponent implements OnInit {
     const backendHasActive = backendFixtures.size > 0;
 
     // Keep updates strictly sequential: do not advance while waiting for backend result
-    // (ota_complete / ota_error). Recover only if backend result never arrives.
+    // (ota_complete / ota_error / ota_cancelled). Recover only if backend result never arrives.
     if (hasPending && !backendFixtures.has(pending)) {
       if (pendingAgeMs < this.updateFixturesPendingResultTimeoutMs) {
         return;
@@ -2785,7 +2832,7 @@ export class CommanderComponent implements OnInit {
       this.appendUpdateReportStep(
         timedOutFixtureName,
         'backend_timeout',
-        'no ota_complete/ota_error event received before timeout',
+        'no ota_complete/ota_error/ota_cancelled event received before timeout',
         { markFailure: true, markCompleted: true },
       );
       if (queueHasItems && !this.updateFixturesCancelRequested) {

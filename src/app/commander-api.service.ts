@@ -55,7 +55,7 @@ export interface CommanderStreamEvent {
 
 // OTA update stream events — pushed to /commander/stream by the API background task
 export interface OtaStreamEvent {
-  step: 'compiling' | 'uploading' | 'verifying' | 'complete' | 'error';
+  step: 'compiling' | 'uploading' | 'verifying' | 'complete' | 'error' | 'cancelled' | string;
   fixture_name: string;
   message?: string;
   fw_version?: string; // present on 'complete'
@@ -69,6 +69,7 @@ export interface CommanderStreamHandlers {
   ota_progress?: (event: OtaStreamEvent) => void;
   ota_complete?: (event: OtaStreamEvent) => void;
   ota_error?: (event: OtaStreamEvent) => void;
+  ota_cancelled?: (event: OtaStreamEvent) => void;
 }
 
 const commanderApiUrlStorageKey = 'cmdr.api.baseUrl';
@@ -257,6 +258,13 @@ export class CommanderApiService {
     );
   }
 
+  cancelOtaUpdate(fixtureName: string): Observable<{ ok: boolean; fixture_name: string; status: string }> {
+    return this.http.post<{ ok: boolean; fixture_name: string; status: string }>(
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/ota-update/cancel`,
+      {},
+    );
+  }
+
   postFixtureRssiSession(
     fixtureName: string,
     durationMs = 60000,
@@ -358,6 +366,10 @@ export class CommanderApiService {
     if (handlers.ota_error) {
       const h = handlers.ota_error;
       source.addEventListener('ota_error', (e) => { const d = parseOtaEvent(e); if (d) h(d); });
+    }
+    if (handlers.ota_cancelled) {
+      const h = handlers.ota_cancelled;
+      source.addEventListener('ota_cancelled', (e) => { const d = parseOtaEvent(e); if (d) h(d); });
     }
 
     source.onmessage = (event) => handleMessage(event);

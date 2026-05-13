@@ -37,6 +37,7 @@ export class CommanderConsoleComponent {
   readonly otaProgress = output<OtaStreamEvent>();
   readonly otaComplete = output<OtaStreamEvent>();
   readonly otaError = output<OtaStreamEvent>();
+  readonly otaCancelled = output<OtaStreamEvent>();
 
   protected readonly connected = signal(false);
   protected readonly streamError = signal<string | null>(null);
@@ -149,6 +150,7 @@ export class CommanderConsoleComponent {
       ota_progress: (event) => this.otaProgress.emit(event),
       ota_complete: (event) => this.otaComplete.emit(event),
       ota_error: (event) => this.otaError.emit(event),
+      ota_cancelled: (event) => this.otaCancelled.emit(event),
     });
   }
 

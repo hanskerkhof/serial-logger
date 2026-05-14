@@ -57,7 +57,22 @@
                     <dd>v{{ s.apiVersion }}@if (s.apiBuildDate) { · {{ s.apiBuildDate }}}</dd>
                   }
                   @if (s.fwVersion) {
-                    <dt>FW</dt><dd>v{{ s.fwVersion }}</dd>
+                    <dt>FW</dt>
+                    <dd class="health-pop__fw-row">
+                      <span>v{{ s.fwVersion }}</span>
+                      <button
+                        pButton
+                        type="button"
+                        [text]="true"
+                        size="small"
+                        severity="secondary"
+                        [label]="apiRestarting() ? 'restarting API…' : '<restart API>'"
+                        [loading]="apiRestarting()"
+                        [disabled]="apiRestarting()"
+                        (click)="restartApiFromHealthPopover($event)"
+                        class="health-pop__restart"
+                      ></button>
+                    </dd>
                   }
                   @if (s.fixtureName) {
                     <dt>Commander</dt><dd>{{ s.fixtureName }}</dd>

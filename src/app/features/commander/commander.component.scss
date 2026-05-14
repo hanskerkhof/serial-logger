@@ -76,6 +76,18 @@
   right: 0;
 }
 
+.commander__health-version-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.commander__health-restart-btn {
+  padding: 0;
+  min-width: 0;
+}
+
 .commander__dialog-last-seen {
   font-size: 0.75rem;
   opacity: 0.6;

@@ -243,6 +243,7 @@ export class CommanderComponent implements OnInit {
   });
 
   protected readonly loading = signal(true);
+  protected readonly apiRestarting = signal(false);
   protected readonly fixtureQueryLoading = signal(false);
   protected readonly planQueryLoading = signal(false);
   protected readonly planGroupQueryLoading = signal(false);
@@ -2049,6 +2050,40 @@ export class CommanderComponent implements OnInit {
   protected reloadHealth(): void {
     this.error.set(null);
     this.healthService.refresh();
+  }
+
+  protected restartApiFromHealthPopover(event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.apiRestarting()) return;
+
+    this.error.set(null);
+    this.apiRestarting.set(true);
+    this.messageService.add({
+      key: 'app',
+      severity: 'info',
+      summary: 'Restarting API',
+      detail: 'Runtime restart requested.',
+      life: 2500,
+    });
+
+    this.commanderApi.restartApi().subscribe({
+      next: () => {
+        window.setTimeout(() => {
+          this.apiRestarting.set(false);
+          this.healthService.retryHealth();
+        }, 1500);
+      },
+      error: (err: unknown) => {
+        this.apiRestarting.set(false);
+        this.messageService.add({
+          key: 'app',
+          severity: 'error',
+          summary: 'API restart failed',
+          detail: this.formatError('', err),
+          life: 6000,
+        });
+      },
+    });
   }
 
   protected retryHealth(): void {

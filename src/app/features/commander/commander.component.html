@@ -584,7 +584,21 @@
               <div><strong>commander detected:</strong> {{ commanderHealth.detected }}</div>
               <div><strong>commander fixture:</strong> {{ commanderHealth.detected_fixture_name || commanderHealth.expected_fixture_name || '-' }}</div>
               <div><strong>commander fqbn:</strong> {{ commanderHealth.fqbn || '-' }}</div>
-              <div><strong>commander version:</strong> {{ commanderHealth.fw_version || '-' }}</div>
+              <div class="commander__health-version-row">
+                <span><strong>commander version:</strong> {{ commanderHealth.fw_version || '-' }}</span>
+                <button
+                  pButton
+                  type="button"
+                  [text]="true"
+                  size="small"
+                  severity="secondary"
+                  [label]="apiRestarting() ? 'restarting API…' : '<restart API>'"
+                  [loading]="apiRestarting()"
+                  [disabled]="apiRestarting()"
+                  (click)="restartApiFromHealthPopover($event)"
+                  class="commander__health-restart-btn"
+                ></button>
+              </div>
               @if (commanderVersionRefreshHint(); as refreshHint) {
                 <div class="commander__health-stale"><strong>note:</strong> {{ refreshHint }}</div>
               }
@@ -926,6 +940,22 @@
                   }
                   @default {
                     v{{ fws.fw }}
+                    @if (compileSupported() && fws.upToDate) {
+                      <button
+                        pButton
+                        type="button"
+                        [text]="true"
+                        size="small"
+                        severity="secondary"
+                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Compile & update'"
+                        icon="pi pi-upload"
+                        iconPos="left"
+                        [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
+                        [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
+                        (click)="runDialogFixtureUpdateSingle()"
+                        class="commander__dialog-fw-update-btn"
+                      ></button>
+                    }
                   }
                 }
               </span>

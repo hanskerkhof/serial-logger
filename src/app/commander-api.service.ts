@@ -106,6 +106,17 @@ export class CommanderApiService {
     return this.http.get<CmdrHealthResponse>(`${this.getRequestBaseUrl()}/health`);
   }
 
+  restartApi(): Observable<{ ok: boolean; action: string; delay_ms?: number }> {
+    return this.http.post<{ ok: boolean; action: string; delay_ms?: number }>(
+      `${this.getRequestBaseUrl()}/api/runtime/restart`,
+      {
+        reason: 'fe_health_popover_restart',
+        action_source: 'commander_health_popover',
+        delay_ms: 400,
+      },
+    );
+  }
+
   /** Open the /health/ws WebSocket. HealthPollService owns the lifetime. */
   openHealthWebSocket(): WebSocket {
     const base = this.getRequestBaseUrl().replace(/^http/i, 'ws');

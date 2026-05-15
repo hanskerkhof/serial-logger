@@ -28,6 +28,7 @@ export interface CmdrPassiveSeenFixture {
   build_time?: string;
   uptime_ms?: number;
   next_passive_seen_in_ms?: number;
+  fixture_mode?: string;
   rssi_dbm?: number;
   rssi_quality?: string;
   last_seen_ms?: number;

@@ -5068,6 +5068,8 @@ export class CommanderComponent implements OnInit {
 
   /** Human-readable status: elapsed since last passive heartbeat + expected-next countdown. */
   protected fixtureSeenStatusLabel(fixtureName: string): string | null {
+    const fixture = this.fixtureStore.fixturesByName()[fixtureName];
+    if (fixture?.raw['runtime_fixture_mode'] === 'OTA') return 'OTA';
     const lastSeen = this.fixtureLastSeenLabel(fixtureName);
     if (lastSeen == null) return null;
     const expected = this.fixtureExpectedNextLabel(fixtureName);

@@ -162,6 +162,7 @@ interface PersistedUpdateFixturesState {
   outcomes: Array<{ fixture: string; ok: boolean }>;
   cancelRequested: boolean;
   report?: UpdateReportFixtureEntry[];
+  allFixtures?: string[];
 }
 
 interface UpdateReportStepView {
@@ -337,6 +338,7 @@ export class CommanderComponent implements OnInit {
   protected readonly updateFixturesFailed = signal<number>(0);
   protected readonly updateFixturesSucceeded = signal<number>(0);
   protected readonly updateFixturesOutcomeLog = signal<Array<{ fixture: string; ok: boolean }>>([]);
+  protected readonly updateFixturesAllFixtures = signal<string[]>([]);
   protected readonly updateFixturesProgressPct = computed(() => {
     const total = this.updateFixturesTotal();
     if (total <= 0) return 0;
@@ -357,12 +359,18 @@ export class CommanderComponent implements OnInit {
     const stepPart = step ? ` · ${step}` : '';
     return `${base}${fixturePart}${stepPart}`;
   });
-  protected readonly updateFixturesOutcomeSummaryLines = computed(() => {
-    const total = this.updateFixturesTotal();
+  protected readonly updateFixturesListLines = computed(() => {
+    const all = this.updateFixturesAllFixtures();
+    const total = all.length || this.updateFixturesTotal();
     if (total <= 0) return [] as string[];
-    return this.updateFixturesOutcomeLog().map((entry, index) =>
-      `${Math.min(index + 1, total)}/${total} · ${entry.ok ? '✅' : '❌'} ${entry.fixture}`,
-    );
+    const current = this.updateFixturesCurrentFixture();
+    const outcomeMap = new Map(this.updateFixturesOutcomeLog().map((e) => [e.fixture, e.ok]));
+    return all.map((name, i) => {
+      const n = `${i + 1}/${total}`;
+      if (outcomeMap.has(name)) return `${n} · ${outcomeMap.get(name) ? '✅' : '❌'} ${name}`;
+      if (name === current) return `${n} · ⏳ ${name}`;
+      return `${n} · — ${name}`;
+    });
   });
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
@@ -2569,6 +2577,7 @@ export class CommanderComponent implements OnInit {
     this.updateFixturesFailed.set(0);
     this.updateFixturesSucceeded.set(0);
     this.updateFixturesOutcomeLog.set([]);
+    this.updateFixturesAllFixtures.set([...fixtureNames]);
     this.updateReportByFixture.set(new Map());
     this.persistUpdateFixturesState();
     this.startNextOutdatedFixtureUpdate();
@@ -2750,6 +2759,7 @@ export class CommanderComponent implements OnInit {
       failures: [...this.updateFixturesFailures],
       outcomes: [...this.updateFixturesOutcomeLog()],
       cancelRequested: this.updateFixturesCancelRequested,
+      allFixtures: [...this.updateFixturesAllFixtures()],
       report: Array.from(this.updateReportByFixture().values()),
     };
     try {
@@ -2825,6 +2835,7 @@ export class CommanderComponent implements OnInit {
     this.updateFixturesFailed.set(Number.isFinite(parsed.failed) ? Math.max(0, Math.round(parsed.failed)) : 0);
     this.updateFixturesSucceeded.set(Number.isFinite(parsed.succeeded) ? Math.max(0, Math.round(parsed.succeeded)) : 0);
     this.updateFixturesOutcomeLog.set(Array.isArray(parsed.outcomes) ? parsed.outcomes.slice(-50) : []);
+    this.updateFixturesAllFixtures.set(Array.isArray(parsed.allFixtures) ? parsed.allFixtures.filter((v) => typeof v === 'string' && v.trim()) : []);
     this.updateReportByFixture.set(
       new Map(
         (Array.isArray(parsed.report) ? parsed.report : [])

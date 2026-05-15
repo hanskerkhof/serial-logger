@@ -63,8 +63,8 @@
           @if (updateFixturesProgressLabel(); as label) {
             <span class="discovery-progress-toast__detail">{{ label }}</span>
           }
-          @for (outcomeSummary of updateFixturesOutcomeSummaryLines(); track $index) {
-            <span class="discovery-progress-toast__detail">{{ outcomeSummary }}</span>
+          @for (line of updateFixturesListLines(); track $index) {
+            <span class="discovery-progress-toast__detail">{{ line }}</span>
           }
         }
         @if (message.data?.mode === 'progress_full_ws') {

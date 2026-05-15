@@ -215,9 +215,7 @@ export class CommanderComponent implements OnInit {
   private static readonly AUTO_STABILIZE_STEPS_MS: readonly number[] = [500, 750, 1000];
   private static readonly AUTO_STABILIZE_WINDOW_SAMPLES = 8;
   private static readonly AUTO_STABILIZE_TRIGGER_COUNT = 5;
-  // Throttle passive auto-queries so we do not flood commander fsf requests.
-  private static readonly PASSIVE_QUERY_MIN_GAP_MS = 1000;
-  private static readonly PASSIVE_QUERY_RETRY_DELAY_MS = 1500;
+  private static readonly PASSIVE_HEARTBEAT_OVERDUE_GRACE_MS = 20_000;
 
   protected readonly frontendVersion = APP_VERSION;
   protected readonly frontendBuildDate = BUILD_DATE;
@@ -571,18 +569,8 @@ export class CommanderComponent implements OnInit {
   // TODO: auto-discovery on empty store disabled — passive heartbeat discovery replaces it.
   // private _autoDiscoveryTriggered = false;
 
-  // Tracks fixture names currently being queried via passive discovery to avoid duplicate requests.
+  // Tracks fixture names with an in-flight passive query to avoid duplicate concurrent requests.
   private readonly _passiveQueryInFlight = new Set<string>();
-  // Deduped FIFO queue for passive auto-queries (one request at a time).
-  private readonly _passiveQueryQueue: string[] = [];
-  private readonly _passiveQueryQueued = new Set<string>();
-  private _passiveQueryDrainTimer: ReturnType<typeof setTimeout> | null = null;
-  private _passiveQueryLastStartedAtMs = 0;
-  protected readonly passiveQueryQueuedCount = signal(0);
-  protected readonly passiveQueryInFlightCount = signal(0);
-  protected readonly passiveQueryDebugLabel = computed(() =>
-    `Passive query queue: ${this.passiveQueryQueuedCount()} · in-flight: ${this.passiveQueryInFlightCount()}`,
-  );
 
   // Last-seen timestamps (ms since epoch) from the passive heartbeat cache, keyed by fixture name.
   protected readonly fixtureLastSeenMs = signal<Map<string, number>>(new Map());
@@ -1113,6 +1101,18 @@ export class CommanderComponent implements OnInit {
       .map(([name]) => name),
   );
 
+  private readonly triggerableFixtureNames = computed(() =>
+    Object.values(this.fixtureStore.fixturesByName())
+      .filter((f) => (f.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null)?.plan_controls?.trigger?.available === true)
+      .map((f) => f.fixture_name),
+  );
+
+  private readonly stoppableFixtureNames = computed(() =>
+    Object.values(this.fixtureStore.fixturesByName())
+      .filter((f) => (f.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null)?.plan_controls?.stop?.available === true)
+      .map((f) => f.fixture_name),
+  );
+
   private readonly outdatedFixtureNamesWithBinary = computed(() => {
     const outdated = new Set(this.outdatedFixtureNames().map((name) => name.trim().toUpperCase()));
     const selected: string[] = [];
@@ -1149,6 +1149,28 @@ export class CommanderComponent implements OnInit {
         icon: 'pi pi-box',
         disabled: this.backendBusy() || this.commanderUnavailable() || outdatedBinaryCount === 0,
         command: () => this.runSidebarFixtureUpdateOutdatedFromBinary(),
+      },
+      {
+        label: 'Reboot all fixtures',
+        icon: 'pi pi-power-off',
+        disabled: this.commanderUnavailable() || this.fixtureStore.fixtureCount() === 0,
+        command: () => this.rebootAllFixtures(),
+      },
+      {
+        label: this.triggerableFixtureNames().length > 0
+          ? `Trigger all plans (${this.triggerableFixtureNames().length})`
+          : 'Trigger all plans',
+        icon: 'pi pi-play',
+        disabled: this.commanderUnavailable() || this.triggerableFixtureNames().length === 0,
+        command: () => this.triggerAllPlans(),
+      },
+      {
+        label: this.stoppableFixtureNames().length > 0
+          ? `Stop all plans (${this.stoppableFixtureNames().length})`
+          : 'Stop all plans',
+        icon: 'pi pi-stop',
+        disabled: this.commanderUnavailable() || this.stoppableFixtureNames().length === 0,
+        command: () => this.stopAllPlans(),
       },
     ];
   });
@@ -2004,7 +2026,7 @@ export class CommanderComponent implements OnInit {
       if (typeof msg.data?.['build_date'] === 'string' && msg.data['build_date']) versionPatch['build_date'] = msg.data['build_date'];
       if (typeof msg.data?.['build_time'] === 'string' && msg.data['build_time']) versionPatch['build_time'] = msg.data['build_time'];
       if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
-      this.autoQueryPassiveFixture(name);
+      this.queryPassiveFixtureIfIncomplete(name);
     });
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
@@ -2021,10 +2043,6 @@ export class CommanderComponent implements OnInit {
       if (this._progressToastClearTimer !== null) {
         clearTimeout(this._progressToastClearTimer);
         this._progressToastClearTimer = null;
-      }
-      if (this._passiveQueryDrainTimer !== null) {
-        clearTimeout(this._passiveQueryDrainTimer);
-        this._passiveQueryDrainTimer = null;
       }
       this.stopCommanderCachePolling();
       this._activeProgressToastMode = null;
@@ -2161,10 +2179,6 @@ export class CommanderComponent implements OnInit {
     this.discoverFixturesLoading.set(false);
     this.discoverFixturesCurrentFixture.set(null);
     this.sidebarRefreshingFixture.set(null);
-
-    // Drop passive auto-query runtime state (queue + timers + in-flight guards)
-    // before clearing store/backend cache.
-    this.resetPassiveQueryRuntimeState();
 
     this.fixtureStore.clearAllFixtures();
     this.discoveryTimings.set([]);
@@ -3200,6 +3214,28 @@ export class CommanderComponent implements OnInit {
     this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
     this.fixtureModalTab.set('commands');
+  }
+
+  protected rebootAllFixtures(): void {
+    const fixtureNames = Object.keys(this.fixtureStore.fixturesByName());
+    for (const name of fixtureNames) {
+      const wireCommand = `ack;tcmd;${name};cmd;reboot;`;
+      this.commanderApi.runFixtureCommand(name, wireCommand).subscribe({ error: () => {} });
+    }
+  }
+
+  protected triggerAllPlans(): void {
+    for (const name of this.triggerableFixtureNames()) {
+      const wireCommand = `ack;tcmd;${name};cmd;plan;action=trigger;`;
+      this.commanderApi.runFixtureCommand(name, wireCommand).subscribe({ error: () => {} });
+    }
+  }
+
+  protected stopAllPlans(): void {
+    for (const name of this.stoppableFixtureNames()) {
+      const wireCommand = `ack;tcmd;${name};cmd;plan;action=stop;`;
+      this.commanderApi.runFixtureCommand(name, wireCommand).subscribe({ error: () => {} });
+    }
   }
 
   protected rebootFixture(): void {
@@ -5054,11 +5090,11 @@ export class CommanderComponent implements OnInit {
     return this.formatElapsedMs(remainingMs);
   }
 
-  /** True when the fixture passed its expected heartbeat time + 2 s margin. */
+  /** True when the fixture passed its expected heartbeat time plus a small jitter margin. */
   protected fixtureHeartbeatOverdue(fixtureName: string): boolean {
     const expectedAtMs = this.fixtureNextSeenExpectedAtMs().get(fixtureName);
     if (expectedAtMs != null) {
-      return this.now() > (expectedAtMs + 2_000);
+      return this.now() > expectedAtMs + CommanderComponent.PASSIVE_HEARTBEAT_OVERDUE_GRACE_MS;
     }
     const lastSeenMs = this.fixtureLastSeenMs().get(fixtureName);
     if (lastSeenMs == null) return false;
@@ -5099,8 +5135,7 @@ export class CommanderComponent implements OnInit {
   }
 
   /**
-   * Polls GET /fixtures/discovered and fires autoQueryPassiveFixture() for any
-   * fixture name that is not yet in the local store.
+   * Polls GET /fixtures/discovered and patches version fields from heartbeat data.
    */
   private pollPassiveDiscovery(): void {
     if (this.healthError()) return;
@@ -5126,7 +5161,7 @@ export class CommanderComponent implements OnInit {
           if (typeof entry['build_date'] === 'string' && entry['build_date']) versionPatch['build_date'] = entry['build_date'];
           if (typeof entry['build_time'] === 'string' && entry['build_time']) versionPatch['build_time'] = entry['build_time'];
           if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
-          this.autoQueryPassiveFixture(name);
+          this.queryPassiveFixtureIfIncomplete(name);
         }
       },
       error: () => {/* silently ignore — passive discovery is best-effort */},
@@ -5166,104 +5201,24 @@ export class CommanderComponent implements OnInit {
     return rounded;
   }
 
-  /**
-   * Fires a full fixture version query for a passively-discovered fixture name.
-   * Skips if a query is already in flight, or if the fixture is already in the
-   * store with complete data (capabilities + plan_state both present).
-   */
-  private autoQueryPassiveFixture(fixtureName: string): void {
-    const normalizedFixtureName = this.normalizeKnownFixtureName(fixtureName);
-    if (!normalizedFixtureName) return;
-    // Skip the connected commander itself — it appears in the passive cache via fpc bootstrap
-    // but cannot respond to fsf queries while acting as the active commander.
-    // Other commanders (e.g. BKLK_CMDR_2 seen from CMDR_1's API) are treated as normal fixtures.
+  private queryPassiveFixtureIfIncomplete(fixtureName: string): void {
+    const name = this.normalizeKnownFixtureName(fixtureName);
+    if (!name) return;
     const selfName = this.health()?.commander?.detected_fixture_name ?? null;
-    if (selfName && normalizedFixtureName.toUpperCase() === selfName.toUpperCase()) return;
-    if (this._passiveQueryInFlight.has(normalizedFixtureName)) return;
-    if (this._passiveQueryQueued.has(normalizedFixtureName)) return;
-    const existing = this.fixtureStore.fixturesByName()[normalizedFixtureName];
-    if (existing) {
-      const hasCapabilities = existing.raw['capabilities'] != null;
-      const hasPlanState = existing.raw['plan_state'] != null;
-      if (hasCapabilities && hasPlanState) return;
-    }
-    this._passiveQueryQueued.add(normalizedFixtureName);
-    this._passiveQueryQueue.push(normalizedFixtureName);
-    this.syncPassiveQueryDebugCounts();
-    this.schedulePassiveQueryDrain(0);
-  }
-
-  private schedulePassiveQueryDrain(delayMs: number): void {
-    if (this._passiveQueryDrainTimer !== null) return;
-    this._passiveQueryDrainTimer = setTimeout(() => {
-      this._passiveQueryDrainTimer = null;
-      this.drainPassiveQueryQueue();
-    }, Math.max(0, delayMs));
-  }
-
-  private drainPassiveQueryQueue(): void {
-    if (this._passiveQueryInFlight.size > 0) return;
-    if (this._passiveQueryQueue.length === 0) return;
-    if (this.healthError()) {
-      this.schedulePassiveQueryDrain(CommanderComponent.PASSIVE_QUERY_RETRY_DELAY_MS);
-      return;
-    }
-
-    const nowMs = Date.now();
-    const elapsedMs = nowMs - this._passiveQueryLastStartedAtMs;
-    if (elapsedMs < CommanderComponent.PASSIVE_QUERY_MIN_GAP_MS) {
-      this.schedulePassiveQueryDrain(CommanderComponent.PASSIVE_QUERY_MIN_GAP_MS - elapsedMs);
-      return;
-    }
-
-    const nextFixtureName = this._passiveQueryQueue.shift() ?? null;
-    if (!nextFixtureName) return;
-    this._passiveQueryQueued.delete(nextFixtureName);
-    this.syncPassiveQueryDebugCounts();
-
-    const existing = this.fixtureStore.fixturesByName()[nextFixtureName];
-    if (existing) {
-      const hasCapabilities = existing.raw['capabilities'] != null;
-      const hasPlanState = existing.raw['plan_state'] != null;
-      if (hasCapabilities && hasPlanState) {
-        this.schedulePassiveQueryDrain(0);
-        return;
-      }
-    }
-
-    this._passiveQueryInFlight.add(nextFixtureName);
-    this.syncPassiveQueryDebugCounts();
-    this._passiveQueryLastStartedAtMs = Date.now();
-    this.commanderApi.getFixtureVersion(nextFixtureName, { preferQueryTokenAuth: true }).subscribe({
+    if (selfName && name.toUpperCase() === selfName.toUpperCase()) return;
+    if (this._passiveQueryInFlight.has(name)) return;
+    const existing = this.fixtureStore.fixturesByName()[name];
+    if (existing?.raw['capabilities'] != null && existing.raw['plan_state'] != null) return;
+    this._passiveQueryInFlight.add(name);
+    this.commanderApi.getFixtureVersion(name, { preferQueryTokenAuth: true }).subscribe({
       next: (result) => {
-        this.ingestQueryResult(result, 'fixture_query', nextFixtureName);
-        this._passiveQueryInFlight.delete(nextFixtureName);
-        this.syncPassiveQueryDebugCounts();
-        this.schedulePassiveQueryDrain(0);
+        this.ingestQueryResult(result, 'fixture_query', name);
+        this._passiveQueryInFlight.delete(name);
       },
       error: () => {
-        this._passiveQueryInFlight.delete(nextFixtureName);
-        this.syncPassiveQueryDebugCounts();
-        this.schedulePassiveQueryDrain(CommanderComponent.PASSIVE_QUERY_RETRY_DELAY_MS);
+        this._passiveQueryInFlight.delete(name);
       },
     });
-  }
-
-  private syncPassiveQueryDebugCounts(): void {
-    this.passiveQueryQueuedCount.set(this._passiveQueryQueue.length);
-    this.passiveQueryInFlightCount.set(this._passiveQueryInFlight.size);
-  }
-
-  private resetPassiveQueryRuntimeState(): void {
-    if (this._passiveQueryDrainTimer !== null) {
-      clearTimeout(this._passiveQueryDrainTimer);
-      this._passiveQueryDrainTimer = null;
-    }
-    this._passiveQueryQueue.length = 0;
-    this._passiveQueryQueued.clear();
-    this._passiveQueryInFlight.clear();
-    this._passiveQueryLastStartedAtMs = 0;
-    this.syncPassiveQueryDebugCounts();
   }
 
   private normalizeKnownFixtureName(value: unknown): string | null {

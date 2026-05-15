@@ -1339,6 +1339,8 @@ export interface components {
             ota_binary_version?: string | null;
             /** Plan Group */
             plan_group: string | null;
+            /** Runtime Fixture Mode */
+            runtime_fixture_mode?: string | null;
             /** Plan Name */
             plan_name: string | null;
             /** Plan State */

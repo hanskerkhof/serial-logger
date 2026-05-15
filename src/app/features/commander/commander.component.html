@@ -477,7 +477,7 @@
                         <span
                           class="commander__fixture-seen"
                           [class.commander__fixture-seen--overdue]="fixtureHeartbeatOverdue(fixture.fixture_name)"
-                          title="Passive heartbeat timing (last seen / expected next)"
+                          title="Passive heartbeat timing (last seen)"
                         ><i class="pi pi-clock"></i>{{ label }}</span>
                       }
                       @if (fixtureFwStatusMap().get(fixture.fixture_name); as fws) {

@@ -351,7 +351,7 @@ export class CommanderComponent implements OnInit {
     const step = this.updateFixturesCurrentStep();
     if (total <= 0) return 'Preparing OTA update queue...';
     const displayCount = fixture ? Math.min(total, processed + 1) : processed;
-    const base = `${displayCount}/${total}${failed > 0 ? ` · failed ${failed}` : ''}`;
+    const base = `${displayCount}/${total}`;
     const fixturePart = fixture ? ` · ${fixture}` : '';
     const stepPart = step ? ` · ${step}` : '';
     return `${base}${fixturePart}${stepPart}`;
@@ -2078,7 +2078,7 @@ export class CommanderComponent implements OnInit {
     this.apiRestarting.set(true);
     this.messageService.add({
       key: 'app',
-      severity: 'info',
+      severity: 'warn',
       summary: 'Restarting API',
       detail: 'Runtime restart requested.',
       life: 2500,

@@ -1,3 +1,8 @@
+@if (pullRefreshing()) {
+  <div class="pull-refresh-indicator">
+    <p-progressSpinner [style]="{'width': '2rem', 'height': '2rem'}" strokeWidth="3" ariaLabel="Refreshing" />
+  </div>
+}
 <div class="app-shell">
   <p-toolbar class="app-shell__header">
     <ng-template #start>

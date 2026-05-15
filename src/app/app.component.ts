@@ -5,6 +5,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { PopoverModule } from 'primeng/popover';
 import { Popover } from 'primeng/popover';
 import { ButtonModule } from 'primeng/button';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { filter } from 'rxjs';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { APP_VERSION, BUILD_DATE } from './build-info';
@@ -21,7 +22,7 @@ import { FixtureStoreService } from './fixture-store.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ButtonModule, ReleaseNotesComponent, QrScannerDemoComponent],
+  imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ButtonModule, ProgressSpinnerModule, ReleaseNotesComponent, QrScannerDemoComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
@@ -86,6 +87,12 @@ export class AppComponent {
   private readonly isStandalone = ('standalone' in navigator) && !!(navigator as any).standalone;
   private readonly bannerDismissed = localStorage.getItem('pwa.installBannerDismissed') === '1';
   protected readonly showInstallBanner = signal(this.isIos && !this.isStandalone && !this.bannerDismissed);
+
+  // --- Pull-to-refresh ---
+  protected readonly pullRefreshing = signal(false);
+  private pullTouchStartY = 0;
+  private pullActive = false;
+  private static readonly PULL_THRESHOLD = 80;
 
   // --- Update notification state ---
   // Deferral schedule per "Later" press: 2m, then 30m, then 6h.
@@ -191,6 +198,40 @@ export class AppComponent {
       if (!this.healthService.health() && this.healthService.healthError()) {
         this.apiConnected.set('error');
       }
+    });
+
+    this.initPullToRefresh();
+  }
+
+  private initPullToRefresh(): void {
+    const onTouchStart = (e: TouchEvent) => {
+      if (window.scrollY === 0) {
+        this.pullTouchStartY = e.touches[0].clientY;
+        this.pullActive = true;
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!this.pullActive) return;
+      const delta = e.touches[0].clientY - this.pullTouchStartY;
+      if (delta > 5) e.preventDefault();
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!this.pullActive) return;
+      this.pullActive = false;
+      const delta = (e.changedTouches[0]?.clientY ?? 0) - this.pullTouchStartY;
+      if (delta >= AppComponent.PULL_THRESHOLD) {
+        this.pullRefreshing.set(true);
+        setTimeout(() => window.location.reload(), 600);
+      }
+    };
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    this.destroyRef.onDestroy(() => {
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
     });
   }
 

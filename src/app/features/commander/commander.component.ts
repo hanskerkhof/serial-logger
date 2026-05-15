@@ -2025,6 +2025,7 @@ export class CommanderComponent implements OnInit {
       if (typeof msg.data?.['fw_version'] === 'string' && msg.data['fw_version']) versionPatch['fw_version'] = msg.data['fw_version'];
       if (typeof msg.data?.['build_date'] === 'string' && msg.data['build_date']) versionPatch['build_date'] = msg.data['build_date'];
       if (typeof msg.data?.['build_time'] === 'string' && msg.data['build_time']) versionPatch['build_time'] = msg.data['build_time'];
+      if (typeof msg.data?.['fixture_mode'] === 'string') versionPatch['runtime_fixture_mode'] = msg.data['fixture_mode'] || null;
       if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
       this.queryPassiveFixtureIfIncomplete(name);
     });

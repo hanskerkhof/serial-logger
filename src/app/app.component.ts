@@ -48,6 +48,7 @@ export class AppComponent {
   protected readonly apiBuildDate = signal<string | null>(null);
   protected readonly apiRestarting = signal(false);
   protected readonly isSerialSupported = this.serialService.isSupported;
+  protected readonly activeApiUrl = this.commanderApi.apiBaseUrl;
   protected readonly apiConnected = signal<'unknown' | 'ok' | 'error'>('unknown');
   protected readonly healthSummary = signal<{
     apiVersion: string | null;

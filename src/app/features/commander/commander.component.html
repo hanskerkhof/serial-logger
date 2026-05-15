@@ -514,29 +514,7 @@
   </aside>
 
   <div class="commander__main">
-    <section class="commander__target-panel" aria-label="Commander API target">
-      <p><strong>Active API:</strong> {{ activeApiUrl() }}</p>
 
-<!-- <div class="commander__custom">
-        <label for="customApiUrl">Custom API URL</label>
-        <input
-          pInputText
-          id="customApiUrl"
-          type="text"
-          [ngModel]="customUrl()"
-          (ngModelChange)="customUrl.set($event)"
-          placeholder="http://100.x.x.x:8080"
-        />
-        <button
-          pButton
-          type="button"
-          label="Use custom URL"
-          size="small"
-          (click)="applyCustomUrl()"
-          [disabled]="loading()"
-        ></button>
-      </div> -->
-    </section>
 
     @if (loading()) {
       <p class="commander__status" role="status" aria-live="polite">Checking commander API health...</p>

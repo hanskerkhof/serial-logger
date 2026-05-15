@@ -83,6 +83,7 @@
                   @if (s.baud !== null) {
                     <dt>Commander Baud rate</dt><dd>{{ s.baud }}</dd>
                   }
+                  <dt>Active API</dt><dd>{{ activeApiUrl() }}</dd>
                 </dl>
               }
               <div class="health-pop__footer">

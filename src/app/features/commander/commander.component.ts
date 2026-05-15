@@ -343,13 +343,14 @@ export class CommanderComponent implements OnInit {
     const processed = this.updateFixturesProcessed();
     return Math.max(0, Math.min(100, (processed / total) * 100));
   });
-  protected readonly updateFixturesProgressLabel = computed(() => {
+  protected readonly updateFixturesProgressLabel = computed<string | null>(() => {
     const total = this.updateFixturesTotal();
     const processed = this.updateFixturesProcessed();
     const failed = this.updateFixturesFailed();
     const fixture = this.updateFixturesCurrentFixture();
     const step = this.updateFixturesCurrentStep();
     if (total <= 0) return 'Preparing OTA update queue...';
+    if (fixture === null && step === null) return null;
     const displayCount = fixture ? Math.min(total, processed + 1) : processed;
     const base = `${displayCount}/${total}`;
     const fixturePart = fixture ? ` · ${fixture}` : '';

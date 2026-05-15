@@ -60,7 +60,9 @@
             styleClass="discovery-progress-toast__bar"
             [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
           ></p-progressbar>
-          <span class="discovery-progress-toast__detail">{{ updateFixturesProgressLabel() }}</span>
+          @if (updateFixturesProgressLabel(); as label) {
+            <span class="discovery-progress-toast__detail">{{ label }}</span>
+          }
           @for (outcomeSummary of updateFixturesOutcomeSummaryLines(); track $index) {
             <span class="discovery-progress-toast__detail">{{ outcomeSummary }}</span>
           }

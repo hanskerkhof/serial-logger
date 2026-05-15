@@ -2021,12 +2021,22 @@ export class CommanderComponent implements OnInit {
       if (!name) return;
       const lastSeen = typeof msg.data?.['last_seen_ms'] === 'number' ? msg.data['last_seen_ms'] : Date.now();
       this.updateFixturePassiveTiming(name, lastSeen, this.resolveNextPassiveSeenInMs(msg.data?.['next_passive_seen_in_ms']));
+      const incomingMode = typeof msg.data?.['fixture_mode'] === 'string' ? (msg.data['fixture_mode'] as string) : null;
+      const previousMode = this.fixtureStore.fixturesByName()[name]?.raw['runtime_fixture_mode'] as string | null | undefined;
       const versionPatch: Record<string, unknown> = {};
       if (typeof msg.data?.['fw_version'] === 'string' && msg.data['fw_version']) versionPatch['fw_version'] = msg.data['fw_version'];
       if (typeof msg.data?.['build_date'] === 'string' && msg.data['build_date']) versionPatch['build_date'] = msg.data['build_date'];
       if (typeof msg.data?.['build_time'] === 'string' && msg.data['build_time']) versionPatch['build_time'] = msg.data['build_time'];
-      if (typeof msg.data?.['fixture_mode'] === 'string') versionPatch['runtime_fixture_mode'] = msg.data['fixture_mode'] || null;
+      if (incomingMode !== null) versionPatch['runtime_fixture_mode'] = incomingMode || null;
       if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
+      // Toast on fixture_mode transitions — only when we already knew the previous mode.
+      if (incomingMode !== null && previousMode !== undefined && previousMode !== incomingMode) {
+        if (incomingMode === 'OTA') {
+          this.messageService.add({ key: 'app', severity: 'warn', summary: 'OTA mode', detail: `${name} entered OTA mode`, life: 8000 });
+        } else if (previousMode === 'OTA') {
+          this.messageService.add({ key: 'app', severity: 'success', summary: 'OTA complete', detail: `${name} returned to ${incomingMode} mode`, life: 6000 });
+        }
+      }
       this.queryPassiveFixtureIfIncomplete(name);
     });
     this.destroyRef.onDestroy(() => {

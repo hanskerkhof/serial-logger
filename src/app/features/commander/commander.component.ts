@@ -3184,8 +3184,16 @@ export class CommanderComponent implements OnInit {
       passive: this.commanderApi.removeFixtureDiscovered(record.fixture_name),
       commander: this.commanderApi.removeCommanderFixtureCacheEntry(record.fixture_name, 3.0),
     }).subscribe({
-      next: ({ commander }) => {
-        this.commanderCacheData.set(commander);
+      next: () => {
+        this.commanderCacheData.update((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            entries: current.entries.filter((e) => e.fixture_name !== record.fixture_name),
+            used: Math.max(0, current.used - 1),
+          };
+        });
+        this.showSuccessToast('Fixture removed from store and commander cache');
       },
       error: (err: unknown) => {
         this.showWarningToast(this.formatError('Fixture removed locally, but backend cache removal failed', err));
@@ -3196,12 +3204,45 @@ export class CommanderComponent implements OnInit {
   protected removePlan(planName: string, event: Event): void {
     event.stopPropagation();
     const selected = this.selectedFixture();
+
+    const fixtureNamesForPlan = Object.values(this.fixtureStore.fixturesByName())
+      .filter((f) => f.plan_name === planName)
+      .map((f) => f.fixture_name);
+
     this.fixtureStore.removePlan(planName);
 
     if (selected?.plan_name === planName) {
       this.fixtureName.set('');
       this.closeFixtureModal();
     }
+
+    if (fixtureNamesForPlan.length === 0) return;
+
+    const removals = fixtureNamesForPlan.map((name) =>
+      forkJoin({
+        passive: this.commanderApi.removeFixtureDiscovered(name),
+        commander: this.commanderApi.removeCommanderFixtureCacheEntry(name, 3.0),
+      }),
+    );
+
+    forkJoin(removals).subscribe({
+      next: () => {
+        const nameSet = new Set(fixtureNamesForPlan);
+        this.commanderCacheData.update((current) => {
+          if (!current) return current;
+          const filtered = current.entries.filter((e) => !nameSet.has(e.fixture_name));
+          return {
+            ...current,
+            entries: filtered,
+            used: Math.max(0, current.used - (current.entries.length - filtered.length)),
+          };
+        });
+        this.showSuccessToast(`Plan "${planName}" removed from store and commander cache`);
+      },
+      error: (err: unknown) => {
+        this.showWarningToast(this.formatError('Plan removed locally, but backend cache removal failed', err));
+      },
+    });
   }
 
   protected closeFixtureModal(): void {
@@ -3756,6 +3797,10 @@ export class CommanderComponent implements OnInit {
   private showWarningToast(message: string): void {
     if (this.commanderUnavailable()) return;
     this.messageService.add({ key: 'app', severity: 'warn', summary: message, life: 6000 });
+  }
+
+  private showSuccessToast(message: string): void {
+    this.messageService.add({ key: 'app', severity: 'success', summary: message, life: 4000 });
   }
 
   /** Returns false if the API is known to be unreachable (offline toast covers the state). */

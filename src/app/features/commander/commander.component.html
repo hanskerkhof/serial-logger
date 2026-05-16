@@ -415,7 +415,7 @@
                               [disabled]="commanderUnavailable() || backendBusy()"
                               (click)="popoverPlanAction(fixture.fixture_name, 'stop'); fixtureRowMenu.hide()"
                             ></button>
-                            @if (compileSupported() && fixtureFwStatusMap().get(fixture.fixture_name)?.outdated) {
+                            @if (compileSupported()) {
                               <button
                                 pButton
                                 type="button"
@@ -423,7 +423,7 @@
                                 size="small"
                                 severity="secondary"
                                 icon="pi pi-cloud-upload"
-                                label="Update compile"
+                                label="Compile &amp; Update"
                                 [disabled]="commanderUnavailable() || updateFixturesLoading()"
                                 (click)="popoverUpdateFixture(fixture.fixture_name, 'compile'); fixtureRowMenu.hide()"
                               ></button>

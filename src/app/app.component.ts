@@ -6,7 +6,7 @@ import { PopoverModule } from 'primeng/popover';
 import { Popover } from 'primeng/popover';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { filter } from 'rxjs';
+import { filter, forkJoin } from 'rxjs';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { APP_VERSION, BUILD_DATE } from './build-info';
 import { CommanderApiService } from './commander-api.service';
@@ -248,7 +248,10 @@ export class AppComponent {
 
   protected onUpdateNow(): void {
     this.fixtureStore.clearAllFixtures();
-    document.location.reload();
+    forkJoin({
+      passive: this.commanderApi.clearFixturesDiscovered(),
+      commander: this.commanderApi.clearCommanderFixtureCache(3.0),
+    }).subscribe({ next: () => document.location.reload(), error: () => document.location.reload() });
   }
 
   protected onUpdateLater(): void {

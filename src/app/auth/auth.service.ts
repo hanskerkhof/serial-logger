@@ -73,7 +73,9 @@ export class AuthService {
       for (const apiBase of getApiBaseCandidates()) {
         attemptedEndpoint = apiBase;
         try {
-          const resp = await fetch(`${apiBase}/auth/status`);
+          const resp = await fetch(`${apiBase}/auth/status`, {
+            signal: AbortSignal.timeout(3000),
+          });
           if (!resp.ok) continue;
           const data = (await resp.json()) as AuthStatusResponse;
           try {
@@ -170,6 +172,7 @@ export class AuthService {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password }),
+          signal: AbortSignal.timeout(8000),
         });
       } catch {
         sawTransportError = true;

@@ -1071,6 +1071,12 @@
           </label>
           @if (selectedFixtureLiveUpdateTimingLabel(); as timingLabel) {
             <small class="commander__dialog-poll-timing">{{ timingLabel }}</small>
+            <button
+              class="commander__dialog-poll-timing-reset"
+              type="button"
+              (click)="resetLiveTimingSamples()"
+              title="Reset average"
+            >reset</button>
           } @else {
             <span class="commander__dialog-live-timing-placeholder">&nbsp;</span>
           }

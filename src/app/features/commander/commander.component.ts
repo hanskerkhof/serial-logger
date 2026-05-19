@@ -4236,6 +4236,17 @@ export class CommanderComponent implements OnInit {
     };
   }
 
+  resetLiveTimingSamples(): void {
+    const name = this.selectedFixture()?.fixture_name ?? this.fixtureName();
+    if (!name) return;
+    const key = name.trim();
+    this.liveTimingSamplesByFixture.update((current) => {
+      const next = new Map(current);
+      next.delete(key);
+      return next;
+    });
+  }
+
   private recordLiveTimingSample(
     fixtureName: string,
     timing: Record<string, unknown> | null | undefined,

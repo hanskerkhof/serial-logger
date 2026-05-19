@@ -5,7 +5,7 @@ import { SelectModule } from 'primeng/select';
 import { SliderModule } from 'primeng/slider';
 import { CmdrPlayerCapabilities } from '../../api/cmdr-models';
 import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard.component';
-import { PlaybackMsPipe, formatPlaybackMs } from '../pipes/playback-ms.pipe';
+import { formatPlaybackMs } from '../pipes/playback-ms.pipe';
 
 export interface PlayerTrack {
   index: number;
@@ -50,7 +50,7 @@ const EQ_PRESETS_ALL = [
 @Component({
   selector: 'app-fixture-player-controls',
   standalone: true,
-  imports: [ButtonModule, SelectModule, SliderModule, FormsModule, CopyToClipboardComponent, PlaybackMsPipe],
+  imports: [ButtonModule, SelectModule, SliderModule, FormsModule, CopyToClipboardComponent],
   templateUrl: './fixture-player-controls.component.html',
   styleUrl: './fixture-player-controls.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

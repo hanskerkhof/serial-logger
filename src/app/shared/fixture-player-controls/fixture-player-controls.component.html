@@ -17,6 +17,18 @@
       @if (p.play_track_available) {
         <div class="fixture-player-controls__row">
           @if (trackOptions(); as opts) {
+            <button
+              pButton
+              type="button"
+              icon="pi pi-chevron-left"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              size="small"
+              [disabled]="disabled() || opts.length === 0"
+              aria-label="Previous track"
+              (click)="prevTrack()"
+            ></button>
             <p-select
               [options]="opts"
               [ngModel]="trackNumber()"
@@ -50,6 +62,18 @@
                 }
               </ng-template>
             </p-select>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-chevron-right"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              size="small"
+              [disabled]="disabled() || opts.length === 0"
+              aria-label="Next track"
+              (click)="nextTrack()"
+            ></button>
             @if (selectedTrackName(); as selectedTrackName) {
               <app-copy-to-clipboard [value]="selectedTrackName" />
             }

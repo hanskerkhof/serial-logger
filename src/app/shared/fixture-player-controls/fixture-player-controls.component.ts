@@ -298,6 +298,24 @@ export class FixturePlayerControlsComponent {
     this.commandRequested.emit({ command: `cmd;playSound;track=${track};` });
   }
 
+  prevTrack(): void {
+    const opts = this.trackOptions();
+    if (!opts || opts.length === 0) return;
+    const current = this.trackNumber();
+    const idx = current !== null ? opts.findIndex(o => o.value === current) : -1;
+    const prevIdx = idx <= 0 ? opts.length - 1 : idx - 1;
+    this.onTrackSelectChange(opts[prevIdx].value);
+  }
+
+  nextTrack(): void {
+    const opts = this.trackOptions();
+    if (!opts || opts.length === 0) return;
+    const current = this.trackNumber();
+    const idx = current !== null ? opts.findIndex(o => o.value === current) : -1;
+    const nextIdx = idx < 0 || idx >= opts.length - 1 ? 0 : idx + 1;
+    this.onTrackSelectChange(opts[nextIdx].value);
+  }
+
   onVolumeInput(value: number): void {
     this.volumeLevel.set(value);
     if (this.isVolumeFocused() && !this.isVolumeDragging()) {

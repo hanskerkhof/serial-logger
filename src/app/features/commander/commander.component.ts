@@ -1307,6 +1307,7 @@ export class CommanderComponent implements OnInit {
 
   protected readonly selectedFixturePlayerState = computed<{
     volume?: number; eq?: number; trackIndex?: number; playerStatus?: string;
+    elapsedMs?: number; durationMs?: number;
   } | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     const s = ps?.['state'] as Record<string, unknown> | null | undefined;
@@ -1315,8 +1316,10 @@ export class CommanderComponent implements OnInit {
     const eq = typeof s['eq'] === 'number' ? (s['eq'] as number) : undefined;
     const trackIndex = typeof s['track_index'] === 'number' ? (s['track_index'] as number) : undefined;
     const playerStatus = typeof s['player_status'] === 'string' ? (s['player_status'] as string) : undefined;
+    const elapsedMs = typeof s['elapsed_ms'] === 'number' ? (s['elapsed_ms'] as number) : undefined;
+    const durationMs = typeof s['duration_ms'] === 'number' ? (s['duration_ms'] as number) : undefined;
     if (volume === undefined && eq === undefined && trackIndex === undefined && playerStatus === undefined) return null;
-    return { volume, eq, trackIndex, playerStatus };
+    return { volume, eq, trackIndex, playerStatus, elapsedMs, durationMs };
   });
 
   protected readonly selectedFixtureRelayStates = computed<CmdrRelayStateItem[] | null>(() => {

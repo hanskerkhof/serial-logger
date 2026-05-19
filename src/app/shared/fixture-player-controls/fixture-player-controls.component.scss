@@ -40,6 +40,13 @@
   }
 }
 
+.fixture-player-controls__playback-time {
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-green-700, #15803d);
+  letter-spacing: 0.02em;
+}
+
 .fixture-player-controls__row {
   display: flex;
   align-items: center;

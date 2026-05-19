@@ -11,6 +11,9 @@
                 [class.fixture-player-controls__player-status--playing]="status === 'PLAYING'">
             {{ status }}
           </span>
+          @if (playbackTimeLabel(); as timeLabel) {
+            <span class="fixture-player-controls__playback-time">{{ timeLabel }}</span>
+          }
         }
       </div>
 

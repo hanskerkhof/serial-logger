@@ -5,6 +5,7 @@ import { SelectModule } from 'primeng/select';
 import { SliderModule } from 'primeng/slider';
 import { CmdrPlayerCapabilities } from '../../api/cmdr-models';
 import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard.component';
+import { PlaybackMsPipe, formatPlaybackMs } from '../pipes/playback-ms.pipe';
 
 export interface PlayerTrack {
   index: number;
@@ -49,7 +50,7 @@ const EQ_PRESETS_ALL = [
 @Component({
   selector: 'app-fixture-player-controls',
   standalone: true,
-  imports: [ButtonModule, SelectModule, SliderModule, FormsModule, CopyToClipboardComponent],
+  imports: [ButtonModule, SelectModule, SliderModule, FormsModule, CopyToClipboardComponent, PlaybackMsPipe],
   templateUrl: './fixture-player-controls.component.html',
   styleUrl: './fixture-player-controls.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,7 +61,7 @@ export class FixturePlayerControlsComponent {
 
   readonly player = input<CmdrPlayerCapabilities | null>(null);
   readonly playerType = input<string | null>(null);
-  readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: string } | null>(null);
+  readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: string; elapsedMs?: number; durationMs?: number } | null>(null);
   readonly volumeSyncResult = input<VolumeSyncResultEvent | null>(null);
   readonly planTracks = input<PlayerTrack[] | null>(null);
   readonly disabled = input<boolean>(false);
@@ -182,11 +183,19 @@ export class FixturePlayerControlsComponent {
 
   protected readonly currentPlayerStatus = computed(() => this.playerState()?.playerStatus ?? null);
 
+  protected readonly playbackTimeLabel = computed(() => {
+    const state = this.playerState();
+    if (state?.playerStatus !== 'PLAYING' || state?.elapsedMs === undefined) return null;
+    const elapsed = formatPlaybackMs(state.elapsedMs);
+    const duration = state.durationMs ? formatPlaybackMs(state.durationMs) : null;
+    return duration ? `${elapsed} / ${duration}` : elapsed;
+  });
+
   protected readonly trackOptions = computed(() => {
     const tracks = this.planTracks();
     if (!tracks) return null;
     return [...tracks].sort((a, b) => a.index - b.index).map(t => ({
-      label: `${t.index} \u2014 ${t.name} (${(t.duration_ms / 1000).toFixed(1)}s)`,
+      label: `${t.index} \u2014 ${t.name} (${(t.duration_ms / 1000).toFixed(1)}s \u00b7 ${formatPlaybackMs(t.duration_ms)})`,
       value: t.index,
     }));
   });

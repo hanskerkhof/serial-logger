@@ -841,6 +841,21 @@
                 }
               </ng-template>
             </p-select>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-chevron-right"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              size="small"
+              (click)="navigateFixture(1)"
+              [disabled]="allFixturesOrdered().length <= 1"
+              [pTooltip]="nextFixtureName() ? 'Next: ' + nextFixtureName() : 'Next fixture'"
+              tooltipPosition="bottom"
+              [tooltipDisabled]="allFixturesOrdered().length <= 1"
+              aria-label="Next fixture"
+            ></button>
             @if (selectedFixture()?.fixture_name) {
               <app-copy-to-clipboard [value]="selectedFixture()!.fixture_name" />
             }
@@ -940,22 +955,6 @@
               </span>
             }
           </div>
-
-          <button
-            pButton
-            type="button"
-            icon="pi pi-chevron-right"
-            [text]="true"
-            [rounded]="true"
-            severity="secondary"
-            size="small"
-          (click)="navigateFixture(1)"
-          [disabled]="allFixturesOrdered().length <= 1"
-          [pTooltip]="nextFixtureName() ? 'Next: ' + nextFixtureName() : 'Next fixture'"
-          tooltipPosition="bottom"
-            [tooltipDisabled]="allFixturesOrdered().length <= 1"
-            aria-label="Next fixture"
-          ></button>
 
           <button
             pButton

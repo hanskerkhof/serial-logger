@@ -5247,7 +5247,9 @@ export class CommanderComponent implements OnInit {
       next: (response) => {
         if (!response.ok || !Array.isArray(response.fixtures)) return;
         for (const entry of response.fixtures) {
-          const name = this.normalizeKnownFixtureName(entry['fixture_name']);
+          // Use format-only validation so fixtures not yet in the store are still
+          // processed — queryPassiveFixtureIfIncomplete will add them via ingestQueryResult.
+          const name = this.normalizeRawFixtureName(entry['fixture_name']);
           if (!name) continue;
           const lastSeen = typeof entry['last_seen_ms'] === 'number' ? entry['last_seen_ms'] : null;
           if (lastSeen !== null) {
@@ -5306,7 +5308,9 @@ export class CommanderComponent implements OnInit {
   }
 
   private queryPassiveFixtureIfIncomplete(fixtureName: string): void {
-    const name = this.normalizeKnownFixtureName(fixtureName);
+    // Accept any valid-format name — the fixture doesn't have to be in the store yet.
+    // ingestQueryResult → fixtureStore.upsertFixtures() will add it if it responds.
+    const name = this.normalizeRawFixtureName(fixtureName);
     if (!name) return;
     const selfName = this.health()?.commander?.detected_fixture_name ?? null;
     if (selfName && name.toUpperCase() === selfName.toUpperCase()) return;
@@ -5333,5 +5337,20 @@ export class CommanderComponent implements OnInit {
     if (!/[A-Za-z]/.test(name)) return null;
     const match = this.fixtureOptions().find((item) => item.value.toUpperCase() === name.toUpperCase());
     return match?.value ?? null;
+  }
+
+  /**
+   * Format-only fixture name validator — does NOT require the fixture to already be in the
+   * store. Used by passive-discovery paths that should auto-add newly-seen fixtures.
+   * normalizeKnownFixtureName() is still used everywhere a lookup in the known-fixture list
+   * is intentional (selects, dropdowns, etc.).
+   */
+  private normalizeRawFixtureName(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const name = value.trim();
+    if (!name) return null;
+    if (!/^[A-Za-z0-9_-]{2,64}$/.test(name)) return null;
+    if (!/[A-Za-z]/.test(name)) return null;
+    return name;
   }
 }

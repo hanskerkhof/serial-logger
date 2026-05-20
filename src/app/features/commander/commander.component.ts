@@ -415,6 +415,11 @@ export class CommanderComponent implements OnInit {
   protected readonly selectedFixtureOtaInProgress = computed(() =>
     this.otaInProgress().has(this.selectedFixtureName() ?? ''),
   );
+  /** True when the selected fixture is actively in OTA mode (either from stream events or runtime_fixture_mode). */
+  protected readonly selectedFixtureIsInOtaMode = computed(() => {
+    if (this.selectedFixtureOtaInProgress()) return true;
+    return (this.selectedFixture()?.raw['runtime_fixture_mode'] as string | null | undefined) === 'OTA';
+  });
   protected readonly discoveryTimings = signal<number[]>(
     JSON.parse(localStorage.getItem('cmdr.discovery.timings') ?? '[]'),
   );
@@ -1304,7 +1309,11 @@ export class CommanderComponent implements OnInit {
   );
 
   protected readonly playerControlsDisabled = computed(
-    () => this.fixtureActionLoading() || this.modalQueryLoading() || this.commanderUnavailable(),
+    () =>
+      this.fixtureActionLoading() ||
+      this.modalQueryLoading() ||
+      this.commanderUnavailable() ||
+      this.selectedFixtureIsInOtaMode(),
   );
 
   protected readonly selectedFixtureConfig = computed<CmdrFixtureConfig | null>(() => {

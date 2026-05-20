@@ -1038,7 +1038,7 @@
             severity="secondary"
             size="small"
             title="Reboot fixture"
-            [disabled]="fixtureActionLoading() || commanderUnavailable()"
+            [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
             (click)="rebootFixture()"
           ></button>
         } @else {
@@ -1050,7 +1050,7 @@
             iconPos="right"
             severity="danger"
             size="small"
-            [disabled]="fixtureActionLoading() || commanderUnavailable()"
+            [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
             (click)="rebootFixture()"
           ></button>
           <button
@@ -1097,15 +1097,22 @@
         [class]="
           commanderUnavailable()
             ? 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--warn'
-            : modalQueryError()
-              ? 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--info commander__dialog-feedback--error'
-              : 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--' + fixtureActionTone()
+            : selectedFixtureIsInOtaMode()
+              ? 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--warn'
+              : modalQueryError()
+                ? 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--info commander__dialog-feedback--error'
+                : 'commander__dialog-feedback commander__dialog-feedback--header commander__dialog-feedback--' + fixtureActionTone()
         "
       >
         @if (commanderUnavailable()) {
           <p class="commander__dialog-feedback-message">
             <span class="commander__dialog-feedback-icon" aria-hidden="true">⚠</span>
             <span>Fixture commands disabled@if (commanderUnavailableReason(); as reason) { — {{ reason }}}</span>
+          </p>
+        } @else if (selectedFixtureIsInOtaMode()) {
+          <p class="commander__dialog-feedback-message">
+            <span class="commander__dialog-feedback-icon" aria-hidden="true">⬆</span>
+            <span>Fixture is in OTA update mode — commands are disabled</span>
           </p>
         } @else if (modalQueryError(); as modalError) {
           <p class="commander__dialog-feedback-message">
@@ -1137,7 +1144,7 @@
             type="checkbox"
             [ngModel]="fixtureAckEnabled()"
             (ngModelChange)="fixtureAckEnabled.set(!!$event)"
-            [disabled]="fixtureActionLoading() || commanderUnavailable()"
+            [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
           />
           <span>Require fixture ACK</span>
           <small>Slower but confirms fixture-level ACK.</small>

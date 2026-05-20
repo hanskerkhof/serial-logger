@@ -80,6 +80,17 @@
             @if (selectedTrackName(); as selectedTrackName) {
               <app-copy-to-clipboard [value]="selectedTrackName" />
             }
+            <label class="fixture-player-controls__autoplay-label"
+                   [class.fixture-player-controls__autoplay-label--inactive]="planStatus() === 'RUNNING'"
+                   [pTooltip]="autoPlayTooltip()"
+                   tooltipPosition="top">
+              <p-toggleswitch
+                [ngModel]="autoPlay()"
+                (ngModelChange)="autoPlay.set($event)"
+                [disabled]="disabled() || planStatus() === 'RUNNING'"
+              />
+              Auto play
+            </label>
           } @else {
             <input
               class="fixture-player-controls__track-input"
@@ -91,6 +102,8 @@
               (input)="onTrackInput($event)"
             />
           }
+        </div>
+        <div class="fixture-player-controls__row">
           <button
             pButton
             severity="secondary"

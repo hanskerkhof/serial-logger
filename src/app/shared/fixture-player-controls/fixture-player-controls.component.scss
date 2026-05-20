@@ -84,6 +84,10 @@
   color: inherit;
 }
 
+.fixture-player-controls__sound-select {
+  width: 470px;
+}
+
 .fixture-player-controls__range {
   width: 7rem;
   display: inline-flex;
@@ -144,6 +148,19 @@
 @keyframes fixture-input-fill-rtl {
   from { transform: scaleX(1); }
   to   { transform: scaleX(0); }
+}
+
+.fixture-player-controls__autoplay-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  user-select: none;
+
+  &--inactive {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }
 
 .fixture-player-controls__analog-note {

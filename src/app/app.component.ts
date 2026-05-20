@@ -116,6 +116,7 @@ export class AppComponent {
     return `${minutes} min`;
   });
   private reminderTimer: ReturnType<typeof setTimeout> | null = null;
+  private _reloading = false;
 
   // --- Runtime release notice state (FW/API release metadata from /health) ---
   private static readonly RELEASE_NOTICE_ACK_KEY = 'studio.releaseNotice.lastAcknowledgedVersion';
@@ -236,6 +237,7 @@ export class AppComponent {
   }
 
   private onUpdateReady(version: string | null): void {
+    if (this._reloading) return;
     if (this.reminderTimer !== null) {
       clearTimeout(this.reminderTimer);
       this.reminderTimer = null;
@@ -247,6 +249,9 @@ export class AppComponent {
   }
 
   protected onUpdateNow(): void {
+    if (this._reloading) return;
+    this._reloading = true;
+    this.showUpdateDialog.set(false);
     this.fixtureStore.clearAllFixtures();
     forkJoin({
       passive: this.commanderApi.clearFixturesDiscovered(),

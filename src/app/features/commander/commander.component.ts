@@ -601,6 +601,18 @@ export class CommanderComponent implements OnInit {
   private readonly qrScannedCommandService = inject(QrScannedCommandService);
 
   protected readonly now = signal(Date.now());
+  /** Millisecond timestamp of the last WS plan-state message received for the selected fixture. */
+  protected readonly planStateReceivedAt = signal<number | null>(null);
+  /** Fast 250 ms ticker used to drive the "Xms ago" live counter without touching the 1 s `now` signal. */
+  private readonly _tick = signal(Date.now());
+  /** Human-readable "time since last plan-state update" label, e.g. "820ms" or "1.2s". */
+  protected readonly planStateAgoLabel = computed<string | null>(() => {
+    const receivedAt = this.planStateReceivedAt();
+    if (receivedAt === null) return null;
+    const elapsedMs = Math.max(0, this._tick() - receivedAt);
+    if (elapsedMs < 1000) return `${elapsedMs}ms`;
+    return `${(elapsedMs / 1000).toFixed(1)}s`;
+  });
   protected readonly heartbeatLabel = computed(() => {
     const h = this.health();
     return h ? this.relativeTime(h.utc) : null;
@@ -1730,6 +1742,8 @@ export class CommanderComponent implements OnInit {
     this.loadLanGroups();
     const timer = setInterval(() => this.now.set(Date.now()), 1000);
     this.destroyRef.onDestroy(() => clearInterval(timer));
+    const tickTimer = setInterval(() => this._tick.set(Date.now()), 250);
+    this.destroyRef.onDestroy(() => clearInterval(tickTimer));
 
     // Poll /fixtures/discovered every 15 s to pick up passively-seen fixtures.
     this.pollPassiveDiscovery();
@@ -1794,6 +1808,7 @@ export class CommanderComponent implements OnInit {
         timing: (msg.timing as Record<string, unknown> | null | undefined) ?? null,
       } as CmdrFixturePlanStatusResponse;
       this.modalQueryError.set(null);
+      this.planStateReceivedAt.set(Date.now());
       this.applyFixturePlanStatusResult(fixtureName, result);
     });
     const planStateErrorSub = this.healthService.planStateError$.subscribe((msg) => {
@@ -3281,6 +3296,7 @@ export class CommanderComponent implements OnInit {
     this.fixtureAckEnabled.set(false);
     this.rebootConfirmPending.set(false);
     this.fixtureModalTab.set('commands');
+    this.planStateReceivedAt.set(null);
   }
 
   protected rebootAllFixtures(): void {
@@ -3538,7 +3554,11 @@ export class CommanderComponent implements OnInit {
       this.sendPlayerSetVolumeCommand(fixture, request);
       return;
     }
-    this.sendCommand(fixture, request.command);
+    // Player commands (play/stop/fade) are fire-and-forget — do NOT set fixtureActionLoading,
+    // so controls stay enabled while the HTTP ack is in flight. This prevents the brief
+    // disable that the user sees during auto-play and WS-triggered track advances.
+    const wireCommand = this.buildModalWireCommand(fixture, request.command, 'default');
+    this.commanderApi.runFixtureCommand(fixture, wireCommand).subscribe({ error: () => {} });
   }
 
   protected onPlayerVolumeSyncIssue(message: string): void {

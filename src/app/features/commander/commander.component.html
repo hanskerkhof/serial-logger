@@ -978,7 +978,13 @@
             (ngModelChange)="onFixtureModalPollingToggle(!!$event)"
             [disabled]="commanderUnavailable()"
           />
-          <small>{{ fixtureModalPollingEnabled() ? 'On (' + fixtureModalPollIntervalLabel() + ')' : 'Off' }}</small>
+          <small>
+            @if (fixtureModalPollingEnabled()) {
+              On ({{ fixtureModalPollIntervalLabel() }}@if (planStateAgoLabel(); as ago) { / {{ ago }} ago})
+            } @else {
+              Off
+            }
+          </small>
         </label>
         <div class="commander__dialog-poll-interval-control">
           <p-select
@@ -1180,6 +1186,8 @@
               [playerState]="selectedFixturePlayerState()"
               [volumeSyncResult]="playerVolumeSyncResult()"
               [planTracks]="selectedFixtureTracks()"
+              [planStatus]="selectedFixturePlanState()"
+              [liveUpdateEnabled]="fixtureModalPollingEnabled()"
               [disabled]="playerControlsDisabled()"
               (commandRequested)="onPlayerCommand($event)"
               (volumeSyncIssue)="onPlayerVolumeSyncIssue($event)"

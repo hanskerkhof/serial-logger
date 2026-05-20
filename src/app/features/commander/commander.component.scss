@@ -171,6 +171,7 @@
 }
 
 ::ng-deep .commander__fixture-select-input {
+  width: 190px;
   border: none;
   background: transparent;
   box-shadow: none;
@@ -627,6 +628,8 @@
     font-size: 0.67rem;
     color: var(--p-text-muted-color, #6b7280);
     white-space: nowrap;
+    min-width: 140px;
+    font-variant-numeric: tabular-nums;
   }
 }
 

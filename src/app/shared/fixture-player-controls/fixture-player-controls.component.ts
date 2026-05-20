@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { SliderModule } from 'primeng/slider';
+import { TooltipModule } from 'primeng/tooltip';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { CmdrPlayerCapabilities } from '../../api/cmdr-models';
 import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard.component';
 import { formatPlaybackMs } from '../pipes/playback-ms.pipe';
@@ -50,7 +52,7 @@ const EQ_PRESETS_ALL = [
 @Component({
   selector: 'app-fixture-player-controls',
   standalone: true,
-  imports: [ButtonModule, SelectModule, SliderModule, FormsModule, CopyToClipboardComponent],
+  imports: [ButtonModule, SelectModule, SliderModule, ToggleSwitchModule, TooltipModule, FormsModule, CopyToClipboardComponent],
   templateUrl: './fixture-player-controls.component.html',
   styleUrl: './fixture-player-controls.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,11 +66,20 @@ export class FixturePlayerControlsComponent {
   readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: string; elapsedMs?: number; durationMs?: number } | null>(null);
   readonly volumeSyncResult = input<VolumeSyncResultEvent | null>(null);
   readonly planTracks = input<PlayerTrack[] | null>(null);
+  readonly planStatus = input<string | null>(null);
+  readonly liveUpdateEnabled = input<boolean>(true);
   readonly disabled = input<boolean>(false);
+
+  protected readonly autoPlayTooltip = computed(() =>
+    this.liveUpdateEnabled()
+      ? 'Keep FE open for this fixture for Auto play to work.'
+      : 'Keep FE open for this fixture and enable Live update for Auto play to work.',
+  );
 
   readonly commandRequested = output<FixturePlayerCommandRequest>();
   readonly volumeSyncIssue = output<string>();
 
+  readonly autoPlay = signal(false);
   readonly analogOverride = signal(false);
   readonly isTrackSelectOpen = signal(false);
   readonly isVolumeDragging = signal(false);
@@ -85,6 +96,12 @@ export class FixturePlayerControlsComponent {
   private readonly fadeInTimers = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
   private readonly fadeTimers   = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
   private volumeSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** Plain (non-signal) fields — used inside effects to track previous values without creating reactive dependencies. */
+  private _autoPlayPrevStatus: string | null = null;
+  private _autoPlayWasOn = false;
+  /** Fallback timer: fires after poll-interval + buffer for sounds shorter than one poll cycle. */
+  private _autoPlayFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly AUTO_PLAY_FALLBACK_MS = 1500; // 1 s poll + 500 ms buffer
   private volumeKeyboardCommitTimeout: ReturnType<typeof setTimeout> | null = null;
   private volumeRefocusTimeout: ReturnType<typeof setTimeout> | null = null;
   private keepVolumeFocusAfterSync = false;
@@ -120,6 +137,7 @@ export class FixturePlayerControlsComponent {
       this.clearVolumeSyncTimeout();
       this.clearVolumeKeyboardCommitTimeout();
       this.clearVolumeRefocusTimeout();
+      this.clearAutoPlayFallbackTimer();
     });
     // Sync live fixture state into controls when plan_state arrives.
     effect(() => {
@@ -179,6 +197,52 @@ export class FixturePlayerControlsComponent {
       const maxVal = presets[presets.length - 1].value;
       if (this.eqPreset() > maxVal) this.eqPreset.set(maxVal);
     });
+
+    // Auto-play: two behaviours driven by a single effect.
+    // 1. Toggle turned ON  → immediately play the selected track (or the first track).
+    // 2. Track ends (PLAYING → STOPPED) → advance to the next track and play it.
+    // Both are disabled while a plan is RUNNING.
+    // Plain fields for prev-values avoid circular reactive dependencies.
+    effect(() => {
+      const isOn      = this.autoPlay();
+      const status    = this.currentPlayerStatus();
+      const planRunning = this.planStatus() === 'RUNNING';
+      const wasPlaying  = this._autoPlayPrevStatus === 'PLAYING';
+      const justTurnedOn = isOn && !this._autoPlayWasOn;
+
+      this._autoPlayPrevStatus = status;
+      this._autoPlayWasOn      = isOn;
+
+      if (planRunning || this.disabled()) return;
+
+      if (justTurnedOn) {
+        // If a sound is already playing, just arm auto-play without restarting it.
+        // Prime _autoPlayPrevStatus so the PLAYING→STOPPED transition is detected
+        // correctly when the current track eventually finishes.
+        if (status === 'PLAYING') {
+          this._autoPlayPrevStatus = 'PLAYING';
+          return;
+        }
+        // Play current selection, or fall back to the first track in the list.
+        // Use emitPlayTrack (not playSound) to keep auto-play on.
+        setTimeout(() => {
+          const opts = this.trackOptions();
+          if (!opts || opts.length === 0) return;
+          const current = this.trackNumber();
+          const track = (current !== null && opts.some(o => o.value === current))
+            ? current
+            : opts[0].value;
+          this.trackNumber.set(track);
+          this.emitPlayTrack(track);
+        }, 0);
+        return;
+      }
+
+      if (isOn && wasPlaying && status === 'STOPPED') {
+        this.clearAutoPlayFallbackTimer(); // reactive path won — cancel the safety net
+        setTimeout(() => this.nextTrack(), 0);
+      }
+    });
   }
 
   protected readonly currentPlayerStatus = computed(() => this.playerState()?.playerStatus ?? null);
@@ -231,16 +295,26 @@ export class FixturePlayerControlsComponent {
   playSound(): void {
     const track = this.trackNumber();
     if (track === null) return;
+    this.disableAutoPlay();           // manual button — turn off auto-play
+    this.emitPlayTrack(track);
+  }
+
+  /** Emits a play command without touching auto-play state. Used by the auto-play system. */
+  private emitPlayTrack(track: number): void {
+    this._autoPlayPrevStatus = 'PLAYING';
     this.commandRequested.emit({ command: `cmd;playSound;track=${track};` });
+    this.scheduleAutoPlayFallbackIfNeeded();
   }
 
   stopSound(): void {
+    this.disableAutoPlay();
     this.commandRequested.emit({ command: 'cmd;stopSound;' });
   }
 
   fadeIn(): void {
     const track = this.trackNumber();
     if (track === null) return;
+    this.disableAutoPlay();
     this.commandRequested.emit({
       command: `cmd;fadeIn;track=${track};volume_scale=30;volume=${this.fadeInVolume()};duration=${this.fadeInDurationMs()};`,
     });
@@ -248,12 +322,14 @@ export class FixturePlayerControlsComponent {
   }
 
   fadeTo(): void {
+    this.disableAutoPlay();
     this.commandRequested.emit({ command: `cmd;fadeTo;volume_scale=30;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};` });
     const dir = this.fadeToVolume() >= this.volumeLevel() ? 'ltr' : 'rtl';
     this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, dir, this.fadeDurationMs(), this.fadeTimers);
   }
 
   fadeOut(): void {
+    this.disableAutoPlay();
     this.commandRequested.emit({ command: `cmd;fadeOut;duration=${this.fadeDurationMs()};` });
     this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, 'rtl', this.fadeDurationMs(), this.fadeTimers);
   }
@@ -304,7 +380,7 @@ export class FixturePlayerControlsComponent {
     if (!Number.isFinite(track) || track <= 0) return;
     const authoritativeTrack = this.lastAuthoritativeTrack();
     if (authoritativeTrack !== null && authoritativeTrack === track) return;
-    this.commandRequested.emit({ command: `cmd;playSound;track=${track};` });
+    this.emitPlayTrack(track);
   }
 
   prevTrack(): void {
@@ -450,6 +526,32 @@ export class FixturePlayerControlsComponent {
       if (!this.isVolumeFocused() || this.isVolumeDragging()) return;
       this.setVolume(true);
     }, FixturePlayerControlsComponent.VOLUME_KEYBOARD_COMMIT_DEBOUNCE_MS);
+  }
+
+  private scheduleAutoPlayFallbackIfNeeded(): void {
+    if (!this.autoPlay() || this.disabled() || this.planStatus() === 'RUNNING') return;
+    this.clearAutoPlayFallbackTimer();
+    this._autoPlayFallbackTimer = setTimeout(() => {
+      this._autoPlayFallbackTimer = null;
+      if (!this.autoPlay() || this.disabled() || this.planStatus() === 'RUNNING') return;
+      // If the player isn't actively playing, the sound already ended — advance.
+      if (this.currentPlayerStatus() !== 'PLAYING') {
+        this._autoPlayPrevStatus = null; // reset so next cycle starts clean
+        this.nextTrack();
+      }
+    }, FixturePlayerControlsComponent.AUTO_PLAY_FALLBACK_MS);
+  }
+
+  private clearAutoPlayFallbackTimer(): void {
+    if (this._autoPlayFallbackTimer !== null) {
+      clearTimeout(this._autoPlayFallbackTimer);
+      this._autoPlayFallbackTimer = null;
+    }
+  }
+
+  private disableAutoPlay(): void {
+    this.autoPlay.set(false);
+    this.clearAutoPlayFallbackTimer();
   }
 
   private startVolumeSyncTimeout(requestId: string): void {

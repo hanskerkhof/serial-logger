@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   ViewChild,
+  computed,
   effect,
   inject,
   input,
@@ -11,9 +12,13 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommanderApiService, CommanderStreamEvent, OtaStreamEvent } from '../../../commander-api.service';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 
 interface ConsoleLine {
@@ -27,7 +32,7 @@ interface ConsoleLine {
 @Component({
   selector: 'app-commander-console',
   standalone: true,
-  imports: [NgClass, ButtonModule, ToggleSwitchModule, FormsModule],
+  imports: [NgClass, FormsModule, ButtonModule, IconFieldModule, InputIconModule, InputTextModule, ToggleSwitchModule],
   templateUrl: './commander-console.component.html',
   styleUrl: './commander-console.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,11 +54,21 @@ export class CommanderConsoleComponent {
   protected readonly heartbeatPulse = signal(false);
   protected readonly lastHeartbeatTs = signal<number | null>(null);
   protected readonly lines = signal<ConsoleLine[]>([]);
+  protected readonly filterText = signal<string>('');
+  protected readonly filteredLines = computed(() => {
+    const filter = this.filterText().trim().toLowerCase();
+    if (!filter) return this.lines();
+    return this.lines().filter(line => {
+      const haystack = `${line.type} ${line.request_id ?? ''} ${line.text}`.toLowerCase();
+      return haystack.includes(filter);
+    });
+  });
 
   @ViewChild('consoleBody') private consoleBody?: ElementRef<HTMLElement>;
 
   private readonly commanderApi = inject(CommanderApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly sanitizer = inject(DomSanitizer);
   private disposeStream: (() => void) | null = null;
   private heartbeatPulseTimer: ReturnType<typeof setTimeout> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -99,6 +114,26 @@ export class CommanderConsoleComponent {
 
   protected clear(): void {
     this.lines.set([]);
+  }
+
+  protected clearFilter(): void {
+    this.filterText.set('');
+  }
+
+  protected highlightText(text: string): SafeHtml {
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const filter = this.filterText().trim();
+    if (!filter) return this.sanitizer.bypassSecurityTrustHtml(escaped);
+    const escapedFilter = filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const highlighted = escaped.replace(
+      new RegExp(escapedFilter, 'gi'),
+      match => `<span class="commander-console__match">${match}</span>`,
+    );
+    return this.sanitizer.bypassSecurityTrustHtml(highlighted);
   }
 
   protected retry(): void {

@@ -130,6 +130,42 @@
     word-break: break-all;
   }
 
+  &__filter-row {
+    padding: 6px 12px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  &__filter {
+    width: 100%;
+
+    .p-inputtext {
+      height: 28px;
+      font-size: 11px;
+      font-family: inherit;
+      width: 100%;
+      background: #0d0d0d;
+      border-color: #2a2a2a;
+      color: #d1d5db;
+      padding-top: 0;
+      padding-bottom: 0;
+
+      &::placeholder { color: #4b5563; }
+      &:focus { border-color: #4b5563; box-shadow: none; }
+    }
+  }
+
+  &__filter-clear {
+    cursor: pointer;
+    color: #6b7280;
+    &:hover { color: #d1d5db; }
+  }
+
+  &__match {
+    color: #f97316;
+    font-weight: 600;
+  }
+
   &__empty {
     padding: 16px 12px;
     color: #4b5563;

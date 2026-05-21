@@ -2647,7 +2647,7 @@ export class CommanderComponent implements OnInit {
           'accepted',
           this.updateFixturesMode === 'binary'
             ? 'backend accepted OTA-from-binary request'
-            : 'backend accepted OTA request',
+            : 'backend accepted ota-update request',
         );
         this.persistUpdateFixturesState();
       },

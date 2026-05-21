@@ -1562,6 +1562,7 @@ export class CommanderComponent implements OnInit {
       uiStep === 'identify' ? 'identify' :
       uiStep === 'uploading' ? 'uploading' :
       uiStep === 'ota_request' ? 'ota request' :
+      uiStep === 'ota_request_ack' ? 'ota request' :
       uiStep === 'dark_side_of_the_moon' ? 'dark side of the moon' :
       uiStep === 'verifying' ? 'verifying' :
       uiStep === 'cancel_requested' ? 'cancel requested' :

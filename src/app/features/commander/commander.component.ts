@@ -2079,7 +2079,6 @@ export class CommanderComponent implements OnInit {
       this.queryPassiveFixtureIfIncomplete(name);
     });
 
-    let pruneInterval: ReturnType<typeof setInterval> | null = null;
     const cacheInvalidatedSub = this.healthService.cacheInvalidated$.subscribe(() => {
       this.fixtureStore.markAllStale();
       this.messageService.add({
@@ -2089,16 +2088,22 @@ export class CommanderComponent implements OnInit {
         detail: 'Fixture list syncing with live network…',
         life: 5000,
       });
-      // Prune stale fixtures every 15 s; stop once none remain.
-      if (pruneInterval) clearInterval(pruneInterval);
-      pruneInterval = setInterval(() => {
-        this.fixtureStore.removeStaleFixtures();
-        if (!this.fixtureStore.hasStaleFixtures()) {
-          clearInterval(pruneInterval!);
-          pruneInterval = null;
-        }
-      }, 15_000);
     });
+
+    // Always-running passive health check — every 15 s:
+    //   1. Mark fixtures stale whose next_passive_seen deadline has elapsed.
+    //   2. Prune fixtures already stale past their removal deadline.
+    const PASSIVE_GRACE_MS = 30_000;
+    const passiveHealthInterval = setInterval(() => {
+      const now = Date.now();
+      const expectedAtMap = this.fixtureNextSeenExpectedAtMs();
+      for (const [name, expectedAt] of expectedAtMap) {
+        if (now > expectedAt + PASSIVE_GRACE_MS) {
+          this.fixtureStore.staleFixture(name);
+        }
+      }
+      this.fixtureStore.removeStaleFixtures();
+    }, 15_000);
 
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
@@ -2110,7 +2115,7 @@ export class CommanderComponent implements OnInit {
       discoverySub.unsubscribe();
       fixtureSeenSub.unsubscribe();
       cacheInvalidatedSub.unsubscribe();
-      if (pruneInterval) clearInterval(pruneInterval);
+      clearInterval(passiveHealthInterval);
       this.stopFixtureModalPolling();
       window.removeEventListener('storage', onStorage);
       this.releaseDiscoveryLock();

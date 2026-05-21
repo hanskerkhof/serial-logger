@@ -224,6 +224,15 @@ export class FixtureStoreService {
     this.persistToStorage();
   }
 
+  /** Mark a single fixture stale (used when its passive heartbeat deadline elapses). */
+  staleFixture(fixtureName: string): void {
+    const current = this.fixturesByName();
+    const rec = current[fixtureName];
+    if (!rec || rec.stale) return;
+    this.fixturesByName.set({ ...current, [fixtureName]: { ...rec, stale: true, staleAt: Date.now() } });
+    this.persistToStorage();
+  }
+
   /** Clear the stale flag for a single fixture once its passive heartbeat confirms it's alive. */
   unstaleFixture(fixtureName: string): void {
     const current = this.fixturesByName();

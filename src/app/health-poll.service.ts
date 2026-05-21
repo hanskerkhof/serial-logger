@@ -54,6 +54,8 @@ export class HealthPollService {
   private static readonly HEALTH_POLL_MS = 30_000;
   private static readonly HEALTH_INITIAL_RETRY_MS = 3_000;
   private static readonly HEALTH_MAX_RETRY_MS = 30_000;
+  /** localStorage key storing the last observed commander_online transition timestamp. */
+  private static readonly COMMANDER_ONLINE_AT_KEY = 'cmdr.commanderOnlineAt';
 
   private readonly commanderApi = inject(CommanderApiService);
 
@@ -103,6 +105,11 @@ export class HealthPollService {
   readonly discovery$ = new Subject<DiscoveryWsMessage>();
   /** Emits when a fixture heartbeat is passively observed by the commander. */
   readonly fixtureSeen$ = new Subject<FixtureSeenWsMessage>();
+  /**
+   * Emits when the commander starts a new session (reconnect after reboot or runtime/reload).
+   * Detected via a change in `proxy.last_transition_at_utc` when `proxy.state === 'online'`.
+   */
+  readonly cacheInvalidated$ = new Subject<void>();
 
   private _ws: WebSocket | null = null;
   private _wsRetryDelayMs = HealthPollService.HEALTH_INITIAL_RETRY_MS;
@@ -239,6 +246,19 @@ export class HealthPollService {
       if (typeof data?.['type'] === 'string' && data['type'].startsWith('discovery_')) {
         this.discovery$.next(data as DiscoveryWsMessage);
         return;
+      }
+      // Detect commander reconnect: compare proxy.last_transition_at_utc when state is 'online'.
+      // A changed timestamp means the commander started a new serial session (reboot / reload).
+      const proxy = (data['commander'] as Record<string, unknown> | undefined)?.[
+        'proxy'
+      ] as Record<string, unknown> | undefined;
+      if (proxy?.['state'] === 'online' && typeof proxy?.['last_transition_at_utc'] === 'string') {
+        const incoming = proxy['last_transition_at_utc'] as string;
+        const stored = localStorage.getItem(HealthPollService.COMMANDER_ONLINE_AT_KEY);
+        localStorage.setItem(HealthPollService.COMMANDER_ONLINE_AT_KEY, incoming);
+        if (stored !== null && stored !== incoming) {
+          this.cacheInvalidated$.next();
+        }
       }
       const wasOffline = this._healthError() !== null;
       this._health.set(data as unknown as CommanderHealthResponse);

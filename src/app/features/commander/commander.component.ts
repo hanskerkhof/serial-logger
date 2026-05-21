@@ -2067,6 +2067,7 @@ export class CommanderComponent implements OnInit {
       if (typeof msg.data?.['build_time'] === 'string' && msg.data['build_time']) versionPatch['build_time'] = msg.data['build_time'];
       if (incomingMode !== null) versionPatch['runtime_fixture_mode'] = incomingMode || null;
       if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
+      this.fixtureStore.unstaleFixture(name); // clear stale flag once fixture confirms it's alive
       // Toast on fixture_mode transitions — only when we already knew the previous mode.
       if (incomingMode !== null && previousMode !== undefined && previousMode !== incomingMode) {
         if (incomingMode === 'OTA') {
@@ -2077,6 +2078,28 @@ export class CommanderComponent implements OnInit {
       }
       this.queryPassiveFixtureIfIncomplete(name);
     });
+
+    let pruneInterval: ReturnType<typeof setInterval> | null = null;
+    const cacheInvalidatedSub = this.healthService.cacheInvalidated$.subscribe(() => {
+      this.fixtureStore.markAllStale();
+      this.messageService.add({
+        key: 'app',
+        severity: 'info',
+        summary: 'Commander reconnected',
+        detail: 'Fixture list syncing with live network…',
+        life: 5000,
+      });
+      // Prune stale fixtures every 15 s; stop once none remain.
+      if (pruneInterval) clearInterval(pruneInterval);
+      pruneInterval = setInterval(() => {
+        this.fixtureStore.removeStaleFixtures();
+        if (!this.fixtureStore.hasStaleFixtures()) {
+          clearInterval(pruneInterval!);
+          pruneInterval = null;
+        }
+      }, 15_000);
+    });
+
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
       failedSub.unsubscribe();
@@ -2086,6 +2109,8 @@ export class CommanderComponent implements OnInit {
       planStateErrorSub.unsubscribe();
       discoverySub.unsubscribe();
       fixtureSeenSub.unsubscribe();
+      cacheInvalidatedSub.unsubscribe();
+      if (pruneInterval) clearInterval(pruneInterval);
       this.stopFixtureModalPolling();
       window.removeEventListener('storage', onStorage);
       this.releaseDiscoveryLock();

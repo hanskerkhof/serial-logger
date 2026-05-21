@@ -8,6 +8,10 @@ export interface FixtureRecord {
   raw: Record<string, unknown>;
   lastUpdatedAt: string;
   source: FixtureSource;
+  /** True after a commander reconnect until the fixture confirms it's alive via passive heartbeat. */
+  stale?: boolean;
+  /** Date.now() when `stale` was set — used to calculate the prune deadline. */
+  staleAt?: number;
 }
 
 export interface FixturePlanGroup {
@@ -30,6 +34,7 @@ export class FixtureStoreService {
   readonly storageWarning = signal<string | null>(null);
 
   readonly fixtureCount = computed(() => Object.keys(this.fixturesByName()).length);
+  readonly hasStaleFixtures = computed(() => Object.values(this.fixturesByName()).some((f) => f.stale));
 
   readonly selectedFixture = computed(() => {
     const selectedName = this.selectedFixtureName();
@@ -208,6 +213,58 @@ export class FixtureStoreService {
     this.persistToStorage();
   }
 
+  /** Mark every fixture stale after a commander reconnect. */
+  markAllStale(): void {
+    const now = Date.now();
+    const updated: Record<string, FixtureRecord> = {};
+    for (const [k, v] of Object.entries(this.fixturesByName())) {
+      updated[k] = { ...v, stale: true, staleAt: now };
+    }
+    this.fixturesByName.set(updated);
+    this.persistToStorage();
+  }
+
+  /** Clear the stale flag for a single fixture once its passive heartbeat confirms it's alive. */
+  unstaleFixture(fixtureName: string): void {
+    const current = this.fixturesByName();
+    const rec = current[fixtureName];
+    if (!rec?.stale) return;
+    this.fixturesByName.set({ ...current, [fixtureName]: { ...rec, stale: false, staleAt: undefined } });
+    this.persistToStorage();
+  }
+
+  /**
+   * Remove stale fixtures whose passive-seen interval + grace has elapsed.
+   * Returns the number removed.
+   */
+  removeStaleFixtures(): number {
+    const now = Date.now();
+    const GRACE_MS = 30_000;
+    const DEFAULT_INTERVAL_MS = 300_000; // 5 min fallback for fixtures never seen via passive
+    const current = this.fixturesByName();
+    const retained: Record<string, FixtureRecord> = {};
+    let removed = 0;
+    for (const [k, v] of Object.entries(current)) {
+      if (!v.stale || v.staleAt === undefined) {
+        retained[k] = v;
+        continue;
+      }
+      const interval =
+        (v.raw?.['next_passive_seen_in_ms'] as number | undefined) ?? DEFAULT_INTERVAL_MS;
+      if (now - v.staleAt < interval + GRACE_MS) {
+        retained[k] = v; // still within grace window
+      } else {
+        removed++;
+        if (this.selectedFixtureName() === k) this.selectedFixtureName.set(null);
+      }
+    }
+    if (removed > 0) {
+      this.fixturesByName.set(retained);
+      this.persistToStorage();
+    }
+    return removed;
+  }
+
   hydrateFromStorage(): void {
     let raw: string | null = null;
     try {
@@ -285,6 +342,8 @@ export class FixtureStoreService {
         raw: record.raw as Record<string, unknown>,
         lastUpdatedAt: record.lastUpdatedAt,
         source: record.source,
+        ...(record.stale === true && { stale: true }),
+        ...(typeof record.staleAt === 'number' && { staleAt: record.staleAt }),
       };
     }
 

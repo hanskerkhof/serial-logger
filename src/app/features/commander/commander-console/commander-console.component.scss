@@ -162,7 +162,8 @@
   }
 
   &__match {
-    color: #f97316;
+    background: #f97316;
+    color: #000;
     font-weight: 600;
   }
 
@@ -184,7 +185,8 @@
 
 // innerHTML-injected spans don't receive Angular's scoped attribute — ::ng-deep required
 ::ng-deep .commander-console__match {
-  color: #f97316;
+  background: #f97316;
+  color: #000;
   font-weight: 600;
 }
 

@@ -425,7 +425,7 @@
                               severity="secondary"
                               icon="pi pi-play"
                               label="Plan trigger"
-                              [disabled]="commanderUnavailable() || backendBusy() || !!fixture.stale"
+                              [disabled]="commanderUnavailable() || !!fixture.stale || otaInProgress().has(fixture.fixture_name)"
                               (click)="popoverPlanAction(fixture.fixture_name, 'trigger'); fixtureRowMenu.hide()"
                             ></button>
                             <button
@@ -436,7 +436,7 @@
                               severity="secondary"
                               icon="pi pi-stop-circle"
                               label="Plan stop"
-                              [disabled]="commanderUnavailable() || backendBusy() || !!fixture.stale"
+                              [disabled]="commanderUnavailable() || !!fixture.stale || otaInProgress().has(fixture.fixture_name)"
                               (click)="popoverPlanAction(fixture.fixture_name, 'stop'); fixtureRowMenu.hide()"
                             ></button>
                             @if (compileSupported()) {

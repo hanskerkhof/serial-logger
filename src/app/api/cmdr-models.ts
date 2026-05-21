@@ -62,6 +62,9 @@ export interface CmdrCommanderFixtureCacheEntry {
   channel: number;
   source: string;
   age_ms: number;
+  /** True when the fixture was last heard from (passive heartbeat or identify success).
+   *  False when an identify command timed out with no response. Set by commander FW. */
+  online?: boolean;
 }
 
 export interface CmdrCommanderFixtureCacheResponse {

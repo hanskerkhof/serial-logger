@@ -216,7 +216,6 @@ export class CommanderComponent implements OnInit {
   private static readonly AUTO_STABILIZE_STEPS_MS: readonly number[] = [500, 750, 1000];
   private static readonly AUTO_STABILIZE_WINDOW_SAMPLES = 8;
   private static readonly AUTO_STABILIZE_TRIGGER_COUNT = 5;
-  private static readonly PASSIVE_HEARTBEAT_OVERDUE_GRACE_MS = 20_000;
 
   protected readonly frontendVersion = APP_VERSION;
   protected readonly frontendBuildDate = BUILD_DATE;
@@ -588,8 +587,6 @@ export class CommanderComponent implements OnInit {
 
   // Last-seen timestamps (ms since epoch) from the passive heartbeat cache, keyed by fixture name.
   protected readonly fixtureLastSeenMs = signal<Map<string, number>>(new Map());
-  // Expected next passive heartbeat time (ms since epoch), keyed by fixture name.
-  protected readonly fixtureNextSeenExpectedAtMs = signal<Map<string, number>>(new Map());
   private readonly discoveryLockStorageKey = 'cmdr.discovery.lock.v1';
   private readonly updateFixturesStorageKey = 'cmdr.updateFixtures.state.v1';
   private readonly updateFixturesStorageMaxAgeMs = 10 * 60 * 1000;
@@ -1094,6 +1091,34 @@ export class CommanderComponent implements OnInit {
     if (!data) return 0;
     return Number.isFinite(data.used) ? data.used : data.entries.length;
   });
+
+  /**
+   * Derives the passive heartbeat status for a Commander Fixture Cache entry.
+   *
+   * When the firmware provides `online` (post-upgrade), uses it directly:
+   *   false → 'offline' (identify timed out)
+   *   true  → 'active' or 'overdue' based on age vs interval
+   *
+   * Falls back to age-vs-interval heuristic for older firmware that omits `online`.
+   *
+   * Returns:
+   *   'active'  — heard from within its passive interval
+   *   'overdue' — interval exceeded, no confirmation yet
+   *   'offline' — firmware confirmed no response (identify timeout)
+   *   'unknown' — no interval data available
+   */
+  protected cacheEntryStatus(entry: CmdrCommanderFixtureCacheEntry): 'active' | 'overdue' | 'offline' | 'unknown' {
+    // FW-provided field is authoritative when present
+    if (entry.online === false) return 'offline';
+
+    const raw = this.fixtureStore.fixturesByName()[entry.fixture_name]?.raw;
+    const nextMs = typeof raw?.['next_passive_seen_in_ms'] === 'number'
+      ? (raw['next_passive_seen_in_ms'] as number)
+      : null;
+    if (nextMs === null || nextMs <= 0) return entry.online === true ? 'active' : 'unknown';
+    if (entry.age_ms >= nextMs) return 'overdue';
+    return 'active';
+  }
 
   /** Per-fixture fw version status keyed by fixture_name. Recomputes whenever health or store changes. */
   protected readonly fixtureFwStatusMap = computed(() => {
@@ -2058,7 +2083,7 @@ export class CommanderComponent implements OnInit {
       const name = String(msg.fixture_name ?? '').trim();
       if (!name) return;
       const lastSeen = typeof msg.data?.['last_seen_ms'] === 'number' ? msg.data['last_seen_ms'] : Date.now();
-      this.updateFixturePassiveTiming(name, lastSeen, this.resolveNextPassiveSeenInMs(msg.data?.['next_passive_seen_in_ms']));
+      this.updateFixtureLastSeen(name, lastSeen);
       const incomingMode = typeof msg.data?.['fixture_mode'] === 'string' ? (msg.data['fixture_mode'] as string) : null;
       const previousMode = this.fixtureStore.fixturesByName()[name]?.raw['runtime_fixture_mode'] as string | null | undefined;
       const versionPatch: Record<string, unknown> = {};
@@ -2067,7 +2092,10 @@ export class CommanderComponent implements OnInit {
       if (typeof msg.data?.['build_time'] === 'string' && msg.data['build_time']) versionPatch['build_time'] = msg.data['build_time'];
       if (incomingMode !== null) versionPatch['runtime_fixture_mode'] = incomingMode || null;
       if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
-      this.fixtureStore.unstaleFixture(name); // clear stale flag once fixture confirms it's alive
+      // A live fixture_seen WS event (from BK_PASSIVE_SEEN on the serial bus) is the
+      // only signal that clears stale. If the fixture is truly offline, no event
+      // will arrive and it stays offline indefinitely.
+      this.fixtureStore.unstaleFixture(name);
       // Toast on fixture_mode transitions — only when we already knew the previous mode.
       if (incomingMode !== null && previousMode !== undefined && previousMode !== incomingMode) {
         if (incomingMode === 'OTA') {
@@ -2077,6 +2105,17 @@ export class CommanderComponent implements OnInit {
         }
       }
       this.queryPassiveFixtureIfIncomplete(name);
+    });
+
+    const fixtureTimeoutSub = this.healthService.fixtureTimeout$.subscribe(({ fixture_name }) => {
+      this.fixtureStore.staleFixture(fixture_name);
+    });
+
+    // fixture_offline fires whenever a BK_FIXTURE_CACHE_ENTRY with online:false flows
+    // through the proxy (after every BK_PASSIVE_SEEN and on fc commands).
+    // This is the real-time FW-authoritative offline signal — no timer needed.
+    const fixtureOfflineSub = this.healthService.fixtureOffline$.subscribe(({ fixture_name }) => {
+      this.fixtureStore.staleFixture(fixture_name);
     });
 
     const cacheInvalidatedSub = this.healthService.cacheInvalidated$.subscribe(() => {
@@ -2090,20 +2129,20 @@ export class CommanderComponent implements OnInit {
       });
     });
 
-    // Always-running passive health check — every 15 s:
-    //   1. Mark fixtures stale whose next_passive_seen deadline has elapsed.
-    //   2. Prune fixtures already stale past their removal deadline.
-    const PASSIVE_GRACE_MS = 30_000;
+    // Interval — every 10 s:
+    // Prune fixtures that were marked stale (e.g. after a commander reconnect) and
+    // have not confirmed alive within their passive interval + grace window.
+    //
+    // Stale marking is now FW-authoritative:
+    //   - fixture_offline WS  → staleFixture  (BK_FIXTURE_CACHE_ENTRY online:false)
+    //   - fixture_timeout WS  → staleFixture  (identify timeout serial line)
+    //   - query HTTP error    → staleFixture
+    //   - markAllStale()      → all stale on commander reconnect
+    //   - fixture_seen WS     → unstaleFixture (BK_PASSIVE_SEEN confirmed alive)
+    // No timer-based stale marking — the FW is the source of truth.
     const passiveHealthInterval = setInterval(() => {
-      const now = Date.now();
-      const expectedAtMap = this.fixtureNextSeenExpectedAtMs();
-      for (const [name, expectedAt] of expectedAtMap) {
-        if (now > expectedAt + PASSIVE_GRACE_MS) {
-          this.fixtureStore.staleFixture(name);
-        }
-      }
       this.fixtureStore.removeStaleFixtures();
-    }, 15_000);
+    }, 10_000);
 
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
@@ -2114,6 +2153,8 @@ export class CommanderComponent implements OnInit {
       planStateErrorSub.unsubscribe();
       discoverySub.unsubscribe();
       fixtureSeenSub.unsubscribe();
+      fixtureTimeoutSub.unsubscribe();
+      fixtureOfflineSub.unsubscribe();
       cacheInvalidatedSub.unsubscribe();
       clearInterval(passiveHealthInterval);
       this.stopFixtureModalPolling();
@@ -2247,6 +2288,7 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(null);
         this.fixtureQueryLoading.set(false);
         this.sidebarRefreshingFixture.set(null);
+        this.fixtureStore.staleFixture(fixture); // fixture didn't respond — mark stale
       },
     });
   }
@@ -2262,7 +2304,6 @@ export class CommanderComponent implements OnInit {
     this.fixtureStore.clearAllFixtures();
     this.discoveryTimings.set([]);
     this.fixtureLastSeenMs.set(new Map());
-    this.fixtureNextSeenExpectedAtMs.set(new Map());
     this.commanderCacheData.set(null);
     forkJoin({
       passive: this.commanderApi.clearFixturesDiscovered(),
@@ -2322,6 +2363,7 @@ export class CommanderComponent implements OnInit {
       next: (result) => {
         this.commanderCacheData.set(result);
         this.commanderCacheLoading.set(false);
+        this.syncStaleFromCacheEntries(result.entries ?? []);
       },
       error: (err: unknown) => {
         this.commanderCacheData.set(null);
@@ -2329,6 +2371,24 @@ export class CommanderComponent implements OnInit {
         this.showErrorToast(this.formatError('Failed to load commander cache', err));
       },
     });
+  }
+
+  /**
+   * Syncs the FE fixture store stale state from firmware-provided `online` flags.
+   * Only applies when the firmware includes the `online` field (post-upgrade).
+   * - online === false  → staleFixture  (FW confirmed the fixture didn't respond)
+   * - online === true   → unstaleFixture (FW confirmed the fixture is alive)
+   */
+  private syncStaleFromCacheEntries(entries: CmdrCommanderFixtureCacheEntry[]): void {
+    for (const entry of entries) {
+      if (typeof entry.online !== 'boolean') continue; // older firmware — skip
+      if (!entry.fixture_name) continue;
+      if (entry.online) {
+        this.fixtureStore.unstaleFixture(entry.fixture_name);
+      } else {
+        this.fixtureStore.staleFixture(entry.fixture_name);
+      }
+    }
   }
 
   private restartCommanderCachePolling(): void {
@@ -3496,6 +3556,7 @@ export class CommanderComponent implements OnInit {
         this.modalQueryError.set(compact);
         this.showErrorToast(text, { sticky: true });
         this.modalQueryLoading.set(false);
+        this.fixtureStore.staleFixture(fixture); // fixture didn't respond — mark stale
       },
     });
   }
@@ -3548,6 +3609,7 @@ export class CommanderComponent implements OnInit {
       },
       error: (err: unknown) => {
         console.warn('[cmdr][queryFixtureByName] fixture query failed', { fixtureName, err });
+        this.fixtureStore.staleFixture(fixtureName); // fixture didn't respond — mark stale
       },
     });
   }
@@ -3804,15 +3866,14 @@ export class CommanderComponent implements OnInit {
     }
 
     if (source === 'fixture_query') {
-      const nowMs = Date.now();
       for (const fixture of fixtures) {
         const rawLastSeenMs = fixture.raw['last_seen_ms'];
-        const resolvedLastSeenMs = typeof rawLastSeenMs === 'number' ? rawLastSeenMs : nowMs;
-        this.updateFixturePassiveTiming(
-          fixture.fixture_name,
-          resolvedLastSeenMs,
-          this.resolveNextPassiveSeenInMs(fixture.raw['next_passive_seen_in_ms']),
-        );
+        // Only update the display timer when the server provides an actual last_seen_ms.
+        // Falling back to Date.now() would reset the "last seen" clock on every query,
+        // making offline fixtures appear freshly seen even though they haven't responded.
+        if (typeof rawLastSeenMs === 'number') {
+          this.updateFixtureLastSeen(fixture.fixture_name, rawLastSeenMs);
+        }
       }
     }
 
@@ -5208,42 +5269,14 @@ export class CommanderComponent implements OnInit {
     return `${prefix}: ${String(err)}`;
   }
 
-  /** Human-readable status: elapsed since last passive heartbeat + expected-next countdown. */
-  protected fixtureSeenStatusLabel(fixtureName: string): string | null {
+  /** Human-readable elapsed time since the fixture was last seen (e.g. "5s", "2m3s"). */
+  protected fixtureLastSeenLabel(fixtureName: string): string | null {
     const fixture = this.fixtureStore.fixturesByName()[fixtureName];
     if (fixture?.raw['runtime_fixture_mode'] === 'OTA') return 'OTA';
-    const lastSeen = this.fixtureLastSeenLabel(fixtureName);
-    if (lastSeen == null) return null;
-    const expected = this.fixtureExpectedNextLabel(fixtureName);
-    // return expected ? `${lastSeen} / ${expected}` : lastSeen;
-    return expected ? `${lastSeen}` : lastSeen;
-  }
-
-  /** Human-readable elapsed time since the fixture last sent a passive heartbeat (e.g. "5s", "2m3s"). */
-  protected fixtureLastSeenLabel(fixtureName: string): string | null {
     const lastSeenMs = this.fixtureLastSeenMs().get(fixtureName);
     if (lastSeenMs == null) return null;
     const elapsedMs = Math.max(0, this.now() - lastSeenMs);
     return this.formatElapsedMs(elapsedMs);
-  }
-
-  /** Human-readable countdown until the next expected passive heartbeat. */
-  protected fixtureExpectedNextLabel(fixtureName: string): string | null {
-    const expectedAtMs = this.fixtureNextSeenExpectedAtMs().get(fixtureName);
-    if (expectedAtMs == null) return null;
-    const remainingMs = Math.max(0, expectedAtMs - this.now());
-    return this.formatElapsedMs(remainingMs);
-  }
-
-  /** True when the fixture passed its expected heartbeat time plus a small jitter margin. */
-  protected fixtureHeartbeatOverdue(fixtureName: string): boolean {
-    const expectedAtMs = this.fixtureNextSeenExpectedAtMs().get(fixtureName);
-    if (expectedAtMs != null) {
-      return this.now() > expectedAtMs + CommanderComponent.PASSIVE_HEARTBEAT_OVERDUE_GRACE_MS;
-    }
-    const lastSeenMs = this.fixtureLastSeenMs().get(fixtureName);
-    if (lastSeenMs == null) return false;
-    return (this.now() - lastSeenMs) > 35_000;
   }
 
   private formatElapsedMs(elapsedMs: number): string {
@@ -5294,11 +5327,7 @@ export class CommanderComponent implements OnInit {
           if (!name) continue;
           const lastSeen = typeof entry['last_seen_ms'] === 'number' ? entry['last_seen_ms'] : null;
           if (lastSeen !== null) {
-            this.updateFixturePassiveTiming(
-              name,
-              lastSeen,
-              this.resolveNextPassiveSeenInMs(entry['next_passive_seen_in_ms']),
-            );
+            this.updateFixtureLastSeen(name, lastSeen);
           }
           // Patch fw_version / build_date / build_time into the store from
           // heartbeat data so the fixture list reflects the latest version
@@ -5321,31 +5350,6 @@ export class CommanderComponent implements OnInit {
       next.set(fixtureName, lastSeenMs);
       return next;
     });
-  }
-
-  private updateFixturePassiveTiming(
-    fixtureName: string,
-    lastSeenMs: number,
-    nextPassiveSeenInMs: number | null,
-  ): void {
-    this.updateFixtureLastSeen(fixtureName, lastSeenMs);
-    this.fixtureNextSeenExpectedAtMs.update((map) => {
-      const next = new Map(map);
-      if (nextPassiveSeenInMs === null) {
-        next.delete(fixtureName);
-      } else {
-        next.set(fixtureName, lastSeenMs + nextPassiveSeenInMs);
-      }
-      return next;
-    });
-  }
-
-  private resolveNextPassiveSeenInMs(value: unknown): number | null {
-    if (typeof value !== 'number' || !Number.isFinite(value)) return null;
-    const rounded = Math.round(value);
-    // Heartbeat throttle is expected in a bounded seconds/minutes window.
-    if (rounded < 1000 || rounded > 600000) return null;
-    return rounded;
   }
 
   private queryPassiveFixtureIfIncomplete(fixtureName: string): void {

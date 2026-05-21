@@ -231,6 +231,7 @@
                 Age
                 <p-sortIcon field="age_ms"></p-sortIcon>
               </th>
+              <th>Status</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-entry>
@@ -240,6 +241,28 @@
               <td>{{ entry.universe }}/{{ entry.channel }}</td>
               <td>{{ entry.source }}</td>
               <td>{{ entry.age_ms | durationMsCompact }}</td>
+              <td>
+                @switch (cacheEntryStatus(entry)) {
+                  @case ('active') {
+                    <span class="commander__cache-status commander__cache-status--active">
+                      <i class="pi pi-circle-fill"></i> active
+                    </span>
+                  }
+                  @case ('overdue') {
+                    <span class="commander__cache-status commander__cache-status--overdue">
+                      <i class="pi pi-clock"></i> overdue
+                    </span>
+                  }
+                  @case ('offline') {
+                    <span class="commander__cache-status commander__cache-status--offline">
+                      <i class="pi pi-exclamation-triangle"></i> offline
+                    </span>
+                  }
+                  @default {
+                    <span class="commander__cache-status commander__cache-status--unknown">—</span>
+                  }
+                }
+              </td>
             </tr>
           </ng-template>
         </p-table>
@@ -366,7 +389,7 @@
 
                 <ul class="commander__fixture-list">
                   @for (fixture of plan.fixtures; track fixture.fixture_name) {
-                    <li class="commander__fixture-row">
+                    <li class="commander__fixture-row" [class.commander__fixture-row--stale]="fixture.stale">
                       <button
                         pButton
                         type="button"
@@ -401,7 +424,7 @@
                               severity="secondary"
                               icon="pi pi-play"
                               label="Plan trigger"
-                              [disabled]="commanderUnavailable() || backendBusy()"
+                              [disabled]="commanderUnavailable() || backendBusy() || !!fixture.stale"
                               (click)="popoverPlanAction(fixture.fixture_name, 'trigger'); fixtureRowMenu.hide()"
                             ></button>
                             <button
@@ -412,7 +435,7 @@
                               severity="secondary"
                               icon="pi pi-stop-circle"
                               label="Plan stop"
-                              [disabled]="commanderUnavailable() || backendBusy()"
+                              [disabled]="commanderUnavailable() || backendBusy() || !!fixture.stale"
                               (click)="popoverPlanAction(fixture.fixture_name, 'stop'); fixtureRowMenu.hide()"
                             ></button>
                             @if (compileSupported()) {
@@ -424,7 +447,7 @@
                                 severity="secondary"
                                 icon="pi pi-cloud-upload"
                                 label="Compile &amp; Update"
-                                [disabled]="commanderUnavailable() || updateFixturesLoading()"
+                                [disabled]="commanderUnavailable() || updateFixturesLoading() || !!fixture.stale"
                                 (click)="popoverUpdateFixture(fixture.fixture_name, 'compile'); fixtureRowMenu.hide()"
                               ></button>
                             }
@@ -437,7 +460,7 @@
                                 severity="secondary"
                                 icon="pi pi-box"
                                 label="Update from binary"
-                                [disabled]="commanderUnavailable() || updateFixturesLoading()"
+                                [disabled]="commanderUnavailable() || updateFixturesLoading() || !!fixture.stale"
                                 (click)="popoverUpdateFixture(fixture.fixture_name, 'binary'); fixtureRowMenu.hide()"
                               ></button>
                             }
@@ -475,12 +498,15 @@
                           ></button>
                         </div>
                       </p-popover>
-                      @if (fixtureSeenStatusLabel(fixture.fixture_name); as label) {
+                      @if (fixture.stale) {
+                        <span class="commander__fixture-offline" title="Fixture marked offline by commander">
+                          <i class="pi pi-exclamation-triangle"></i> offline
+                        </span>
+                      } @else if (fixtureLastSeenLabel(fixture.fixture_name); as label) {
                         <span
                           class="commander__fixture-seen"
-                          [class.commander__fixture-seen--overdue]="fixtureHeartbeatOverdue(fixture.fixture_name)"
                           [class.commander__fixture-seen--ota]="label === 'OTA'"
-                          [title]="label === 'OTA' ? 'Fixture is in OTA update mode' : 'Passive heartbeat timing (last seen)'"
+                          [title]="label === 'OTA' ? 'Fixture is in OTA update mode' : 'Last seen'"
                         ><i class="pi" [class.pi-clock]="label !== 'OTA'" [class.pi-upload]="label === 'OTA'"></i>{{ label }}</span>
                       }
                       @if (fixtureFwStatusMap().get(fixture.fixture_name); as fws) {
@@ -1025,7 +1051,7 @@
           size="small"
           [loading]="modalQueryLoading()"
           (click)="runModalFixtureQuery()"
-          [disabled]="modalQueryLoading() || commanderUnavailable()"
+          [disabled]="modalQueryLoading() || commanderUnavailable() || !!selectedFixture()?.stale"
           class="commander__dialog-run-query-btn"
         ></button>
         @if (!rebootConfirmPending()) {

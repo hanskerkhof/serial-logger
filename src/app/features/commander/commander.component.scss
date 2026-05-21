@@ -142,6 +142,34 @@
   font-size: 0.9rem;
 }
 
+.commander__cache-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+
+  .pi {
+    font-size: 0.7rem;
+  }
+
+  &--active {
+    color: #22c55e;
+  }
+
+  &--overdue {
+    color: #f97316;
+  }
+
+  &--offline {
+    color: #ef4444;
+  }
+
+  &--unknown {
+    color: var(--p-text-muted-color, #9ca3af);
+  }
+}
+
 ::ng-deep .commander__cache-table .p-datatable-table th,
 ::ng-deep .commander__cache-table .p-datatable-table td {
   text-align: left;
@@ -715,6 +743,26 @@
   }
 }
 
+.commander__fixture-row--stale {
+  .commander__fixture-btn {
+    opacity: 0.45;
+  }
+}
+
+.commander__fixture-offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  color: #ef4444;
+  opacity: 0.85;
+  flex-shrink: 0;
+
+  .pi {
+    font-size: 0.6rem;
+  }
+}
+
 .commander__fixture-fw {
   font-size: 0.7rem;
   color: var(--p-text-muted-color, #6b7280);
@@ -738,11 +786,6 @@
 
   .pi {
     font-size: 0.6rem;
-  }
-
-  &--overdue {
-    color: #f97316;
-    opacity: 1;
   }
 
   &--ota {

@@ -105,6 +105,11 @@ export class HealthPollService {
   readonly discovery$ = new Subject<DiscoveryWsMessage>();
   /** Emits when a fixture heartbeat is passively observed by the commander. */
   readonly fixtureSeen$ = new Subject<FixtureSeenWsMessage>();
+  /** Emitted when the commander firmware reports an identify timeout for a fixture. */
+  readonly fixtureTimeout$ = new Subject<{ fixture_name: string }>();
+  /** Emitted when a BK_FIXTURE_CACHE_ENTRY with online:false flows through the proxy.
+   *  Fires on every passive cache dump, so the FE stays in sync without polling. */
+  readonly fixtureOffline$ = new Subject<{ fixture_name: string }>();
   /**
    * Emits when the commander starts a new session (reconnect after reboot or runtime/reload).
    * Detected via a change in `proxy.last_transition_at_utc` when `proxy.state === 'online'`.
@@ -241,6 +246,14 @@ export class HealthPollService {
       }
       if (data?.['type'] === 'fixture_seen') {
         this.fixtureSeen$.next(data as unknown as FixtureSeenWsMessage);
+        return;
+      }
+      if (data?.['type'] === 'fixture_timeout' && typeof data?.['fixture_name'] === 'string') {
+        this.fixtureTimeout$.next({ fixture_name: data['fixture_name'] as string });
+        return;
+      }
+      if (data?.['type'] === 'fixture_offline' && typeof data?.['fixture_name'] === 'string') {
+        this.fixtureOffline$.next({ fixture_name: data['fixture_name'] as string });
         return;
       }
       if (typeof data?.['type'] === 'string' && data['type'].startsWith('discovery_')) {

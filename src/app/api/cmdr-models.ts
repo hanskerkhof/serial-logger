@@ -31,6 +31,7 @@ export interface CmdrPassiveSeenFixture {
   fixture_mode?: string;
   rssi_dbm?: number;
   rssi_quality?: string;
+  source?: 'live' | 'cache' | string;
   last_seen_ms?: number;
 }
 

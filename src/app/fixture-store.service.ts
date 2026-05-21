@@ -8,9 +8,9 @@ export interface FixtureRecord {
   raw: Record<string, unknown>;
   lastUpdatedAt: string;
   source: FixtureSource;
-  /** True after a commander reconnect until the fixture confirms it's alive via passive heartbeat. */
+  /** True when the commander has authoritatively reported this fixture offline. */
   stale?: boolean;
-  /** Date.now() when `stale` was set — used to calculate the prune deadline. */
+  /** Date.now() when `stale` was set. Informational only; not used for pruning. */
   staleAt?: number;
 }
 
@@ -119,7 +119,12 @@ export class FixtureStoreService {
     this.fixturesByName.update((cur) => {
       const next = { ...cur };
       for (const fixture of mergedByName.values()) {
-        next[fixture.fixture_name] = fixture;
+        const existing = cur[fixture.fixture_name];
+        next[fixture.fixture_name] = {
+          ...fixture,
+          stale: fixture.stale ?? existing?.stale,
+          staleAt: fixture.staleAt ?? existing?.staleAt,
+        };
       }
       return next;
     });
@@ -213,18 +218,7 @@ export class FixtureStoreService {
     this.persistToStorage();
   }
 
-  /** Mark every fixture stale after a commander reconnect. */
-  markAllStale(): void {
-    const now = Date.now();
-    const updated: Record<string, FixtureRecord> = {};
-    for (const [k, v] of Object.entries(this.fixturesByName())) {
-      updated[k] = { ...v, stale: true, staleAt: now };
-    }
-    this.fixturesByName.set(updated);
-    this.persistToStorage();
-  }
-
-  /** Mark a single fixture stale (used when its passive heartbeat deadline elapses). */
+  /** Mark a single fixture offline after an authoritative commander signal. */
   staleFixture(fixtureName: string): void {
     const current = this.fixturesByName();
     const rec = current[fixtureName];
@@ -233,45 +227,13 @@ export class FixtureStoreService {
     this.persistToStorage();
   }
 
-  /** Clear the stale flag for a single fixture once its passive heartbeat confirms it's alive. */
+  /** Clear the offline flag for a single fixture once its live passive heartbeat confirms it's alive. */
   unstaleFixture(fixtureName: string): void {
     const current = this.fixturesByName();
     const rec = current[fixtureName];
     if (!rec?.stale) return;
     this.fixturesByName.set({ ...current, [fixtureName]: { ...rec, stale: false, staleAt: undefined } });
     this.persistToStorage();
-  }
-
-  /**
-   * Remove stale fixtures whose passive-seen interval + grace has elapsed.
-   * Returns the number removed.
-   */
-  removeStaleFixtures(): number {
-    const now = Date.now();
-    const GRACE_MS = 30_000;
-    const DEFAULT_INTERVAL_MS = 300_000; // 5 min fallback for fixtures never seen via passive
-    const current = this.fixturesByName();
-    const retained: Record<string, FixtureRecord> = {};
-    let removed = 0;
-    for (const [k, v] of Object.entries(current)) {
-      if (!v.stale || v.staleAt === undefined) {
-        retained[k] = v;
-        continue;
-      }
-      const interval =
-        (v.raw?.['next_passive_seen_in_ms'] as number | undefined) ?? DEFAULT_INTERVAL_MS;
-      if (now - v.staleAt < interval + GRACE_MS) {
-        retained[k] = v; // still within grace window
-      } else {
-        removed++;
-        if (this.selectedFixtureName() === k) this.selectedFixtureName.set(null);
-      }
-    }
-    if (removed > 0) {
-      this.fixturesByName.set(retained);
-      this.persistToStorage();
-    }
-    return removed;
   }
 
   hydrateFromStorage(): void {

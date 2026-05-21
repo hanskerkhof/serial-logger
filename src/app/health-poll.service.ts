@@ -108,7 +108,7 @@ export class HealthPollService {
   /** Emitted when the commander firmware reports an identify timeout for a fixture. */
   readonly fixtureTimeout$ = new Subject<{ fixture_name: string }>();
   /** Emitted when a BK_FIXTURE_CACHE_ENTRY with online:false flows through the proxy.
-   *  Fires on every passive cache dump, so the FE stays in sync without polling. */
+   *  Cache online:true snapshots are intentionally ignored by the FE state machine. */
   readonly fixtureOffline$ = new Subject<{ fixture_name: string }>();
   /**
    * Emits when the commander starts a new session (reconnect after reboot or runtime/reload).

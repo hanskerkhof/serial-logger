@@ -782,6 +782,11 @@ export interface components {
             fixture_name: string;
             /** Index */
             index: number;
+            /**
+             * Online
+             * @default true
+             */
+            online: boolean;
             /** Source */
             source: string;
             /** Universe */
@@ -1339,8 +1344,6 @@ export interface components {
             ota_binary_version?: string | null;
             /** Plan Group */
             plan_group: string | null;
-            /** Runtime Fixture Mode */
-            runtime_fixture_mode?: string | null;
             /** Plan Name */
             plan_name: string | null;
             /** Plan State */
@@ -1362,6 +1365,8 @@ export interface components {
             rssi_dbm: number | null;
             /** Rssi Quality */
             rssi_quality: string | null;
+            /** Runtime Fixture Mode */
+            runtime_fixture_mode?: string | null;
             /** Universe */
             universe: number | null;
             /** Uptime */
@@ -1544,6 +1549,8 @@ export interface components {
             rssi_dbm?: number | null;
             /** Rssi Quality */
             rssi_quality?: string | null;
+            /** Source */
+            source?: string | null;
             /** Target Wifi Mac */
             target_wifi_mac?: string | null;
             /** Universe */

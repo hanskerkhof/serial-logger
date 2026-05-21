@@ -1093,30 +1093,14 @@ export class CommanderComponent implements OnInit {
   });
 
   /**
-   * Derives the passive heartbeat status for a Commander Fixture Cache entry.
+   * Derives the firmware-authoritative status for a Commander Fixture Cache entry.
    *
-   * When the firmware provides `online` (post-upgrade), uses it directly:
-   *   false → 'offline' (identify timed out)
-   *   true  → 'active' or 'overdue' based on age vs interval
-   *
-   * Falls back to age-vs-interval heuristic for older firmware that omits `online`.
-   *
-   * Returns:
-   *   'active'  — heard from within its passive interval
-   *   'overdue' — interval exceeded, no confirmation yet
-   *   'offline' — firmware confirmed no response (identify timeout)
-   *   'unknown' — no interval data available
+   * The FE does not infer overdue/offline from heartbeat age. Age is displayed as a
+   * time counter only; `online:false` is the sole cache-backed offline signal.
    */
-  protected cacheEntryStatus(entry: CmdrCommanderFixtureCacheEntry): 'active' | 'overdue' | 'offline' | 'unknown' {
-    // FW-provided field is authoritative when present
+  protected cacheEntryStatus(entry: CmdrCommanderFixtureCacheEntry): 'active' | 'offline' | 'unknown' {
     if (entry.online === false) return 'offline';
-
-    const raw = this.fixtureStore.fixturesByName()[entry.fixture_name]?.raw;
-    const nextMs = typeof raw?.['next_passive_seen_in_ms'] === 'number'
-      ? (raw['next_passive_seen_in_ms'] as number)
-      : null;
-    if (nextMs === null || nextMs <= 0) return entry.online === true ? 'active' : 'unknown';
-    if (entry.age_ms >= nextMs) return 'overdue';
+    if (!entry.fixture_name) return 'unknown';
     return 'active';
   }
 
@@ -2112,37 +2096,21 @@ export class CommanderComponent implements OnInit {
     });
 
     // fixture_offline fires whenever a BK_FIXTURE_CACHE_ENTRY with online:false flows
-    // through the proxy (after every BK_PASSIVE_SEEN and on fc commands).
+    // through the proxy.
     // This is the real-time FW-authoritative offline signal — no timer needed.
     const fixtureOfflineSub = this.healthService.fixtureOffline$.subscribe(({ fixture_name }) => {
       this.fixtureStore.staleFixture(fixture_name);
     });
 
     const cacheInvalidatedSub = this.healthService.cacheInvalidated$.subscribe(() => {
-      this.fixtureStore.markAllStale();
       this.messageService.add({
         key: 'app',
         severity: 'info',
         summary: 'Commander reconnected',
-        detail: 'Fixture list syncing with live network…',
+        detail: 'Fixture list will update from live commander events.',
         life: 5000,
       });
     });
-
-    // Interval — every 10 s:
-    // Prune fixtures that were marked stale (e.g. after a commander reconnect) and
-    // have not confirmed alive within their passive interval + grace window.
-    //
-    // Stale marking is now FW-authoritative:
-    //   - fixture_offline WS  → staleFixture  (BK_FIXTURE_CACHE_ENTRY online:false)
-    //   - fixture_timeout WS  → staleFixture  (identify timeout serial line)
-    //   - query HTTP error    → staleFixture
-    //   - markAllStale()      → all stale on commander reconnect
-    //   - fixture_seen WS     → unstaleFixture (BK_PASSIVE_SEEN confirmed alive)
-    // No timer-based stale marking — the FW is the source of truth.
-    const passiveHealthInterval = setInterval(() => {
-      this.fixtureStore.removeStaleFixtures();
-    }, 10_000);
 
     this.destroyRef.onDestroy(() => {
       successSub.unsubscribe();
@@ -2156,7 +2124,6 @@ export class CommanderComponent implements OnInit {
       fixtureTimeoutSub.unsubscribe();
       fixtureOfflineSub.unsubscribe();
       cacheInvalidatedSub.unsubscribe();
-      clearInterval(passiveHealthInterval);
       this.stopFixtureModalPolling();
       window.removeEventListener('storage', onStorage);
       this.releaseDiscoveryLock();
@@ -2288,7 +2255,6 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(null);
         this.fixtureQueryLoading.set(false);
         this.sidebarRefreshingFixture.set(null);
-        this.fixtureStore.staleFixture(fixture); // fixture didn't respond — mark stale
       },
     });
   }
@@ -2377,15 +2343,13 @@ export class CommanderComponent implements OnInit {
    * Syncs the FE fixture store stale state from firmware-provided `online` flags.
    * Only applies when the firmware includes the `online` field (post-upgrade).
    * - online === false  → staleFixture  (FW confirmed the fixture didn't respond)
-   * - online === true   → unstaleFixture (FW confirmed the fixture is alive)
+   * - online === true   → no-op; only live BK_PASSIVE_SEEN / fixture_seen clears stale
    */
   private syncStaleFromCacheEntries(entries: CmdrCommanderFixtureCacheEntry[]): void {
     for (const entry of entries) {
       if (typeof entry.online !== 'boolean') continue; // older firmware — skip
       if (!entry.fixture_name) continue;
-      if (entry.online) {
-        this.fixtureStore.unstaleFixture(entry.fixture_name);
-      } else {
+      if (!entry.online) {
         this.fixtureStore.staleFixture(entry.fixture_name);
       }
     }
@@ -3556,7 +3520,6 @@ export class CommanderComponent implements OnInit {
         this.modalQueryError.set(compact);
         this.showErrorToast(text, { sticky: true });
         this.modalQueryLoading.set(false);
-        this.fixtureStore.staleFixture(fixture); // fixture didn't respond — mark stale
       },
     });
   }
@@ -3609,7 +3572,6 @@ export class CommanderComponent implements OnInit {
       },
       error: (err: unknown) => {
         console.warn('[cmdr][queryFixtureByName] fixture query failed', { fixtureName, err });
-        this.fixtureStore.staleFixture(fixtureName); // fixture didn't respond — mark stale
       },
     });
   }

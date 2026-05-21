@@ -2095,9 +2095,6 @@ export class CommanderComponent implements OnInit {
       this.fixtureStore.staleFixture(fixture_name);
     });
 
-    // fixture_offline fires whenever a BK_FIXTURE_CACHE_ENTRY with online:false flows
-    // through the proxy.
-    // This is the real-time FW-authoritative offline signal — no timer needed.
     const fixtureOfflineSub = this.healthService.fixtureOffline$.subscribe(({ fixture_name }) => {
       this.fixtureStore.staleFixture(fixture_name);
     });

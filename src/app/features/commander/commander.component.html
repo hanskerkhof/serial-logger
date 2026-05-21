@@ -225,13 +225,19 @@
                 <p-sortIcon field="fixture_name"></p-sortIcon>
               </th>
               <th>MAC</th>
-              <th>U/Ch</th>
+              <th pSortableColumn="universe">
+                U/Ch
+                <p-sortIcon field="universe"></p-sortIcon>
+              </th>
               <th>Source</th>
               <th pSortableColumn="age_ms">
                 Age
                 <p-sortIcon field="age_ms"></p-sortIcon>
               </th>
-              <th>Status</th>
+              <th pSortableColumn="online">
+                Status
+                <p-sortIcon field="online"></p-sortIcon>
+              </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-entry>

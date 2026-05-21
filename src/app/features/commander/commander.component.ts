@@ -1561,6 +1561,7 @@ export class CommanderComponent implements OnInit {
       uiStep === 'compiling' ? 'compiling' :
       uiStep === 'identify' ? 'identify' :
       uiStep === 'uploading' ? 'uploading' :
+      uiStep === 'ota_command' ? 'sending OTA command' :
       uiStep === 'dark_side_of_the_moon' ? 'dark side of the moon' :
       uiStep === 'verifying' ? 'verifying' :
       uiStep === 'cancel_requested' ? 'cancel requested' :
@@ -2628,9 +2629,9 @@ export class CommanderComponent implements OnInit {
     this.updateFixturesPendingFixture = nextFixtureName;
     this.updateFixturesPendingSinceMs = Date.now();
     this.updateFixturesCurrentFixture.set(nextFixtureName);
-    this.updateFixturesCurrentStep.set('requesting OTA start');
+    this.updateFixturesCurrentStep.set('requesting update');
     this.otaInProgress.update((s) => new Set([...s, nextFixtureName]));
-    this.appendUpdateReportStep(nextFixtureName, 'queue_start', 'requesting OTA start');
+    this.appendUpdateReportStep(nextFixtureName, 'queue_start', 'requesting update');
     this.persistUpdateFixturesState();
 
     const startRequest$ = this.updateFixturesMode === 'binary'

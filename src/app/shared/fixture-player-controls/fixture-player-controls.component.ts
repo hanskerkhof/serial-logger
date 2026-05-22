@@ -63,6 +63,7 @@ export class FixturePlayerControlsComponent {
 
   readonly player = input<CmdrPlayerCapabilities | null>(null);
   readonly playerType = input<string | null>(null);
+  readonly defaultVolume = input<number | null>(null);
   readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: string; elapsedMs?: number; durationMs?: number } | null>(null);
   readonly volumeSyncResult = input<VolumeSyncResultEvent | null>(null);
   readonly planTracks = input<PlayerTrack[] | null>(null);
@@ -322,7 +323,6 @@ export class FixturePlayerControlsComponent {
   }
 
   fadeTo(): void {
-    this.disableAutoPlay();
     this.commandRequested.emit({ command: `cmd;fadeTo;volume_scale=30;volume=${this.fadeToVolume()};duration=${this.fadeDurationMs()};` });
     const dir = this.fadeToVolume() >= this.volumeLevel() ? 'ltr' : 'rtl';
     this.startInputAnimation(this.fadeMsPhase, this.fadeMsDirection, dir, this.fadeDurationMs(), this.fadeTimers);
@@ -356,6 +356,13 @@ export class FixturePlayerControlsComponent {
       volumeScale: 30,
       requestId,
     });
+  }
+
+  applyDefaultVolume(): void {
+    const dv = this.defaultVolume();
+    if (dv === null) return;
+    this.volumeLevel.set(dv);
+    this.setVolume();
   }
 
   setEqualizer(): void {

@@ -1330,6 +1330,11 @@ export class CommanderComponent implements OnInit {
     return (raw as CmdrFixtureConfig | null | undefined) ?? null;
   });
 
+  protected readonly selectedFixtureDefaultVolume = computed<number | null>(() => {
+    const v = this.selectedFixtureConfig()?.player?.default_volume;
+    return typeof v === 'number' ? v : null;
+  });
+
   protected readonly selectedFixtureConfigUi = computed<CmdrFixtureConfigUi | null>(() => {
     const raw = this.selectedFixture()?.raw['config_ui'];
     return (raw as CmdrFixtureConfigUi | null | undefined) ?? null;

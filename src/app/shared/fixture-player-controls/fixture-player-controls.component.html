@@ -184,6 +184,14 @@
             ></p-slider>
           </span>
           <span class="fixture-player-controls__range-value">{{ volumeLevel() }}</span>
+          @if (defaultVolume() !== null) {
+            <button
+              type="button"
+              class="fixture-player-controls__default-vol-link"
+              [disabled]="disabled()"
+              (click)="applyDefaultVolume()"
+            >default vol ({{ defaultVolume() }})</button>
+          }
         }
         @if (p.analog_volume_active) {
           <label class="fixture-player-controls__override-label">

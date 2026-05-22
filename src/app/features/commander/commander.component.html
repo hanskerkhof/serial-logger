@@ -1223,6 +1223,7 @@
               [planStatus]="selectedFixturePlanState()"
               [liveUpdateEnabled]="fixtureModalPollingEnabled()"
               [disabled]="playerControlsDisabled()"
+              [defaultVolume]="selectedFixtureDefaultVolume()"
               (commandRequested)="onPlayerCommand($event)"
               (volumeSyncIssue)="onPlayerVolumeSyncIssue($event)"
             />

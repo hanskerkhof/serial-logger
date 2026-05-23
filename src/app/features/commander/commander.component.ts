@@ -2090,7 +2090,7 @@ export class CommanderComponent implements OnInit {
         if (incomingMode === 'OTA') {
           this.messageService.add({ key: 'app', severity: 'warn', summary: 'OTA mode', detail: `${name} entered OTA mode`, life: 8000 });
         } else if (previousMode === 'OTA') {
-          this.messageService.add({ key: 'app', severity: 'success', summary: 'OTA complete', detail: `${name} returned to ${incomingMode} mode`, life: 6000 });
+          this.messageService.add({ key: 'app', severity: 'success', summary: 'OTA mode', detail: `${name} returned to ${incomingMode} mode`, life: 6000 });
         }
       }
       this.queryPassiveFixtureIfIncomplete(name);

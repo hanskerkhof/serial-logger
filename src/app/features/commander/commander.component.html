@@ -202,8 +202,8 @@
     <p>Loading cache…</p>
   } @else if (commanderCacheData(); as cache) {
     <div class="commander__cache-meta">
-      <span><strong>Used:</strong> {{ cache.used }} / {{ cache.capacity }}</span>
-      <span><strong>Reason:</strong> {{ cache.reason }}</span>
+      <span><strong>Used:</strong>&nbsp;{{ cache.used }} / {{ cache.capacity }}</span>
+      <span><strong>Reason:</strong>&nbsp;{{ cache.reason }}</span>
       @if (commanderCacheLoading()) {
         <span><strong>Status:</strong> refreshing…</span>
       }

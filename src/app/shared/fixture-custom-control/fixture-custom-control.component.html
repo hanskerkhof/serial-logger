@@ -278,7 +278,7 @@
                         <p-checkbox
                           [binary]="true"
                           [ngModel]="draftCommandArgValue(command.id, arg)"
-                          (ngModelChange)="onArgChanged(command.id, arg, $event)"
+                          (ngModelChange)="onArgChanged(command.id, arg, $event); onSliderRelease(command)"
                           [disabled]="controlsDisabled()"
                         ></p-checkbox>
                       }

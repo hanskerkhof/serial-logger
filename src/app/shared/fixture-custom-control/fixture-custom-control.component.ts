@@ -458,6 +458,9 @@ export class FixtureCustomControlComponent {
   }
 
   protected shouldHideGenericArgControl(command: CmdrCustomCommandUiItem, arg: CmdrCustomCommandUiArg): boolean {
+    // Checkboxes are always shown in the command row — they have no dedicated rendering block
+    // (unlike RGB / dimmer) and need to be directly interactive.
+    if (String(arg.control ?? '').toLowerCase() === 'checkbox') return false;
     return this.isSettableCommand(command) && this.isInputArg(arg);
   }
 

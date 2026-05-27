@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { SliderModule } from 'primeng/slider';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { DialogModule } from 'primeng/dialog';
 import {
@@ -76,6 +77,7 @@ interface SequenceRuntimeState {
     SelectModule,
     SliderModule,
     CheckboxModule,
+    ToggleSwitchModule,
     ColorPickerModule,
     DialogModule,
     BitmaskDotsComponent,

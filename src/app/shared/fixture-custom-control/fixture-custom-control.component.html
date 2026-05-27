@@ -275,12 +275,11 @@
                         <span class="fixture-custom-control__arg-value">{{ draftCommandArgValue(command.id, arg) }}</span>
                       }
                       @case ('checkbox') {
-                        <p-checkbox
-                          [binary]="true"
+                        <p-toggleSwitch
                           [ngModel]="draftCommandArgValue(command.id, arg)"
                           (ngModelChange)="onArgChanged(command.id, arg, $event); onSliderRelease(command)"
                           [disabled]="controlsDisabled()"
-                        ></p-checkbox>
+                        ></p-toggleSwitch>
                       }
                       @case ('select') {
                         <p-select

@@ -2107,7 +2107,7 @@ export class CommanderComponent implements OnInit {
     const cacheInvalidatedSub = this.healthService.cacheInvalidated$.subscribe(() => {
       this.messageService.add({
         key: 'app',
-        severity: 'info',
+        severity: 'success',
         summary: 'Commander reconnected',
         detail: 'Fixture list will update from live commander events.',
         life: 5000,

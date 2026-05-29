@@ -3621,11 +3621,36 @@ export class CommanderComponent implements OnInit {
       this.sendPlayerSetVolumeCommand(fixture, request);
       return;
     }
-    // Player commands (play/stop/fade) are fire-and-forget — do NOT set fixtureActionLoading,
-    // so controls stay enabled while the HTTP ack is in flight. This prevents the brief
-    // disable that the user sees during auto-play and WS-triggered track advances.
+    // Player commands (play/stop/fade) do NOT touch fixtureActionLoading so controls stay
+    // enabled during auto-play and WS-triggered track advances, but they do set feedback
+    // so the dispatched wire command is visible in the dialog.
     const wireCommand = this.buildModalWireCommand(fixture, request.command, 'default');
-    this.commanderApi.runFixtureCommand(fixture, wireCommand).subscribe({ error: () => {} });
+    const startedAt = performance.now();
+    this.commanderApi.runFixtureCommand(fixture, wireCommand).subscribe({
+      next: (result) => {
+        const durationMs = performance.now() - startedAt;
+        const response = result as Record<string, unknown>;
+        const routingMode =
+          typeof response['routing_mode'] === 'string' ? (response['routing_mode'] as string) : 'direct';
+        const commandResult =
+          response['command_result'] && typeof response['command_result'] === 'object'
+            ? (response['command_result'] as Record<string, unknown>)
+            : null;
+        const dispatchedWireCommand =
+          commandResult && typeof commandResult['command'] === 'string'
+            ? (commandResult['command'] as string)
+            : wireCommand;
+        this.setFixtureModalFeedback(
+          `Dispatch accepted (${routingMode}) for ${fixture}: ${dispatchedWireCommand}`,
+          'success',
+          durationMs,
+        );
+      },
+      error: (err: unknown) => {
+        const durationMs = performance.now() - startedAt;
+        this.setFixtureModalFeedback(this.buildFixtureCommandErrorFeedback(fixture, wireCommand, err), 'error', durationMs);
+      },
+    });
   }
 
   protected onPlayerVolumeSyncIssue(message: string): void {

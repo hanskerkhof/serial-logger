@@ -66,6 +66,16 @@
           @for (line of updateFixturesListLines(); track $index) {
             <span class="discovery-progress-toast__detail">{{ line }}</span>
           }
+        } @else if (message.data?.mode === 'progress_bulk_cmd') {
+          <p-progressbar
+            [value]="bulkCmdProgressPct()"
+            [showValue]="false"
+            styleClass="discovery-progress-toast__bar"
+            [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
+          ></p-progressbar>
+          @for (line of bulkCmdListLines(); track $index) {
+            <span class="discovery-progress-toast__detail">{{ line }}</span>
+          }
         }
         @if (message.data?.mode === 'progress_full_ws') {
           <span class="discovery-progress-toast__detail">{{ discoveryWsProgressLabel() }}</span>
@@ -344,6 +354,72 @@
               <section class="commander__group">
                 <header class="commander__group-header">
                   <h4 class="commander__group-title">{{ plan.plan_name }}</h4>
+                  @if (plan.fixtures.length > 1) {
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-ellipsis-v"
+                    [text]="true"
+                    [rounded]="true"
+                    severity="secondary"
+                    size="small"
+                    title="Plan actions"
+                    aria-label="Plan actions for {{ plan.plan_name }}"
+                    (click)="planMenu.toggle($event)"
+                  ></button>
+                  <p-popover #planMenu appendTo="body">
+                    <div class="fixture-row-menu">
+                      <div class="fixture-row-menu__actions">
+                        <button
+                          pButton
+                          type="button"
+                          [text]="true"
+                          size="small"
+                          severity="secondary"
+                          icon="pi pi-play"
+                          label="Start all plans ({{ plan.fixtures.length }})"
+                          [disabled]="commanderUnavailable()"
+                          (click)="popoverTriggerPlan(plan.fixtures); planMenu.hide()"
+                        ></button>
+                        <button
+                          pButton
+                          type="button"
+                          [text]="true"
+                          size="small"
+                          severity="secondary"
+                          icon="pi pi-stop-circle"
+                          label="Stop all plans ({{ plan.fixtures.length }})"
+                          [disabled]="commanderUnavailable()"
+                          (click)="popoverStopPlan(plan.fixtures); planMenu.hide()"
+                        ></button>
+                        @if (compileSupported()) {
+                          <button
+                            pButton
+                            type="button"
+                            [text]="true"
+                            size="small"
+                            severity="secondary"
+                            icon="pi pi-cloud-upload"
+                            label="Compile &amp; Update ({{ plan.fixtures.length }})"
+                            [disabled]="commanderUnavailable() || updateFixturesLoading()"
+                            (click)="popoverCompileUpdatePlan(plan.fixtures); planMenu.hide()"
+                          ></button>
+                        }
+                        <button
+                          pButton
+                          type="button"
+                          [text]="true"
+                          size="small"
+                          severity="secondary"
+                          icon="pi pi-power-off"
+                          label="Reboot Fixtures ({{ plan.fixtures.length }})"
+                          [disabled]="commanderUnavailable()"
+                          (click)="popoverRebootPlan(plan.fixtures); planMenu.hide()"
+                        ></button>
+                      </div>
+                    </div>
+                  </p-popover>
+                  }
                   <button
                     pButton
                     type="button"
@@ -438,6 +514,17 @@
                               label="Plan stop"
                               [disabled]="commanderUnavailable() || !!fixture.stale || otaInProgress().has(fixture.fixture_name)"
                               (click)="popoverPlanAction(fixture.fixture_name, 'stop'); fixtureRowMenu.hide()"
+                            ></button>
+                            <button
+                              pButton
+                              type="button"
+                              [text]="true"
+                              size="small"
+                              severity="secondary"
+                              icon="pi pi-power-off"
+                              label="Reboot fixture"
+                              [disabled]="commanderUnavailable() || !!fixture.stale || otaInProgress().has(fixture.fixture_name)"
+                              (click)="popoverRebootFixture(fixture.fixture_name); fixtureRowMenu.hide()"
                             ></button>
                             @if (compileSupported()) {
                               <button

@@ -371,6 +371,28 @@ export class CommanderComponent implements OnInit {
       return `${n} · — ${name}`;
     });
   });
+  protected readonly bulkCmdLoading = signal(false);
+  protected readonly bulkCmdTotal = signal<number>(0);
+  protected readonly bulkCmdProcessed = signal<number>(0);
+  protected readonly bulkCmdFixtureNames = signal<string[]>([]);
+  protected readonly bulkCmdOutcomeLog = signal<Array<{ fixture: string; ok: boolean }>>([]);
+  protected readonly bulkCmdProgressPct = computed(() => {
+    const total = this.bulkCmdTotal();
+    if (total <= 0) return 0;
+    return Math.min(100, (this.bulkCmdProcessed() / total) * 100);
+  });
+  protected readonly bulkCmdListLines = computed(() => {
+    const all = this.bulkCmdFixtureNames();
+    const total = all.length;
+    if (total <= 0) return [] as string[];
+    const outcomeMap = new Map(this.bulkCmdOutcomeLog().map((e) => [e.fixture, e.ok]));
+    return all.map((name, i) => {
+      const n = `${i + 1}/${total}`;
+      if (outcomeMap.has(name)) return `${n} · ${outcomeMap.get(name) ? '✅' : '❌'} ${name}`;
+      return `${n} · ⏳ ${name}`;
+    });
+  });
+
   protected readonly error = signal<string | null>(null);
   protected readonly customUrl = signal('');
   protected readonly fixtureName = signal(localStorage.getItem('cmdr.selectedFixture') ?? 'CLIGNOTEUR1');
@@ -574,7 +596,7 @@ export class CommanderComponent implements OnInit {
   private _progressToastClearTimer: ReturnType<typeof setTimeout> | null = null;
   private commanderCachePollTimer: ReturnType<typeof setInterval> | null = null;
   private readonly progressToastHoldMs = 3000;
-  private _activeProgressToastMode: 'progress_full_ws' | 'progress_full' | 'progress_fixtures' | 'progress_updates' | 'progress_query' | null = null;
+  private _activeProgressToastMode: 'progress_full_ws' | 'progress_full' | 'progress_fixtures' | 'progress_updates' | 'progress_query' | 'progress_bulk_cmd' | null = null;
   private _discoveryWsStartedAtMs: number | null = null;
   private _skipNextProgressHold = false;
   private _discoveryInProgressToastLastAtMs = 0;
@@ -1559,9 +1581,73 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixtureName, `cmd;plan;action=${action};`);
   }
 
+  protected popoverRebootFixture(fixtureName: string): void {
+    if (!this.checkApiReachable()) return;
+    this.commanderApi.runFixtureCommand(fixtureName, `ack;tcmd;${fixtureName};cmd;reboot;`).subscribe({
+      next: (result) => {
+        this.messageService.add({
+          key: 'app',
+          severity: result.ok ? 'success' : 'error',
+          summary: result.ok ? 'Reboot accepted' : 'Reboot rejected',
+          detail: fixtureName,
+          life: result.ok ? 3000 : 5000,
+        });
+      },
+      error: () => {
+        this.messageService.add({
+          key: 'app',
+          severity: 'error',
+          summary: 'Reboot failed',
+          detail: fixtureName,
+          life: 5000,
+        });
+      },
+    });
+  }
+
   protected popoverUpdateFixture(fixtureName: string, mode: 'compile' | 'binary'): void {
     if (!this.checkApiReachable() || this.updateFixturesLoading()) return;
     this.startFixtureUpdateQueue([fixtureName], mode);
+  }
+
+  protected popoverTriggerPlan(fixtures: { fixture_name: string }[]): void {
+    if (!this.checkApiReachable()) return;
+    this.startBulkCmd(
+      fixtures.map((f) => f.fixture_name),
+      (name) => `ack;tcmd;${name};cmd;plan;action=trigger;`,
+      'Triggering plans',
+      'Trigger accepted',
+      'Trigger rejected',
+      this.BULK_CMD_INTER_DELAY_MS,
+    );
+  }
+
+  protected popoverStopPlan(fixtures: { fixture_name: string }[]): void {
+    if (!this.checkApiReachable()) return;
+    this.startBulkCmd(
+      fixtures.map((f) => f.fixture_name),
+      (name) => `ack;tcmd;${name};cmd;plan;action=stop;`,
+      'Stopping plans',
+      'Stop accepted',
+      'Stop rejected',
+      this.BULK_CMD_INTER_DELAY_MS,
+    );
+  }
+
+  protected popoverCompileUpdatePlan(fixtures: { fixture_name: string }[]): void {
+    if (!this.checkApiReachable() || this.updateFixturesLoading()) return;
+    this.startFixtureUpdateQueue(fixtures.map((f) => f.fixture_name), 'compile');
+  }
+
+  protected popoverRebootPlan(fixtures: { fixture_name: string }[]): void {
+    if (!this.checkApiReachable()) return;
+    this.startBulkCmd(
+      fixtures.map((f) => f.fixture_name),
+      (name) => `ack;tcmd;${name};cmd;reboot;`,
+      'Rebooting fixtures',
+      'Reboot accepted',
+      'Reboot rejected',
+    );
   }
 
   protected onOtaProgress(event: OtaStreamEvent): void {
@@ -3366,26 +3452,101 @@ export class CommanderComponent implements OnInit {
     this.planStateReceivedAt.set(null);
   }
 
+  // Delay between successive API calls in startBulkCmd — increase if the API drops commands under load.
+  private readonly BULK_CMD_INTER_DELAY_MS = 150;
+
+  private startBulkCmd(
+    fixtureNames: string[],
+    wireCommandFn: (name: string) => string,
+    toastSummary: string,
+    successSummary: string,
+    errorSummary: string,
+    delayBetweenMs = 0,
+  ): void {
+    if (!fixtureNames.length) return;
+
+    this.bulkCmdLoading.set(true);
+    this.bulkCmdTotal.set(fixtureNames.length);
+    this.bulkCmdProcessed.set(0);
+    this.bulkCmdOutcomeLog.set([]);
+    this.bulkCmdFixtureNames.set(fixtureNames);
+
+    this.messageService.clear('app');
+    this.messageService.add({
+      key: 'app',
+      severity: 'contrast',
+      summary: toastSummary,
+      sticky: true,
+      closable: false,
+      data: { mode: 'progress_bulk_cmd' },
+    });
+    this._activeProgressToastMode = 'progress_bulk_cmd';
+
+    let pending = fixtureNames.length;
+    const onDone = (name: string, ok: boolean) => {
+      this.bulkCmdOutcomeLog.update((log) => [...log, { fixture: name, ok }]);
+      this.bulkCmdProcessed.update((n) => n + 1);
+      if (--pending > 0) return;
+
+      this.bulkCmdLoading.set(false);
+      setTimeout(() => {
+        const log = this.bulkCmdOutcomeLog();
+        const okNames = log.filter((e) => e.ok).map((e) => e.fixture);
+        const failNames = log.filter((e) => !e.ok).map((e) => e.fixture);
+        this.messageService.clear('app');
+        this._activeProgressToastMode = null;
+        if (okNames.length > 0) {
+          this.messageService.add({ key: 'app', severity: 'success', summary: successSummary, detail: okNames.join(', '), life: 4000 });
+        }
+        if (failNames.length > 0) {
+          this.messageService.add({ key: 'app', severity: 'error', summary: errorSummary, detail: failNames.join(', '), life: 6000 });
+        }
+      }, 800);
+    };
+
+    const sendAt = (index: number) => {
+      if (index >= fixtureNames.length) return;
+      const name = fixtureNames[index];
+      this.commanderApi
+        .runFixtureCommand(name, wireCommandFn(name))
+        .subscribe({ next: (r) => onDone(name, r.ok), error: () => onDone(name, false) });
+      if (index + 1 < fixtureNames.length) {
+        setTimeout(() => sendAt(index + 1), delayBetweenMs);
+      }
+    };
+    sendAt(0);
+  }
+
   protected rebootAllFixtures(): void {
-    const fixtureNames = Object.keys(this.fixtureStore.fixturesByName());
-    for (const name of fixtureNames) {
-      const wireCommand = `ack;tcmd;${name};cmd;reboot;`;
-      this.commanderApi.runFixtureCommand(name, wireCommand).subscribe({ error: () => {} });
-    }
+    this.startBulkCmd(
+      Object.keys(this.fixtureStore.fixturesByName()),
+      (name) => `ack;tcmd;${name};cmd;reboot;`,
+      'Rebooting fixtures',
+      'Reboot accepted',
+      'Reboot rejected',
+    );
   }
 
   protected triggerAllPlans(): void {
-    for (const name of this.triggerableFixtureNames()) {
-      const wireCommand = `ack;tcmd;${name};cmd;plan;action=trigger;`;
-      this.commanderApi.runFixtureCommand(name, wireCommand).subscribe({ error: () => {} });
-    }
+    this.startBulkCmd(
+      this.triggerableFixtureNames(),
+      (name) => `ack;tcmd;${name};cmd;plan;action=trigger;`,
+      'Triggering plans',
+      'Trigger accepted',
+      'Trigger rejected',
+      this.BULK_CMD_INTER_DELAY_MS,
+    );
   }
 
   protected stopAllPlans(): void {
-    for (const name of this.stoppableFixtureNames()) {
-      const wireCommand = `ack;tcmd;${name};cmd;plan;action=stop;`;
-      this.commanderApi.runFixtureCommand(name, wireCommand).subscribe({ error: () => {} });
-    }
+    this.startBulkCmd(
+      this.stoppableFixtureNames(),
+      (name) => `ack;tcmd;${name};cmd;plan;action=stop;`,
+      'Stopping plans',
+      'Stop accepted',
+      'Stop rejected',
+      this.BULK_CMD_INTER_DELAY_MS,
+    );
   }
 
   protected rebootFixture(): void {

@@ -512,6 +512,7 @@ export class CommanderComponent implements OnInit {
   protected readonly modalQueryError = signal<string | null>(null);
   protected readonly fixtureModalVisible = signal(false);
   protected readonly fixtureModalPollingEnabled = signal(true);
+  private _pollingBeforeOta: boolean | null = null; // null = not tracking; saved when OTA starts
   protected readonly fixtureModalPollIntervalOptions = [
     ...CommanderComponent.FIXTURE_MODAL_POLL_INTERVAL_OPTIONS,
   ];
@@ -994,6 +995,26 @@ export class CommanderComponent implements OnInit {
       this.health();
       if (!this.updateFixturesLoading()) return;
       this.reconcileUpdateStateWithBackend();
+    });
+
+    effect(() => {
+      const isOta = this.selectedFixtureIsInOtaMode();
+      if (isOta && this._pollingBeforeOta === null) {
+        // Fixture just entered OTA: save polling state and turn it off
+        this._pollingBeforeOta = this.fixtureModalPollingEnabled();
+        if (this._pollingBeforeOta) {
+          this.fixtureModalPollingEnabled.set(false);
+          this.stopFixtureModalPolling();
+        }
+      } else if (!isOta && this._pollingBeforeOta !== null) {
+        // Fixture just left OTA: restore polling if it was on before
+        const wasOn = this._pollingBeforeOta;
+        this._pollingBeforeOta = null;
+        if (wasOn) {
+          this.fixtureModalPollingEnabled.set(true);
+          this.startFixtureModalPolling();
+        }
+      }
     });
   }
 

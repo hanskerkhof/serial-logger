@@ -1090,7 +1090,7 @@
           <p-toggleswitch
             [ngModel]="fixtureModalPollingEnabled()"
             (ngModelChange)="onFixtureModalPollingToggle(!!$event)"
-            [disabled]="commanderUnavailable()"
+            [disabled]="commanderUnavailable() || selectedFixtureIsInOtaMode()"
           />
           <small>
             @if (fixtureModalPollingEnabled()) {

@@ -11,8 +11,7 @@ export const SKIP_AUTH_HEADER = new HttpContextToken<boolean>(() => false);
 
 /**
  * Attaches a Bearer token to outgoing requests that target any configured CMDR API origin.
- * Also catches 401 responses and redirects to Zitadel login when auth is required,
- * so users see a login page rather than a confusing error message.
+ * Also catches 401 responses and redirects to the LWL login form when auth is required.
  */
 export const authHttpInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);

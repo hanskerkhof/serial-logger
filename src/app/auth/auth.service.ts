@@ -1,7 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { OAuthService } from 'angular-oauth2-oidc';
-import { authConfig } from './auth.config';
 
 const API_URL_STORAGE_KEY = 'cmdr.api.baseUrl';
 const LWL_TOKEN_STORAGE_KEY = 'cmdr.auth.lwl.accessToken';
@@ -12,13 +10,11 @@ const API_URL_FALLBACKS = [
   'http://127.0.0.1:8080',
 ].filter(Boolean);
 
-type AuthMode = 'zitadel' | 'lwl';
+type AuthMode = 'lwl';
 
 type AuthStatusResponse = {
   enabled: boolean;
   mode?: AuthMode;
-  issuer?: string;
-  client_id?: string;
 };
 
 function getApiBaseCandidates(): string[] {
@@ -51,7 +47,6 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly oauthService = inject(OAuthService);
   private readonly router = inject(Router);
 
   private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -64,9 +59,7 @@ export class AuthService {
   readonly nextTokenRefreshAtMs = signal<number | null>(null);
 
   async initialize(): Promise<void> {
-    let oidcConfig = { ...authConfig };
     let statusResolved = false;
-    let resolvedMode: AuthMode | null = null;
     let attemptedEndpoint: string | null = null;
     this.authEndpointError.set(null);
     try {
@@ -93,23 +86,15 @@ export class AuthService {
           this.authRequired.set(true);
           const mode = (data.mode ?? 'lwl') as AuthMode;
           this.authMode.set(mode);
-          resolvedMode = mode;
           statusResolved = true;
 
-          if (mode === 'lwl') {
-            // Keep Light Weight Login token flow local, no OIDC bootstrap needed.
-            if (!this.isLwlSessionValid()) {
-              this.clearLwlSession();
-            } else {
-              const existing = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
-              if (existing) this.scheduleTokenRefresh(existing);
-            }
-            return;
+          if (!this.isLwlSessionValid()) {
+            this.clearLwlSession();
+          } else {
+            const existing = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
+            if (existing) this.scheduleTokenRefresh(existing);
           }
-
-          if (data.issuer) oidcConfig = { ...oidcConfig, issuer: data.issuer };
-          if (data.client_id) oidcConfig = { ...oidcConfig, clientId: data.client_id };
-          break;
+          return;
         } catch {
           // try next candidate
         }
@@ -119,7 +104,7 @@ export class AuthService {
     }
 
     if (!statusResolved) {
-      // When API status probing fails, prefer LWL fallback over OIDC redirect loops.
+      // When API status probing fails, keep the local LWL form visible.
       this.authRequired.set(true);
       this.authMode.set('lwl');
       if (!this.isLwlSessionValid()) this.clearLwlSession();
@@ -127,32 +112,16 @@ export class AuthService {
       this.authEndpointError.set(`API endpoint unavailable: ${endpointLabel}`);
       return;
     }
-
-    if (resolvedMode !== 'zitadel') return;
-
-    this.oauthService.configure(oidcConfig);
-    try {
-      await this.oauthService.loadDiscoveryDocumentAndTryLogin();
-    } catch {
-      console.warn('[AuthService] Could not reach OIDC discovery endpoint — Zitadel not running?');
-      return;
-    }
-    this.oauthService.setupAutomaticSilentRefresh();
   }
 
   get isLoggedIn(): boolean {
     if (!this.authRequired()) return true;
-    if (this.authMode() === 'lwl') return this.isLwlSessionValid();
-    return this.oauthService.hasValidAccessToken();
+    return this.isLwlSessionValid();
   }
 
   login(): void {
     if (!this.authRequired()) return;
-    if (this.authMode() === 'lwl') {
-      void this.router.navigate(['/'], { replaceUrl: true });
-      return;
-    }
-    this.oauthService.initCodeFlow();
+    void this.router.navigate(['/'], { replaceUrl: true });
   }
 
   async loginWithPassword(username: string, password: string): Promise<{ ok: boolean; error?: string }> {
@@ -226,49 +195,33 @@ export class AuthService {
   }
 
   logout(): void {
-    if (this.authMode() === 'lwl') {
-      this.clearLwlSession();
-      void this.router.navigate(['/'], { replaceUrl: true });
-      return;
-    }
-    this.oauthService.logOut();
+    this.clearLwlSession();
+    void this.router.navigate(['/'], { replaceUrl: true });
   }
 
   get accessToken(): string | null {
-    if (this.authMode() === 'lwl') {
-      const token = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
-      if (!token) return null;
-      if (!this.isLwlTokenValid(token)) {
-        this.clearLwlSession();
-        return null;
-      }
-      return token;
+    const token = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
+    if (!token) return null;
+    if (!this.isLwlTokenValid(token)) {
+      this.clearLwlSession();
+      return null;
     }
-    return this.oauthService.getAccessToken() || null;
+    return token;
   }
 
   get userName(): string | null {
-    if (this.authMode() === 'lwl') {
-      const cached = localStorage.getItem(LWL_USER_STORAGE_KEY);
-      if (cached) return cached;
-      const token = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
-      if (!token) return null;
-      const payload = decodeJwtPayload(token);
-      return (payload?.['preferred_username'] ?? payload?.['sub'] ?? null) as string | null;
-    }
-    const claims = this.oauthService.getIdentityClaims() as Record<string, unknown> | null;
-    if (!claims) return null;
-    return (claims['preferred_username'] ?? claims['email'] ?? claims['name'] ?? null) as string | null;
+    const cached = localStorage.getItem(LWL_USER_STORAGE_KEY);
+    if (cached) return cached;
+    const token = localStorage.getItem(LWL_TOKEN_STORAGE_KEY);
+    if (!token) return null;
+    const payload = decodeJwtPayload(token);
+    return (payload?.['preferred_username'] ?? payload?.['sub'] ?? null) as string | null;
   }
 
   handleUnauthorized(): void {
     if (!this.authRequired()) return;
-    if (this.authMode() === 'lwl') {
-      this.clearLwlSession();
-      void this.router.navigate(['/'], { replaceUrl: true });
-      return;
-    }
-    this.login();
+    this.clearLwlSession();
+    void this.router.navigate(['/'], { replaceUrl: true });
   }
 
   private isLwlSessionValid(): boolean {

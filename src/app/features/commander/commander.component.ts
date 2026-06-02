@@ -5215,7 +5215,7 @@ export class CommanderComponent implements OnInit {
       return '';
     }
     if (arg.control === 'checkbox') {
-      return this.toBoolean(arg.default ?? false);
+      return this.toBoolean(liveStateValue ?? arg.default ?? false);
     }
     if (arg.control === 'select') {
       const options = this.readSelectOptions(arg);

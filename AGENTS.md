@@ -15,6 +15,10 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 - For PrimeNG component work: read `/Users/hanskerkhof/bauklank-agent-skills/primeng/SKILL.md` and call `mcp__primeng__get_component_props` before writing any new PrimeNG component template.
 - Repo-local `AGENTS.md` remains authoritative for repo-specific rules and overrides reusable skill guidance when they differ.
 
+## Node Version Requirement
+
+**Node 22 required** — Angular 21 requires Node ≥ 20.19 or ≥ 22.12. Use `nvm use 22` before `npm start`. Set as default with `nvm alias default 22`.
+
 ## Coding Style
 
 - Use TypeScript and Angular conventions.

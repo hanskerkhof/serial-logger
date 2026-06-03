@@ -17,6 +17,8 @@ npm run generate:cmdr-types  # Regenerate src/app/api/generated/cmdr-api.types.t
 
 The dev server runs on port **4210** (not the default 4200).
 
+**Node 22 required** — Angular 21 requires Node ≥ 20.19 or ≥ 22.12. Use `nvm use 22` before `npm start`. Set as default with `nvm alias default 22`.
+
 Tests use Karma with Jasmine (`ng test`). There is currently only one spec file: `src/app/app.spec.ts`.
 
 ## Architecture

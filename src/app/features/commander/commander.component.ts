@@ -1686,6 +1686,11 @@ export class CommanderComponent implements OnInit {
     this.startFixtureUpdateQueue(fixtures.map((f) => f.fixture_name), 'compile');
   }
 
+  protected popoverUpdateFromBinPlan(fixtures: { fixture_name: string }[]): void {
+    if (!this.checkApiReachable() || this.updateFixturesLoading()) return;
+    this.startFixtureUpdateQueue(fixtures.map((f) => f.fixture_name), 'binary');
+  }
+
   protected popoverRebootPlan(fixtures: { fixture_name: string }[]): void {
     if (!this.checkApiReachable()) return;
     this.startBulkCmd(

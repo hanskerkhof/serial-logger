@@ -378,17 +378,17 @@
                     }
                     <button
                       pButton type="button" [text]="true" size="small" severity="secondary"
-                      icon="pi pi-power-off"
-                      label="Reboot all ({{ allFixturesForGroup(outerGroup.plans).length }})"
-                      [disabled]="commanderUnavailable()"
-                      (click)="popoverRebootPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
-                    ></button>
-                    <button
-                      pButton type="button" [text]="true" size="small" severity="secondary"
                       icon="pi pi-box"
                       label="Update from bin ({{ allFixturesForGroup(outerGroup.plans).length }})"
                       [disabled]="commanderUnavailable() || updateFixturesLoading()"
                       (click)="popoverUpdateFromBinPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
+                    ></button>
+                    <button
+                      pButton type="button" [text]="true" size="small" severity="secondary"
+                      icon="pi pi-power-off"
+                      label="Reboot all ({{ allFixturesForGroup(outerGroup.plans).length }})"
+                      [disabled]="commanderUnavailable()"
+                      (click)="popoverRebootPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
                     ></button>
                   </div>
                 </div>
@@ -476,10 +476,10 @@
                           [text]="true"
                           size="small"
                           severity="secondary"
-                          icon="pi pi-power-off"
-                          label="Reboot Fixtures ({{ plan.fixtures.length }})"
-                          [disabled]="commanderUnavailable()"
-                          (click)="popoverRebootPlan(plan.fixtures); planMenu.hide()"
+                          icon="pi pi-box"
+                          label="Update from bin ({{ plan.fixtures.length }})"
+                          [disabled]="commanderUnavailable() || updateFixturesLoading()"
+                          (click)="popoverUpdateFromBinPlan(plan.fixtures); planMenu.hide()"
                         ></button>
                         <button
                           pButton
@@ -487,10 +487,10 @@
                           [text]="true"
                           size="small"
                           severity="secondary"
-                          icon="pi pi-box"
-                          label="Update from bin ({{ plan.fixtures.length }})"
-                          [disabled]="commanderUnavailable() || updateFixturesLoading()"
-                          (click)="popoverUpdateFromBinPlan(plan.fixtures); planMenu.hide()"
+                          icon="pi pi-power-off"
+                          label="Reboot Fixtures ({{ plan.fixtures.length }})"
+                          [disabled]="commanderUnavailable()"
+                          (click)="popoverRebootPlan(plan.fixtures); planMenu.hide()"
                         ></button>
                       </div>
                     </div>
@@ -613,19 +613,6 @@
                                 label="Compile &amp; Update"
                                 [disabled]="commanderUnavailable() || updateFixturesLoading() || !!fixture.stale"
                                 (click)="popoverUpdateFixture(fixture.fixture_name, 'compile'); fixtureRowMenu.hide()"
-                              ></button>
-                            }
-                            @if (fixture.raw['ota_binary_available'] === true && fixtureFwStatusMap().get(fixture.fixture_name)?.outdated) {
-                              <button
-                                pButton
-                                type="button"
-                                [text]="true"
-                                size="small"
-                                severity="secondary"
-                                icon="pi pi-box"
-                                label="Update from binary"
-                                [disabled]="commanderUnavailable() || updateFixturesLoading() || !!fixture.stale"
-                                (click)="popoverUpdateFixture(fixture.fixture_name, 'binary'); fixtureRowMenu.hide()"
                               ></button>
                             }
                             <button

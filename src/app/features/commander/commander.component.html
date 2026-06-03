@@ -902,6 +902,7 @@
       <app-command-builder
         [fixtureOptions]="builderFixtureOptions()"
         [trackOptions]="builderTrackOptions()"
+        [disabled]="commanderUnavailable()"
         (fixtureChanged)="onBuilderFixtureChanged($event)"
         (apply)="rawCommand.set($event)"
         (send)="rawCommand.set($event); runRawCommand()"

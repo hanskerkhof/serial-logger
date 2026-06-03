@@ -1,10 +1,10 @@
-<section class="command-builder">
+<section class="command-builder" [class.command-builder--disabled]="disabled()">
   <div class="command-builder__row">
 
     <div class="command-builder__field">
       <span class="command-builder__field-label">ack</span>
       <div class="command-builder__field-control command-builder__field-control--ack">
-        <p-toggleswitch [ngModel]="ack()" (ngModelChange)="ack.set($event)" size="small" />
+        <p-toggleswitch [ngModel]="ack()" (ngModelChange)="ack.set($event)" size="small" [disabled]="disabled()" />
       </div>
     </div>
 
@@ -12,42 +12,24 @@
       <span class="command-builder__field-label">fixture</span>
       <div class="command-builder__track-row">
         <button
-          pButton
-          type="button"
-          icon="pi pi-chevron-left"
-          [text]="true"
-          [rounded]="true"
-          severity="secondary"
-          size="small"
-          [disabled]="!fixtureOptions().length"
-          aria-label="Previous fixture"
-          (click)="prevFixture()"
+          pButton type="button" icon="pi pi-chevron-left" [text]="true" [rounded]="true"
+          severity="secondary" size="small"
+          [disabled]="disabled() || !fixtureOptions().length"
+          aria-label="Previous fixture" (click)="prevFixture()"
         ></button>
         <p-select
-          [options]="fixtureOptions()"
-          optionLabel="label"
-          optionValue="value"
-          [ngModel]="fixture()"
-          (ngModelChange)="fixture.set($event); fixtureChanged.emit($event)"
-          placeholder="Select"
-          [filter]="true"
-          filterBy="label"
-          appendTo="body"
-          size="small"
-          scrollHeight="420px"
+          [options]="fixtureOptions()" optionLabel="label" optionValue="value"
+          [ngModel]="fixture()" (ngModelChange)="fixture.set($event); fixtureChanged.emit($event)"
+          placeholder="Select" [filter]="true" filterBy="label"
+          appendTo="body" size="small" scrollHeight="420px"
+          [disabled]="disabled()"
           styleClass="command-builder__select"
         ></p-select>
         <button
-          pButton
-          type="button"
-          icon="pi pi-chevron-right"
-          [text]="true"
-          [rounded]="true"
-          severity="secondary"
-          size="small"
-          [disabled]="!fixtureOptions().length"
-          aria-label="Next fixture"
-          (click)="nextFixture()"
+          pButton type="button" icon="pi pi-chevron-right" [text]="true" [rounded]="true"
+          severity="secondary" size="small"
+          [disabled]="disabled() || !fixtureOptions().length"
+          aria-label="Next fixture" (click)="nextFixture()"
         ></button>
       </div>
     </div>
@@ -55,16 +37,11 @@
     <div class="command-builder__field">
       <span class="command-builder__field-label">command</span>
       <p-select
-        [options]="commandOptions"
-        optionLabel="label"
-        [ngModel]="commandType()"
-        (ngModelChange)="onCommandTypeChange($event)"
-        placeholder="Select"
-        [filter]="true"
-        filterBy="label"
-        appendTo="body"
-        size="small"
-        scrollHeight="420px"
+        [options]="commandOptions" optionLabel="label"
+        [ngModel]="commandType()" (ngModelChange)="onCommandTypeChange($event)"
+        placeholder="Select" [filter]="true" filterBy="label"
+        appendTo="body" size="small" scrollHeight="420px"
+        [disabled]="disabled()"
         styleClass="command-builder__select command-builder__select--command"
       ></p-select>
     </div>
@@ -73,15 +50,10 @@
       <div class="command-builder__field">
         <span class="command-builder__field-label">{{ commandType()?.value === 'setEqualizer' ? 'preset' : 'action' }}</span>
         <p-select
-          [options]="currentActions()"
-          optionLabel="label"
-          optionValue="value"
-          [ngModel]="action()"
-          (ngModelChange)="action.set($event)"
-          placeholder="Select"
-          appendTo="body"
-          size="small"
-          scrollHeight="220px"
+          [options]="currentActions()" optionLabel="label" optionValue="value"
+          [ngModel]="action()" (ngModelChange)="action.set($event)"
+          placeholder="Select" appendTo="body" size="small" scrollHeight="220px"
+          [disabled]="disabled()"
           styleClass="command-builder__select command-builder__select--action"
         ></p-select>
       </div>
@@ -92,41 +64,24 @@
         <span class="command-builder__field-label">track</span>
         <div class="command-builder__track-row">
           <button
-            pButton
-            type="button"
-            icon="pi pi-chevron-left"
-            [text]="true"
-            [rounded]="true"
-            severity="secondary"
-            size="small"
-            [disabled]="!trackOptions().length"
-            aria-label="Previous track"
-            (click)="prevTrack()"
+            pButton type="button" icon="pi pi-chevron-left" [text]="true" [rounded]="true"
+            severity="secondary" size="small"
+            [disabled]="disabled() || !trackOptions().length"
+            aria-label="Previous track" (click)="prevTrack()"
           ></button>
           <p-select
-            [options]="trackOptions()"
-            optionLabel="label"
-            optionValue="value"
-            [ngModel]="track()"
-            (ngModelChange)="track.set($event)"
-            placeholder="Select"
-            [filter]="trackOptions().length > 8"
-            appendTo="body"
-            size="small"
-            scrollHeight="420px"
+            [options]="trackOptions()" optionLabel="label" optionValue="value"
+            [ngModel]="track()" (ngModelChange)="track.set($event)"
+            placeholder="Select" [filter]="trackOptions().length > 8"
+            appendTo="body" size="small" scrollHeight="420px"
+            [disabled]="disabled()"
             styleClass="command-builder__select"
           ></p-select>
           <button
-            pButton
-            type="button"
-            icon="pi pi-chevron-right"
-            [text]="true"
-            [rounded]="true"
-            severity="secondary"
-            size="small"
-            [disabled]="!trackOptions().length"
-            aria-label="Next track"
-            (click)="nextTrack()"
+            pButton type="button" icon="pi pi-chevron-right" [text]="true" [rounded]="true"
+            severity="secondary" size="small"
+            [disabled]="disabled() || !trackOptions().length"
+            aria-label="Next track" (click)="nextTrack()"
           ></button>
         </div>
       </div>
@@ -138,14 +93,10 @@
         <p-inputnumber
           [ngModel]="paramValues()[param.key]"
           (ngModelChange)="setParam(param.key, $event)"
-          [min]="param.min"
-          [max]="param.max"
-          [step]="param.step"
-          [showButtons]="true"
-          buttonLayout="horizontal"
-          incrementButtonIcon="pi pi-plus"
-          decrementButtonIcon="pi pi-minus"
-          size="small"
+          [min]="param.min" [max]="param.max" [step]="param.step"
+          [showButtons]="true" buttonLayout="horizontal"
+          incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus"
+          size="small" [disabled]="disabled()"
           [inputStyle]="{ width: '4rem', textAlign: 'center' }"
         />
       </div>
@@ -155,20 +106,13 @@
       <span class="command-builder__field-label">&nbsp;</span>
       <div class="command-builder__actions">
         <button
-          pButton
-          type="button"
-          label="Apply"
-          severity="secondary"
-          size="small"
-          [disabled]="!canApply()"
+          pButton type="button" label="Apply" severity="secondary" size="small"
+          [disabled]="disabled() || !canApply()"
           (click)="onApply()"
         ></button>
         <button
-          pButton
-          type="button"
-          label="Send"
-          size="small"
-          [disabled]="!canApply()"
+          pButton type="button" label="Send" size="small"
+          [disabled]="disabled() || !canApply()"
           [loading]="sending()"
           (click)="onSend()"
         ></button>

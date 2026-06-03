@@ -125,6 +125,9 @@ export class CommandBuilderComponent implements OnInit {
   /** Fixture name options passed in from parent (label + value pairs). */
   fixtureOptions = input<{ label: string; value: string }[]>([]);
 
+  /** When true all controls are disabled — API unreachable or commander not connected. */
+  disabled = input<boolean>(false);
+
   /** Track options for the selected fixture's plan — passed in from parent. */
   trackOptions = input<{ label: string; value: number }[]>([]);
 

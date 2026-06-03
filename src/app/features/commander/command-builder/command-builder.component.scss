@@ -3,6 +3,11 @@
   flex-direction: column;
   gap: 0.5rem;
 
+  &--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
   &__row {
     display: flex;
     align-items: flex-end;

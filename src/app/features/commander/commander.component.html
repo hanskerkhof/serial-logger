@@ -333,6 +333,60 @@
           <section class="commander__plan-group">
             <header class="commander__plan-group-header">
               <h4 class="commander__plan-group-title">{{ outerGroup.plan_group }}</h4>
+              @if (outerGroup.plans.length > 1 || allFixturesForGroup(outerGroup.plans).length > 1) {
+              <button
+                pButton
+                type="button"
+                icon="pi pi-ellipsis-v"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                title="Group actions"
+                aria-label="Group actions for {{ outerGroup.plan_group }}"
+                (click)="planGroupMenu.toggle($event)"
+              ></button>
+              <p-popover #planGroupMenu appendTo="body">
+                <div class="fixture-row-menu">
+                  <h4 class="commander__plan-group-title commander__plan-group-title--popover">
+                    {{ outerGroup.plan_group }}
+                    <span class="commander__plan-group-title-count">({{ outerGroup.plans.length }} / {{ allFixturesForGroup(outerGroup.plans).length }})</span>
+                  </h4>
+                  <div class="fixture-row-menu__actions">
+                    <button
+                      pButton type="button" [text]="true" size="small" severity="secondary"
+                      icon="pi pi-play"
+                      label="Trigger all ({{ allFixturesForGroup(outerGroup.plans).length }})"
+                      [disabled]="commanderUnavailable()"
+                      (click)="popoverTriggerPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
+                    ></button>
+                    <button
+                      pButton type="button" [text]="true" size="small" severity="secondary"
+                      icon="pi pi-stop-circle"
+                      label="Stop all ({{ allFixturesForGroup(outerGroup.plans).length }})"
+                      [disabled]="commanderUnavailable()"
+                      (click)="popoverStopPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
+                    ></button>
+                    @if (compileSupported()) {
+                      <button
+                        pButton type="button" [text]="true" size="small" severity="secondary"
+                        icon="pi pi-cloud-upload"
+                        label="Compile &amp; Update ({{ allFixturesForGroup(outerGroup.plans).length }})"
+                        [disabled]="commanderUnavailable() || updateFixturesLoading()"
+                        (click)="popoverCompileUpdatePlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
+                      ></button>
+                    }
+                    <button
+                      pButton type="button" [text]="true" size="small" severity="secondary"
+                      icon="pi pi-power-off"
+                      label="Reboot all ({{ allFixturesForGroup(outerGroup.plans).length }})"
+                      [disabled]="commanderUnavailable()"
+                      (click)="popoverRebootPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
+                    ></button>
+                  </div>
+                </div>
+              </p-popover>
+              }
               <button
                 pButton
                 type="button"
@@ -369,6 +423,10 @@
                   ></button>
                   <p-popover #planMenu appendTo="body">
                     <div class="fixture-row-menu">
+                      <h4 class="commander__group-title commander__group-title--popover">
+                        {{ plan.plan_name }}
+                        <span class="commander__plan-group-title-count">({{ plan.fixtures.length }})</span>
+                      </h4>
                       <div class="fixture-row-menu__actions">
                         <button
                           pButton

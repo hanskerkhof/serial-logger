@@ -1652,6 +1652,11 @@ export class CommanderComponent implements OnInit {
     this.startFixtureUpdateQueue([fixtureName], mode);
   }
 
+  /** Flatten all fixtures across all plans in a plan_group for group-level actions. */
+  protected allFixturesForGroup(plans: FixturePlanGroup[]): { fixture_name: string }[] {
+    return plans.flatMap((p) => p.fixtures);
+  }
+
   protected popoverTriggerPlan(fixtures: { fixture_name: string }[]): void {
     if (!this.checkApiReachable()) return;
     this.startBulkCmd(

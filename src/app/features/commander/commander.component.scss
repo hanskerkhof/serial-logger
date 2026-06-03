@@ -513,6 +513,25 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  &--popover {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--p-surface-200);
+  }
+}
+
+.commander__plan-group-title-count {
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--p-text-muted-color);
+  opacity: 0.7;
 }
 
 .commander__group {
@@ -551,6 +570,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  &--popover {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--p-surface-200);
+  }
 }
 
 .commander__fixture-list {

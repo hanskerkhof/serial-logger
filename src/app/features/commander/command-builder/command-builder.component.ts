@@ -260,6 +260,22 @@ export class CommandBuilderComponent implements OnInit {
     this.paramValues.update((prev) => ({ ...prev, [key]: value }));
   }
 
+  protected prevFixture(): void {
+    const opts = this.fixtureOptions();
+    if (!opts.length) return;
+    const idx = opts.findIndex((o) => o.value === this.fixture());
+    this.fixture.set(opts[idx <= 0 ? opts.length - 1 : idx - 1].value);
+    this.fixtureChanged.emit(this.fixture());
+  }
+
+  protected nextFixture(): void {
+    const opts = this.fixtureOptions();
+    if (!opts.length) return;
+    const idx = opts.findIndex((o) => o.value === this.fixture());
+    this.fixture.set(opts[idx < 0 || idx >= opts.length - 1 ? 0 : idx + 1].value);
+    this.fixtureChanged.emit(this.fixture());
+  }
+
   protected prevTrack(): void {
     const opts = this.trackOptions();
     if (!opts.length) return;

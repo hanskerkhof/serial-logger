@@ -10,20 +10,46 @@
 
     <div class="command-builder__field">
       <span class="command-builder__field-label">fixture</span>
-      <p-select
-        [options]="fixtureOptions()"
-        optionLabel="label"
-        optionValue="value"
-        [ngModel]="fixture()"
-        (ngModelChange)="fixture.set($event)"
-        placeholder="Select"
-        [filter]="true"
-        filterBy="label"
-        appendTo="body"
-        size="small"
-      scrollHeight="420px"
-      styleClass="command-builder__select"
-      ></p-select>
+      <div class="command-builder__track-row">
+        <button
+          pButton
+          type="button"
+          icon="pi pi-chevron-left"
+          [text]="true"
+          [rounded]="true"
+          severity="secondary"
+          size="small"
+          [disabled]="!fixtureOptions().length"
+          aria-label="Previous fixture"
+          (click)="prevFixture()"
+        ></button>
+        <p-select
+          [options]="fixtureOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="fixture()"
+          (ngModelChange)="fixture.set($event); fixtureChanged.emit($event)"
+          placeholder="Select"
+          [filter]="true"
+          filterBy="label"
+          appendTo="body"
+          size="small"
+          scrollHeight="420px"
+          styleClass="command-builder__select"
+        ></p-select>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-chevron-right"
+          [text]="true"
+          [rounded]="true"
+          severity="secondary"
+          size="small"
+          [disabled]="!fixtureOptions().length"
+          aria-label="Next fixture"
+          (click)="nextFixture()"
+        ></button>
+      </div>
     </div>
 
     <div class="command-builder__field">
@@ -110,7 +136,7 @@
       <div class="command-builder__field">
         <span class="command-builder__field-label">{{ param.label }}</span>
         <p-inputnumber
-          [ngModel]="paramValues()[param.key] ?? param.default"
+          [ngModel]="paramValues()[param.key]"
           (ngModelChange)="setParam(param.key, $event)"
           [min]="param.min"
           [max]="param.max"

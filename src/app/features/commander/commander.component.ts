@@ -62,6 +62,7 @@ import {
 } from '../../api/cmdr-models';
 import { FixturePlanGroup, FixtureRecord, FixtureSource, FixtureStoreService } from '../../fixture-store.service';
 import { CommanderConsoleComponent } from './commander-console/commander-console.component';
+import { CommandBuilderComponent } from './command-builder/command-builder.component';
 import {
   FixturePlayerCommandRequest,
   FixturePlayerControlsComponent,
@@ -196,7 +197,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, CommanderConsoleComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe, DurationMsCompactPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe, DurationMsCompactPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -416,7 +417,7 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureAckEnabled = signal(false);
   protected readonly fixtureModalTab = signal<string>('commands');
   /** Tracks cached per plan name — persists across modal opens within the session. */
-  private readonly planTracksCache = signal<Map<string, { index: number; name: string; duration_ms: number }[]>>(new Map());
+  protected readonly planTracksCache = signal<Map<string, { index: number; name: string; duration_ms: number }[]>>(new Map());
   /** Per-fixture docs reload key; bumping a key tells FixtureDocsComponent to re-fetch docs list/content. */
   private readonly docsReloadKeyByFixture = signal<Map<string, number>>(new Map());
   /** Tracks for the currently selected fixture's plan, null when not yet loaded. */
@@ -1116,6 +1117,26 @@ export class CommanderComponent implements OnInit {
     })),
   );
   protected readonly fixtureCount = this.fixtureStore.fixtureCount;
+
+  /** Sorted fixture options from the store — used by the command builder. */
+  protected readonly builderFixtureOptions = computed(() =>
+    Object.keys(this.fixtureStore.fixturesByName())
+      .sort()
+      .map((name) => ({ label: name, value: name })),
+  );
+
+  /** Fixture name currently selected in the command builder. */
+  protected readonly builderFixtureName = signal<string | null>(null);
+
+  /** Track options for the command builder — fetched on demand when builder fixture changes. */
+  protected readonly builderTrackOptions = computed(() => {
+    const name = this.builderFixtureName();
+    if (!name) return [];
+    const record = this.fixtureStore.fixturesByName()[name];
+    if (!record) return [];
+    const tracks = this.planTracksCache().get(record.plan_name) ?? [];
+    return tracks.map((t) => ({ label: `${t.index + 1}. ${t.name}`, value: t.index }));
+  });
   protected readonly storageWarning = this.fixtureStore.storageWarning;
   protected readonly commanderCacheDialogVisible = signal(false);
   protected readonly commanderCacheLoading = signal(false);
@@ -3814,6 +3835,7 @@ export class CommanderComponent implements OnInit {
         const response = result as Record<string, unknown>;
         const routingMode =
           typeof response['routing_mode'] === 'string' ? (response['routing_mode'] as string) : 'direct';
+        const ackRequested = response['ack_requested'] === true;
         const commandResult =
           response['command_result'] && typeof response['command_result'] === 'object'
             ? (response['command_result'] as Record<string, unknown>)
@@ -3822,8 +3844,9 @@ export class CommanderComponent implements OnInit {
           commandResult && typeof commandResult['command'] === 'string'
             ? (commandResult['command'] as string)
             : wireCommand;
+        const acceptedLabel = ackRequested ? 'Fixture ACK confirmed' : 'Dispatch accepted';
         this.setFixtureModalFeedback(
-          `Dispatch accepted (${routingMode}) for ${fixture}: ${dispatchedWireCommand}`,
+          `${acceptedLabel} (${routingMode}) for ${fixture}: ${dispatchedWireCommand}`,
           'success',
           durationMs,
         );
@@ -3905,15 +3928,26 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, command);
   }
 
+  protected onBuilderFixtureChanged(fixtureName: string | null): void {
+    this.builderFixtureName.set(fixtureName);
+    if (!fixtureName) return;
+    const record = this.fixtureStore.fixturesByName()[fixtureName];
+    if (record?.plan_name) this.loadTracksForPlan(record.plan_name);
+  }
+
   protected runRawCommand(): void {
     const command = this.rawCommand().trim();
     if (!command) return;
+
+    // ack commands: wait up to 1.5 s for fixture ACK — usually arrives in <500 ms.
+    // non-ack commands: 0.3 s is enough to confirm dispatch; no ACK round-trip needed.
+    const listenSeconds = command.startsWith('ack;') ? 1.5 : 0.3;
 
     this.rawCommandLoading.set(true);
     this.rawCommandError.set(null);
     this.rawCommandResult.set(null);
 
-    this.commanderApi.postRawCommand(command).subscribe({
+    this.commanderApi.postRawCommand(command, listenSeconds).subscribe({
       next: (result) => {
         this.rawCommandResult.set(result);
         this.rawCommandLoading.set(false);
@@ -3923,6 +3957,35 @@ export class CommanderComponent implements OnInit {
         this.rawCommandLoading.set(false);
       },
     });
+  }
+
+  /**
+   * Extract fixture_ack_ok from a raw command result.
+   * The field lives inside the BK_ACK JSON blob serialised in raw_output,
+   * not as a top-level property on command_result.
+   * Returns true/false when found, null when not present (no ack requested).
+   */
+  /**
+   * Extract fixture_ack_ok from a raw command result.
+   * Returns { ok: boolean } when found, null when not present (no ack requested).
+   * Wrapped in an object so @if works correctly even when ok === false.
+   */
+  protected rawResultAckStatus(result: RawCommandResponse): { ok: boolean } | null {
+    // Try top-level command_result fields first (future-proof)
+    const topLevel = result.command_result['fixture_ack_ok'];
+    if (typeof topLevel === 'boolean') return { ok: topLevel };
+
+    // raw_output is a newline-separated string of BK_* event JSON blobs.
+    // Search each line for a BK_ACK event and parse fixture_ack_ok from it.
+    const raw = result.command_result.raw_output ?? '';
+    for (const line of raw.split('\n')) {
+      if (!line.startsWith('BK_ACK ')) continue;
+      try {
+        const ev = JSON.parse(line.slice(7)) as Record<string, unknown>;
+        if (typeof ev['fixture_ack_ok'] === 'boolean') return { ok: ev['fixture_ack_ok'] as boolean };
+      } catch { /* malformed line — skip */ }
+    }
+    return null;
   }
 
   protected runManualCommand(): void {

@@ -1,0 +1,75 @@
+.command-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__field-label {
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
+    user-select: none;
+  }
+
+  &__field-control--ack {
+    display: flex;
+    align-items: center;
+    height: 1.75rem; // align with small input height
+  }
+
+  &__select {
+    min-width: 11rem;
+
+    &--action {
+      min-width: 8rem;
+    }
+
+    // Wide enough to show the longest command name (setEqualizer = 12 chars + padding)
+    &--command {
+      min-width: 10rem;
+    }
+  }
+
+  &__track-row {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  &__preview {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    background: var(--p-surface-100);
+    border-radius: var(--p-border-radius-sm);
+    font-size: 0.8rem;
+  }
+
+  &__preview-label {
+    color: var(--p-text-muted-color);
+    flex-shrink: 0;
+  }
+
+  &__preview-cmd {
+    font-family: var(--p-font-family-mono, monospace);
+    color: var(--p-primary-color);
+    word-break: break-all;
+  }
+}

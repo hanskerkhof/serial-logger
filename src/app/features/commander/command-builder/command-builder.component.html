@@ -1,0 +1,160 @@
+<section class="command-builder">
+  <div class="command-builder__row">
+
+    <div class="command-builder__field">
+      <span class="command-builder__field-label">ack</span>
+      <div class="command-builder__field-control command-builder__field-control--ack">
+        <p-toggleswitch [ngModel]="ack()" (ngModelChange)="ack.set($event)" size="small" />
+      </div>
+    </div>
+
+    <div class="command-builder__field">
+      <span class="command-builder__field-label">fixture</span>
+      <p-select
+        [options]="fixtureOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="fixture()"
+        (ngModelChange)="fixture.set($event)"
+        placeholder="Select"
+        [filter]="true"
+        filterBy="label"
+        appendTo="body"
+        size="small"
+      scrollHeight="420px"
+      styleClass="command-builder__select"
+      ></p-select>
+    </div>
+
+    <div class="command-builder__field">
+      <span class="command-builder__field-label">command</span>
+      <p-select
+        [options]="commandOptions"
+        optionLabel="label"
+        [ngModel]="commandType()"
+        (ngModelChange)="onCommandTypeChange($event)"
+        placeholder="Select"
+        [filter]="true"
+        filterBy="label"
+        appendTo="body"
+        size="small"
+        scrollHeight="420px"
+        styleClass="command-builder__select command-builder__select--command"
+      ></p-select>
+    </div>
+
+    @if (currentActions().length > 0) {
+      <div class="command-builder__field">
+        <span class="command-builder__field-label">{{ commandType()?.value === 'setEqualizer' ? 'preset' : 'action' }}</span>
+        <p-select
+          [options]="currentActions()"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="action()"
+          (ngModelChange)="action.set($event)"
+          placeholder="Select"
+          appendTo="body"
+          size="small"
+          scrollHeight="220px"
+          styleClass="command-builder__select command-builder__select--action"
+        ></p-select>
+      </div>
+    }
+
+    @if (needsTrack()) {
+      <div class="command-builder__field">
+        <span class="command-builder__field-label">track</span>
+        <div class="command-builder__track-row">
+          <button
+            pButton
+            type="button"
+            icon="pi pi-chevron-left"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            [disabled]="!trackOptions().length"
+            aria-label="Previous track"
+            (click)="prevTrack()"
+          ></button>
+          <p-select
+            [options]="trackOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="track()"
+            (ngModelChange)="track.set($event)"
+            placeholder="Select"
+            [filter]="trackOptions().length > 8"
+            appendTo="body"
+            size="small"
+            scrollHeight="420px"
+            styleClass="command-builder__select"
+          ></p-select>
+          <button
+            pButton
+            type="button"
+            icon="pi pi-chevron-right"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            [disabled]="!trackOptions().length"
+            aria-label="Next track"
+            (click)="nextTrack()"
+          ></button>
+        </div>
+      </div>
+    }
+
+    @for (param of currentParams(); track param.key) {
+      <div class="command-builder__field">
+        <span class="command-builder__field-label">{{ param.label }}</span>
+        <p-inputnumber
+          [ngModel]="paramValues()[param.key] ?? param.default"
+          (ngModelChange)="setParam(param.key, $event)"
+          [min]="param.min"
+          [max]="param.max"
+          [step]="param.step"
+          [showButtons]="true"
+          buttonLayout="horizontal"
+          incrementButtonIcon="pi pi-plus"
+          decrementButtonIcon="pi pi-minus"
+          size="small"
+          [inputStyle]="{ width: '4rem', textAlign: 'center' }"
+        />
+      </div>
+    }
+
+    <div class="command-builder__field command-builder__field--actions">
+      <span class="command-builder__field-label">&nbsp;</span>
+      <div class="command-builder__actions">
+        <button
+          pButton
+          type="button"
+          label="Apply"
+          severity="secondary"
+          size="small"
+          [disabled]="!canApply()"
+          (click)="onApply()"
+        ></button>
+        <button
+          pButton
+          type="button"
+          label="Send"
+          size="small"
+          [disabled]="!canApply()"
+          [loading]="sending()"
+          (click)="onSend()"
+        ></button>
+      </div>
+    </div>
+
+  </div>
+
+  @if (preview(); as cmd) {
+    <div class="command-builder__preview">
+      <span class="command-builder__preview-label">Preview:</span>
+      <code class="command-builder__preview-cmd">{{ cmd }}</code>
+    </div>
+  }
+</section>

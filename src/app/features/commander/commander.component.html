@@ -841,14 +841,21 @@
     ></app-commander-console>
 
     <section class="commander__raw-section" aria-label="Raw commander command">
+      <app-command-builder
+        [fixtureOptions]="builderFixtureOptions()"
+        [trackOptions]="builderTrackOptions()"
+        (fixtureChanged)="onBuilderFixtureChanged($event)"
+        (apply)="rawCommand.set($event)"
+        (send)="rawCommand.set($event); runRawCommand()"
+      ></app-command-builder>
       <p-inputgroup>
         <input
           pInputText
           type="text"
           [ngModel]="rawCommand()"
-          (ngModelChange)="rawCommand.set($event)"
+          (ngModelChange)="rawCommand.set($event); rawCommandResult.set(null); rawCommandError.set(null)"
           (keyup.enter)="runRawCommand()"
-          placeholder="fs ANTLERTENN1 · R · tcmd;FIXTURE;cmd;plan;action=trigger;"
+          placeholder="e.g. ack;tcmd;FOUR_CTRL_1;cmd;plan;action=trigger;"
         />
         <button
           pButton
@@ -861,6 +868,33 @@
       </p-inputgroup>
       @if (rawCommandError(); as err) {
         <p class="commander__raw-error">{{ err }}</p>
+      }
+      @if (rawCommandLoading()) {
+        <div class="commander__raw-result commander__raw-result--loading">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Sending command…</span>
+        </div>
+      } @else if (rawCommandResult(); as result) {
+        <div class="commander__raw-result" [class.commander__raw-result--ok]="result.ok" [class.commander__raw-result--fail]="!result.ok">
+          <span class="commander__raw-result-badge">{{ result.ok ? '✓' : '✗' }}</span>
+          @if (rawResultAckStatus(result); as ack) {
+            <span class="commander__raw-result-ack"
+                  [class.commander__raw-result-ack--ok]="ack.ok"
+                  [class.commander__raw-result-ack--fail]="!ack.ok">
+              {{ ack.ok ? 'Fixture ACK confirmed' : 'Fixture ACK failed' }}
+            </span>
+          } @else {
+            <span class="commander__raw-result-accepted">
+              {{ result.command_result.accepted ? 'Dispatch accepted' : 'Not accepted' }}
+            </span>
+          }
+          @if (result.command_result.raw_output) {
+            <code class="commander__raw-result-output">{{ result.command_result.raw_output }}</code>
+          }
+          @if (result.command_result.serial_error) {
+            <span class="commander__raw-result-serial-error">{{ result.command_result.serial_error }}</span>
+          }
+        </div>
       }
     </section>
   </div>

@@ -535,6 +535,8 @@ export class CommanderComponent implements OnInit {
   protected readonly rawCommandLoading = signal(false);
   protected readonly rawCommandResult = signal<RawCommandResponse | null>(null);
   protected readonly rawCommandError = signal<string | null>(null);
+  private rawCommandSentAtMs = 0;
+  protected readonly rawCommandRoundTripMs = signal<number | null>(null);
   protected readonly backendBusy = computed(
     () =>
       this.discoveryLoading() ||
@@ -3956,9 +3958,14 @@ export class CommanderComponent implements OnInit {
     this.rawCommandLoading.set(true);
     this.rawCommandError.set(null);
     this.rawCommandResult.set(null);
+    this.rawCommandRoundTripMs.set(null);
+    this.rawCommandSentAtMs = Date.now();
 
     this.commanderApi.postRawCommand(command, listenSeconds).subscribe({
       next: (result) => {
+        const clientElapsedMs = Date.now() - this.rawCommandSentAtMs;
+        const rtMs = this.extractCommandRoundTripMs(result as unknown as Record<string, unknown>, clientElapsedMs);
+        this.rawCommandRoundTripMs.set(Math.round(rtMs));
         this.rawCommandResult.set(result);
         this.rawCommandLoading.set(false);
       },
@@ -4510,11 +4517,14 @@ export class CommanderComponent implements OnInit {
     const commandTiming = commandResult?.['timing'];
     if (commandTiming && typeof commandTiming === 'object') {
       const timing = commandTiming as Record<string, unknown>;
+      // ack_received_ms is the most accurate: time from command send to BK_ACK arrival.
+      // first_bk_marker_ms is next best: time to first BK_* response (BK_CMD dispatch confirm).
+      // Avoid total_ms / elapsed_ms — those reflect the full listen window, not the actual RTT.
       timingCandidates.push(
+        timing['ack_received_ms'],
         timing['round_trip_ms'],
         timing['roundtrip_ms'],
-        timing['duration_ms'],
-        timing['elapsed_ms'],
+        timing['first_bk_marker_ms'],
       );
     }
 

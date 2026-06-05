@@ -849,6 +849,7 @@
 
 .commander__raw-result {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
   padding: 0.35rem 0.6rem;
@@ -890,6 +891,13 @@
 
   &--ok  { color: var(--p-green-500); }
   &--fail { color: var(--p-red-500); }
+}
+
+.commander__raw-result-rtt {
+  color: var(--p-text-muted-color);
+  font-size: 0.8em;
+  flex-shrink: 0;
+  flex-basis: 100%;
 }
 
 .commander__raw-result-output {

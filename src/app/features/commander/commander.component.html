@@ -964,6 +964,9 @@
               {{ result.command_result.accepted ? 'Dispatch accepted' : 'Not accepted' }}
             </span>
           }
+          @if (rawCommandRoundTripMs(); as rtMs) {
+            <span class="commander__raw-result-rtt">{{ rtMs }} ms</span>
+          }
           @if (result.command_result.raw_output) {
             <code class="commander__raw-result-output">{{ result.command_result.raw_output }}</code>
           }

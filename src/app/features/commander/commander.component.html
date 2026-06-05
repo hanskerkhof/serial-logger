@@ -137,7 +137,8 @@
                 <td>
                   <div class="commander__update-report-steps">
                     @for (step of row.steps; track $index) {
-                      <div class="commander__update-report-step-line">
+                      <div class="commander__update-report-step-line"
+                           [class.commander__update-report-step-line--is-error]="step.step === 'error'">
                         <span class="commander__update-report-step-time">
                           @if (step.sincePrevMs === null) { start }
                           @else { +{{ formatUpdateReportMs(step.sincePrevMs) }} }

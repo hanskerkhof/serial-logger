@@ -467,6 +467,17 @@
   color: var(--p-text-muted-color);
 }
 
+.commander__update-report-step-line--is-error {
+  .commander__update-report-step-name {
+    color: var(--p-red-500);
+  }
+
+  .commander__update-report-step-msg {
+    color: var(--p-red-400);
+    font-style: italic;
+  }
+}
+
 .commander__update-report-empty {
   margin: 0;
   font-size: 0.9rem;

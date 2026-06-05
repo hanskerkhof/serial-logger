@@ -2954,16 +2954,26 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    const detailFailed =
-      failed > 0
-        ? `Failed: ${this.updateFixturesFailures.slice(0, 5).join(', ')}${failed > 5 ? ', ...' : ''}`
-        : undefined;
+    let detailFailed: string | undefined;
+    if (failed > 0) {
+      const failedNames = this.updateFixturesFailures.slice(0, 5);
+      const overflow = failed > 5 ? ', …' : '';
+      // Collect error messages from the report for failed fixtures (first error step per fixture).
+      const errorReasons = failedNames
+        .map((name) => {
+          const entry = this.updateReportByFixture().get(name);
+          const errorStep = entry?.steps.find((s) => s.step === 'error' && s.message);
+          return errorStep?.message ? `${name}: ${errorStep.message}` : name;
+        })
+        .join(' · ');
+      detailFailed = `${errorReasons}${overflow}`;
+    }
     this.messageService.add({
       key: 'app',
       severity: failed > 0 ? 'warn' : 'success',
       summary: `Update run finished: ${success}/${total} successful${failed > 0 ? `, ${failed} failed` : ''}`,
       detail: detailFailed,
-      life: 7000,
+      life: failed > 0 ? 12000 : 7000,
     });
     this.clearPersistedUpdateFixturesState();
   }

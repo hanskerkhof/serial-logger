@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewChild, WritableSignal, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, ViewChild, WritableSignal, computed, effect, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -70,6 +70,7 @@ export class FixturePlayerControlsComponent {
   readonly planStatus = input<string | null>(null);
   readonly liveUpdateEnabled = input<boolean>(true);
   readonly disabled = input<boolean>(false);
+  readonly analogVolumeEnabled = input<boolean | null>(null);
 
   protected readonly autoPlayTooltip = computed(() =>
     this.liveUpdateEnabled()
@@ -82,6 +83,8 @@ export class FixturePlayerControlsComponent {
 
   readonly autoPlay = signal(false);
   readonly analogOverride = signal(false);
+  // Optimistic local state for the analog-volume toggle; resets to server value when input updates.
+  protected readonly localAnalogVolumeEnabled = linkedSignal(() => this.analogVolumeEnabled() ?? true);
   readonly isTrackSelectOpen = signal(false);
   readonly isVolumeDragging = signal(false);
   readonly isVolumeFocused = signal(false);
@@ -356,6 +359,11 @@ export class FixturePlayerControlsComponent {
       volumeScale: 30,
       requestId,
     });
+  }
+
+  onAnalogVolumeToggle(enabled: boolean): void {
+    this.localAnalogVolumeEnabled.set(enabled);
+    this.commandRequested.emit({ command: `cmd;analogVolume;enabled=${enabled ? '1' : '0'};` });
   }
 
   applyDefaultVolume(): void {

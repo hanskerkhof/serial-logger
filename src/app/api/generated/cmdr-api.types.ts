@@ -1346,6 +1346,8 @@ export interface components {
             plan_group: string | null;
             /** Plan Name */
             plan_name: string | null;
+            /** Analog Volume Enabled */
+            analog_volume_enabled?: boolean | null;
             /** Plan State */
             plan_state?: {
                 [key: string]: unknown;

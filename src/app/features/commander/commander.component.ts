@@ -1423,6 +1423,11 @@ export class CommanderComponent implements OnInit {
     return { volume, eq, trackIndex, playerStatus, elapsedMs, durationMs };
   });
 
+  protected readonly selectedFixtureAnalogVolumeEnabled = computed<boolean | null>(() => {
+    const v = this.selectedFixture()?.raw['analog_volume_enabled'];
+    return typeof v === 'boolean' ? v : null;
+  });
+
   protected readonly selectedFixtureRelayStates = computed<CmdrRelayStateItem[] | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     const s = ps?.['state'] as Record<string, unknown> | null | undefined;

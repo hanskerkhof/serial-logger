@@ -155,12 +155,26 @@
         </div>
       }
 
+      @if (p.analog_volume_active) {
+        <div class="fixture-player-controls__row">
+          <span class="fixture-player-controls__row-label">Pot</span>
+          <p-toggleswitch
+            [ngModel]="localAnalogVolumeEnabled()"
+            (ngModelChange)="onAnalogVolumeToggle($event)"
+            [disabled]="disabled()"
+          />
+          <span class="fixture-player-controls__analog-note">
+            {{ localAnalogVolumeEnabled() ? 'potmeter active' : 'potmeter disabled' }}
+          </span>
+        </div>
+      }
+
       <div class="fixture-player-controls__row">
         <span class="fixture-player-controls__row-label">Vol</span>
-        @if (p.analog_volume_active && !analogOverride()) {
+        @if (p.analog_volume_active && localAnalogVolumeEnabled() && !analogOverride()) {
           <span class="fixture-player-controls__analog-note">not available (analog)</span>
         }
-        @if (!p.analog_volume_active || analogOverride()) {
+        @if (!p.analog_volume_active || !localAnalogVolumeEnabled() || analogOverride()) {
           <span #volumeSliderHost>
             <p-slider
               class="fixture-player-controls__range"
@@ -193,7 +207,7 @@
             >default vol ({{ defaultVolume() }})</button>
           }
         }
-        @if (p.analog_volume_active) {
+        @if (p.analog_volume_active && localAnalogVolumeEnabled()) {
           <label class="fixture-player-controls__override-label">
             <input type="checkbox" [checked]="analogOverride()" (change)="analogOverride.set(!analogOverride())" />
             override

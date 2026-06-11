@@ -1200,7 +1200,7 @@
       </div>
       <div class="commander__dialog-header-actions">
         <label class="commander__dialog-poll-toggle">
-          <span>Live update</span>
+          <span>Live update by request</span>
           <p-toggleswitch
             [ngModel]="fixtureModalPollingEnabled()"
             (ngModelChange)="onFixtureModalPollingToggle(!!$event)"
@@ -1429,6 +1429,36 @@
               (commandRequested)="onPlayerCommand($event)"
               (volumeSyncIssue)="onPlayerVolumeSyncIssue($event)"
             />
+            <section class="commander__passive-ps-monitor" aria-label="Passive plan state monitor">
+              <div class="commander__passive-ps-header">
+                <h4 class="commander__passive-ps-title">Passive plan state</h4>
+                <p-select
+                  class="commander__passive-ps-interval-select"
+                  [ngModel]="passivePsIntervalMs()"
+                  (ngModelChange)="onPassivePsIntervalChange($event)"
+                  [options]="passivePsIntervalOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  size="small"
+                  appendTo="body"
+                  [disabled]="commanderUnavailable()"
+                  aria-label="Passive plan state interval"
+                ></p-select>
+              </div>
+              @if (passivePsCount() > 0) {
+                <div class="commander__passive-ps-stats">
+                  <span class="commander__passive-ps-count">{{ passivePsCount() }} msgs</span>
+                  @if (passivePsLastIntervalMs(); as iv) {
+                    <span class="commander__passive-ps-interval">Δ {{ iv }} ms</span>
+                  }
+                  @if (passivePsLastAgoLabel(); as ago) {
+                    <span class="commander__passive-ps-ago">{{ ago }}</span>
+                  }
+                </div>
+              } @else {
+                <p class="commander__passive-ps-waiting">Waiting for passive_plan_state…</p>
+              }
+            </section>
 <!--            <section class="commander__rssi-session" aria-label="RSSI session">-->
 <!--              @if (selectedFixtureIsEsp8266()) {-->
 <!--                <p class="commander__rssi-session-unsupported">-->

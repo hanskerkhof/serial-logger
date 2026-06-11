@@ -413,6 +413,7 @@ export class CommanderComponent implements OnInit {
   protected readonly fixtureActionTone = signal<FixtureModalFeedbackTone>('info');
   protected readonly fixtureActionDurationMs = signal<number | null>(null);
   protected readonly playerVolumeSyncResult = signal<VolumeSyncResultEvent | null>(null);
+  private _pendingVolumeSync: { requestId: string; targetVolume: number | null } | null = null;
   protected readonly rebootConfirmPending = signal(false);
   protected readonly fixtureAckEnabled = signal(false);
   protected readonly fixtureModalTab = signal<string>('commands');
@@ -512,7 +513,7 @@ export class CommanderComponent implements OnInit {
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
   protected readonly fixtureModalVisible = signal(false);
-  protected readonly fixtureModalPollingEnabled = signal(true);
+  protected readonly fixtureModalPollingEnabled = signal(false);
   private _pollingBeforeOta: boolean | null = null; // null = not tracking; saved when OTA starts
   protected readonly fixtureModalPollIntervalOptions = [
     ...CommanderComponent.FIXTURE_MODAL_POLL_INTERVAL_OPTIONS,
@@ -611,6 +612,9 @@ export class CommanderComponent implements OnInit {
   // Tracks fixture names with an in-flight passive query to avoid duplicate concurrent requests.
   private readonly _passiveQueryInFlight = new Set<string>();
 
+  // Fixture name for which a passive plan-state push is currently active.
+  private _passivePlanStateFixture: string | null = null;
+
   // Last-seen timestamps (ms since epoch) from the passive heartbeat cache, keyed by fixture name.
   protected readonly fixtureLastSeenMs = signal<Map<string, number>>(new Map());
   private readonly discoveryLockStorageKey = 'cmdr.discovery.lock.v1';
@@ -631,6 +635,29 @@ export class CommanderComponent implements OnInit {
   protected readonly now = signal(Date.now());
   /** Millisecond timestamp of the last WS plan-state message received for the selected fixture. */
   protected readonly planStateReceivedAt = signal<number | null>(null);
+  // Passive plan-state WS monitor
+  protected readonly passivePsIntervalOptions: PollIntervalOption[] = [
+    { label: '25ms', value: 25 },
+    { label: '50ms', value: 50 },
+    { label: '100ms', value: 100 },
+    { label: '250ms', value: 250 },
+    { label: '500ms', value: 500 },
+    { label: '1s', value: 1000 },
+    { label: '2s', value: 2000 },
+    { label: '5s', value: 5000 },
+    { label: '10s', value: 10000 },
+  ];
+  protected readonly passivePsIntervalMs = signal(1000);
+  protected readonly passivePsCount = signal(0);
+  protected readonly passivePsLastAt = signal<number | null>(null);
+  protected readonly passivePsLastIntervalMs = signal<number | null>(null);
+  private _passivePsLastRawAt: number | null = null;
+  protected readonly passivePsLastAgoLabel = computed<string | null>(() => {
+    const at = this.passivePsLastAt();
+    if (at === null) return null;
+    const ms = Math.max(0, this._tick() - at);
+    return ms < 2000 ? `${ms}ms ago` : `${(ms / 1000).toFixed(1)}s ago`;
+  });
   /** Fast 250 ms ticker used to drive the "Xms ago" live counter without touching the 1 s `now` signal. */
   private readonly _tick = signal(Date.now());
   /** Human-readable "time since last plan-state update" label, e.g. "820ms" or "1.2s". */
@@ -1953,17 +1980,27 @@ export class CommanderComponent implements OnInit {
       if (!fixtureName) return;
       const selectedName = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
       if (!selectedName || fixtureName !== selectedName) return;
-      if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
-      const normalizedPlanState =
-        (msg.summary?.plan_state as Record<string, unknown> | null | undefined) ??
-        (typeof msg.plan_state === 'string' || typeof msg.state === 'object'
-          ? ({
-              fixture_name: fixtureName,
-              plan_state: msg.plan_state ?? null,
-              state: (msg.state as Record<string, unknown> | null | undefined) ?? null,
-              received_at: msg.received_at ?? msg.utc ?? null,
-            } as Record<string, unknown>)
-          : null);
+      if (!this.fixtureModalVisible()) return;
+      // For passive_plan_state, summary.plan_state is the enum string and summary.state
+      // holds the player/fixture state object — reconstruct the full plan_state record.
+      const isPassive = (msg as unknown as Record<string, unknown>)['type'] === 'passive_plan_state';
+      // Active polling updates respect the Live Update toggle; passive push does not.
+      if (!isPassive && !this.fixtureModalPollingEnabled()) return;
+      const normalizedPlanState: Record<string, unknown> | null = isPassive
+        ? {
+            fixture_name: fixtureName,
+            plan_state: msg.summary?.plan_state ?? null,
+            state: (msg.summary as Record<string, unknown> | null | undefined)?.['state'] ?? null,
+          }
+        : ((msg.summary?.plan_state as Record<string, unknown> | null | undefined) ??
+          (typeof msg.plan_state === 'string' || typeof msg.state === 'object'
+            ? ({
+                fixture_name: fixtureName,
+                plan_state: msg.plan_state ?? null,
+                state: (msg.state as Record<string, unknown> | null | undefined) ?? null,
+                received_at: msg.received_at ?? msg.utc ?? null,
+              } as Record<string, unknown>)
+            : null));
       const result = {
         ok: true,
         service: 'health_ws',
@@ -1979,6 +2016,33 @@ export class CommanderComponent implements OnInit {
       } as CmdrFixturePlanStatusResponse;
       this.modalQueryError.set(null);
       this.planStateReceivedAt.set(Date.now());
+      if (isPassive) {
+        const now = Date.now();
+        const interval = this._passivePsLastRawAt !== null ? now - this._passivePsLastRawAt : null;
+        this._passivePsLastRawAt = now;
+        this.passivePsLastAt.set(now);
+        this.passivePsCount.update(n => n + 1);
+        if (interval !== null) this.passivePsLastIntervalMs.set(interval);
+        // Resolve pending volume sync from passive state rather than a separate plan-status request.
+        const pending = this._pendingVolumeSync;
+        if (pending) {
+          const state = (normalizedPlanState?.['state'] as Record<string, unknown> | null | undefined) ?? null;
+          const authoritativeVolume = typeof state?.['volume'] === 'number' ? (state['volume'] as number) : undefined;
+          const isMismatch =
+            pending.targetVolume !== null &&
+            typeof authoritativeVolume === 'number' &&
+            authoritativeVolume !== pending.targetVolume;
+          this._pendingVolumeSync = null;
+          this.playerVolumeSyncResult.set({
+            requestId: pending.requestId,
+            status: isMismatch ? 'mismatch' : 'confirmed',
+            authoritativeVolume,
+            message: isMismatch
+              ? `Volume not applied (${pending.targetVolume} requested, ${authoritativeVolume} reported).`
+              : undefined,
+          });
+        }
+      }
       this.applyFixturePlanStatusResult(fixtureName, result);
     });
     const planStateErrorSub = this.healthService.planStateError$.subscribe((msg) => {
@@ -3486,13 +3550,19 @@ export class CommanderComponent implements OnInit {
   }
 
   protected closeFixtureModal(): void {
+    const fixture = this.selectedFixtureName();
     this.fixtureModalVisible.set(false);
     this.resetFixtureModalState();
+    if (fixture) this.stopPassivePlanState(fixture);
   }
 
   protected onFixtureDialogVisibleChange(visible: boolean): void {
     this.fixtureModalVisible.set(visible);
-    if (!visible) this.resetFixtureModalState();
+    if (!visible) {
+      this.resetFixtureModalState();
+      const fixture = this.selectedFixtureName();
+      if (fixture) this.stopPassivePlanState(fixture);
+    }
     if (visible) this.startFixtureModalPolling();
   }
 
@@ -3504,6 +3574,32 @@ export class CommanderComponent implements OnInit {
       },
       error: () => {},
     });
+  }
+
+  private startPassivePlanState(fixtureName: string, intervalMs = this.passivePsIntervalMs()): void {
+    if (this._passivePlanStateFixture === fixtureName && intervalMs === this.passivePsIntervalMs()) return;
+    if (this._passivePlanStateFixture && this._passivePlanStateFixture !== fixtureName) {
+      this.stopPassivePlanState(this._passivePlanStateFixture);
+    }
+    this.passivePsCount.set(0);
+    this.passivePsLastAt.set(null);
+    this.passivePsLastIntervalMs.set(null);
+    this._passivePsLastRawAt = null;
+    this._passivePlanStateFixture = fixtureName;
+    this.commanderApi.postFixturePassivePlanStateStart(fixtureName, intervalMs).subscribe({ error: () => {} });
+  }
+
+  protected onPassivePsIntervalChange(value: number | null | undefined): void {
+    const ms = typeof value === 'number' && value > 0 ? value : 1000;
+    const fixture = this._passivePlanStateFixture;
+    if (fixture) this.startPassivePlanState(fixture, ms);
+    this.passivePsIntervalMs.set(ms);
+  }
+
+  private stopPassivePlanState(fixtureName: string): void {
+    if (this._passivePlanStateFixture !== fixtureName) return;
+    this._passivePlanStateFixture = null;
+    this.commanderApi.postFixturePassivePlanStateStop(fixtureName).subscribe({ error: () => {} });
   }
 
   private resetFixtureModalState(): void {
@@ -3519,6 +3615,12 @@ export class CommanderComponent implements OnInit {
     this.rebootConfirmPending.set(false);
     this.fixtureModalTab.set('commands');
     this.planStateReceivedAt.set(null);
+    this.passivePsCount.set(0);
+    this.passivePsLastAt.set(null);
+    this.passivePsLastIntervalMs.set(null);
+    this._passivePsLastRawAt = null;
+    this.passivePsIntervalMs.set(1000);
+    this._pendingVolumeSync = null;
   }
 
   // Delay between successive API calls in startBulkCmd — increase if the API drops commands under load.
@@ -3893,14 +3995,14 @@ export class CommanderComponent implements OnInit {
     const targetVolume = typeof request.volume === 'number' ? request.volume : null;
     const requestId = request.requestId ?? `vol-fallback-${Date.now().toString(36)}`;
     this.playerVolumeSyncResult.set(null);
+    this._pendingVolumeSync = { requestId, targetVolume };
     this.sendCommand(
       fixture,
       request.command,
       'default',
+      undefined,
       () => {
-        this.refreshPlanStatusAfterSetVolume(fixture, requestId, targetVolume);
-      },
-      () => {
+        this._pendingVolumeSync = null;
         this.playerVolumeSyncResult.set({
           requestId,
           status: 'failed',
@@ -3909,44 +4011,6 @@ export class CommanderComponent implements OnInit {
         });
       },
     );
-  }
-
-  private refreshPlanStatusAfterSetVolume(
-    fixture: string,
-    requestId: string,
-    targetVolume: number | null,
-  ): void {
-    this.commanderApi.getFixturePlanStatus(fixture, {
-      preferQueryTokenAuth: true,
-    }).subscribe({
-      next: (result) => {
-        this.applyFixturePlanStatusResult(fixture, result);
-        const planStatePayload = result.summary?.plan_state as Record<string, unknown> | null | undefined;
-        const state = (planStatePayload?.['state'] as Record<string, unknown> | null | undefined) ?? null;
-        const authoritativeVolume = typeof state?.['volume'] === 'number' ? (state['volume'] as number) : undefined;
-        const isMismatch =
-          targetVolume !== null &&
-          typeof authoritativeVolume === 'number' &&
-          authoritativeVolume !== targetVolume;
-        if (isMismatch) {
-          this.playerVolumeSyncResult.set({
-            requestId,
-            status: 'mismatch',
-            authoritativeVolume,
-            message: `Volume not applied (${targetVolume} requested, ${authoritativeVolume} reported).`,
-          });
-          return;
-        }
-        this.playerVolumeSyncResult.set({
-          requestId,
-          status: 'confirmed',
-          authoritativeVolume,
-        });
-      },
-      error: () => {
-        // Keep pending optimistic state; WS can still confirm. Timeout fallback in player controls resolves.
-      },
-    });
   }
 
   protected onConfigCommand(command: string): void {
@@ -4114,11 +4178,13 @@ export class CommanderComponent implements OnInit {
   }
 
   private openFixtureModal(): void {
+    const fixture = this.selectedFixtureName();
     if (!this.fixtureModalVisible()) {
       this.fixtureAckEnabled.set(false);
       this.fixtureModalVisible.set(true);
       this.startFixtureModalPolling();
     }
+    if (fixture) this.startPassivePlanState(fixture);
   }
 
   private ingestQueryResult(

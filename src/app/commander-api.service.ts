@@ -286,6 +286,23 @@ export class CommanderApiService {
     );
   }
 
+  postFixturePassivePlanStateStart(
+    fixtureName: string,
+    intervalMs = 1000,
+  ): Observable<CmdrFixtureCommandResponse> {
+    return this.http.post<CmdrFixtureCommandResponse>(
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/plan-state/passive/start?interval_ms=${intervalMs}`,
+      {},
+    );
+  }
+
+  postFixturePassivePlanStateStop(fixtureName: string): Observable<CmdrFixtureCommandResponse> {
+    return this.http.post<CmdrFixtureCommandResponse>(
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/plan-state/passive/stop`,
+      {},
+    );
+  }
+
   postRawCommand(command: string, listenSeconds = 3.0): Observable<CmdrRawResponse> {
     return this.http.post<CmdrRawResponse>(`${this.getRequestBaseUrl()}/commander/raw`, {
       command,

@@ -233,7 +233,7 @@ export class HealthPollService {
       const hasFlattenedPlanStateShape =
         typeof data?.['fixture_name'] === 'string' &&
         (Object.prototype.hasOwnProperty.call(data, 'plan_state') || Object.prototype.hasOwnProperty.call(data, 'state'));
-      if (data?.['type'] === 'plan_state' || hasFlattenedPlanStateShape) {
+      if (data?.['type'] === 'plan_state' || data?.['type'] === 'passive_plan_state' || hasFlattenedPlanStateShape) {
         this.planState$.next(data as unknown as PlanStateWsMessage);
         return;
       }

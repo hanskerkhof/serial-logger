@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "serial-logger",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
-      "port": 4210
+      "runtimeExecutable": "/Users/hanskerkhof/.nvm/versions/node/v22.22.3/bin/node",
+      "runtimeArgs": ["node_modules/@angular/cli/bin/ng.js", "serve"],
+      "port": 4210,
+      "autoPort": false
     }
   ]
 }

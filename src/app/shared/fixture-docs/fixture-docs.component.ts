@@ -6,6 +6,11 @@ import { CommanderApiService } from '../../commander-api.service';
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
 
+interface CsvTable {
+  header: string[];
+  rows: string[][];
+}
+
 @Component({
   selector: 'app-fixture-docs',
   standalone: true,
@@ -33,6 +38,18 @@ export class FixtureDocsComponent {
     if (!doc) return false;
     const ext = doc.slice(doc.lastIndexOf('.')).toLowerCase();
     return IMAGE_EXTENSIONS.has(ext);
+  });
+
+  readonly isCsv = computed(() => {
+    const doc = this.selectedDoc();
+    return !!doc && doc.toLowerCase().endsWith('.csv');
+  });
+
+  readonly csvTable = computed<CsvTable | null>(() => {
+    if (!this.isCsv()) return null;
+    const content = this.docContent();
+    if (!content) return null;
+    return this.parseCsv(content);
   });
 
   readonly docImageUrl = computed(() => {
@@ -148,6 +165,26 @@ export class FixtureDocsComponent {
     this.contentError.set(
       'This image could not be loaded. It may have been removed or renamed. Use refresh to fetch the latest docs list.',
     );
+  }
+
+  /**
+   * Parse a CSV/TSV document into a header + rows table. Auto-detects the
+   * delimiter (tab vs comma vs semicolon) from the first line and strips a
+   * leading BOM if the backend left one in place.
+   */
+  private parseCsv(content: string): CsvTable | null {
+    const text = content.replace(/^﻿/, '');
+    const lines = text.split(/\r\n|\r|\n/).filter((line) => line.trim().length > 0);
+    if (lines.length === 0) return null;
+
+    const firstLine = lines[0];
+    const delimiter = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
+
+    const splitRow = (line: string): string[] => line.split(delimiter).map((cell) => cell.trim());
+
+    const header = splitRow(lines[0]);
+    const rows = lines.slice(1).map(splitRow);
+    return { header, rows };
   }
 
   private describeDocError(error: unknown): string {

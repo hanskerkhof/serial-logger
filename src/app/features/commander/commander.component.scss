@@ -1297,6 +1297,48 @@
     &:hover { opacity: 1; }
   }
 
+  &__fixture-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  &__fixture-row {
+    display: grid;
+    grid-template-columns: 3.2rem 1.2rem 1fr auto;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
+
+    &--pending { opacity: 0.55; }
+    &--active { font-weight: 600; }
+  }
+
+  &__fixture-index {
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  &__fixture-status {
+    text-align: center;
+  }
+
+  &__fixture-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__fixture-rtt {
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
   p-progressbar {
     width: 100%;
   }

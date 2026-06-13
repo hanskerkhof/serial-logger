@@ -96,6 +96,14 @@ interface PollIntervalOption {
 }
 
 type CustomCommandValue = string | number | boolean | Record<string, unknown>;
+
+/** One row in a per-fixture progress toaster list (query / update / bulk-cmd). */
+interface FixtureProgressRow {
+  index: string;
+  status: 'done-ok' | 'done-fail' | 'active' | 'pending';
+  name: string;
+  rttLabel: string | null;
+}
 type FixtureModalFeedbackTone = 'info' | 'success' | 'warn' | 'error';
 type OtaUpdateMode = 'compile' | 'binary';
 type SendCommandMode = 'default' | 'force_ack' | 'force_no_ack';
@@ -317,6 +325,10 @@ export class CommanderComponent implements OnInit {
   protected readonly discoverFixturesLastDurationS = signal<number | null>(null);
   protected readonly discoverFixturesTotal = signal<number>(0);
   protected readonly discoverFixturesProcessed = signal<number>(0);
+  protected readonly discoverFixturesAllFixtures = signal<string[]>([]);
+  protected readonly discoverFixturesOutcomeLog = signal<
+    Array<{ fixture: string; ok: boolean; rttMs: number }>
+  >([]);
   protected readonly discoverFixturesProgressPct = computed(() => {
     const total = this.discoverFixturesTotal();
     if (total <= 0) return 0;
@@ -329,6 +341,35 @@ export class CommanderComponent implements OnInit {
     const current = this.discoverFixturesCurrentFixture();
     if (total <= 0) return 'Preparing fixture query...';
     return current ? `${processed}/${total} · ${current}` : `${processed}/${total}`;
+  });
+  /**
+   * Per-fixture query progress rows (mirrors the Trigger-plans bulk-cmd list).
+   * Each row carries its query status and round-trip time once completed.
+   */
+  protected readonly discoverFixturesListRows = computed<FixtureProgressRow[]>(() => {
+    const all = this.discoverFixturesAllFixtures();
+    const total = all.length;
+    if (total <= 0) return [];
+    const current = this.discoverFixturesCurrentFixture();
+    const outcomeMap = new Map(
+      this.discoverFixturesOutcomeLog().map((e) => [e.fixture, e]),
+    );
+    return all.map((name, i) => {
+      const index = `${i + 1}/${total}`;
+      const outcome = outcomeMap.get(name);
+      if (outcome) {
+        return {
+          index,
+          status: outcome.ok ? ('done-ok' as const) : ('done-fail' as const),
+          name,
+          rttLabel: `${Math.round(outcome.rttMs)} ms`,
+        };
+      }
+      if (name === current) {
+        return { index, status: 'active' as const, name, rttLabel: null };
+      }
+      return { index, status: 'pending' as const, name, rttLabel: null };
+    });
   });
   protected readonly updateFixturesLoading = signal(false);
   protected readonly updateFixturesCurrentFixture = signal<string | null>(null);
@@ -359,17 +400,19 @@ export class CommanderComponent implements OnInit {
     const stepPart = step ? ` · ${step}` : '';
     return `${base}${fixturePart}${stepPart}`;
   });
-  protected readonly updateFixturesListLines = computed(() => {
+  protected readonly updateFixturesListRows = computed<FixtureProgressRow[]>(() => {
     const all = this.updateFixturesAllFixtures();
     const total = all.length || this.updateFixturesTotal();
-    if (total <= 0) return [] as string[];
+    if (total <= 0) return [];
     const current = this.updateFixturesCurrentFixture();
     const outcomeMap = new Map(this.updateFixturesOutcomeLog().map((e) => [e.fixture, e.ok]));
     return all.map((name, i) => {
-      const n = `${i + 1}/${total}`;
-      if (outcomeMap.has(name)) return `${n} · ${outcomeMap.get(name) ? '✅' : '❌'} ${name}`;
-      if (name === current) return `${n} · ⏳ ${name}`;
-      return `${n} · — ${name}`;
+      const index = `${i + 1}/${total}`;
+      if (outcomeMap.has(name)) {
+        return { index, status: outcomeMap.get(name) ? ('done-ok' as const) : ('done-fail' as const), name, rttLabel: null };
+      }
+      if (name === current) return { index, status: 'active' as const, name, rttLabel: null };
+      return { index, status: 'pending' as const, name, rttLabel: null };
     });
   });
   protected readonly bulkCmdLoading = signal(false);
@@ -382,15 +425,17 @@ export class CommanderComponent implements OnInit {
     if (total <= 0) return 0;
     return Math.min(100, (this.bulkCmdProcessed() / total) * 100);
   });
-  protected readonly bulkCmdListLines = computed(() => {
+  protected readonly bulkCmdListRows = computed<FixtureProgressRow[]>(() => {
     const all = this.bulkCmdFixtureNames();
     const total = all.length;
-    if (total <= 0) return [] as string[];
+    if (total <= 0) return [];
     const outcomeMap = new Map(this.bulkCmdOutcomeLog().map((e) => [e.fixture, e.ok]));
     return all.map((name, i) => {
-      const n = `${i + 1}/${total}`;
-      if (outcomeMap.has(name)) return `${n} · ${outcomeMap.get(name) ? '✅' : '❌'} ${name}`;
-      return `${n} · ⏳ ${name}`;
+      const index = `${i + 1}/${total}`;
+      if (outcomeMap.has(name)) {
+        return { index, status: outcomeMap.get(name) ? ('done-ok' as const) : ('done-fail' as const), name, rttLabel: null };
+      }
+      return { index, status: 'active' as const, name, rttLabel: null };
     });
   });
 
@@ -2752,6 +2797,41 @@ export class CommanderComponent implements OnInit {
     this._activeProgressToastMode = 'progress_updates';
   }
 
+  /**
+   * Run the per-fixture sequential discovery (same "Querying fixtures" toaster
+   * with per-fixture round-trip times) but scoped to an explicit fixture list,
+   * e.g. just the fixtures of one plan or plan group. Returns the run promise so
+   * callers can clear their own spinner state on completion.
+   */
+  private runScopedFixtureDiscovery(fixtureNames: string[]): Promise<void> {
+    this.error.set(null);
+    this.discoverFixturesCancelRequested = false;
+    this.discoverFixturesLoading.set(true);
+    this.discoverFixturesCurrentFixture.set(null);
+    this.discoverFixturesElapsedS.set(0);
+    this.discoverFixturesTotal.set(fixtureNames.length);
+    this.discoverFixturesProcessed.set(0);
+    return this.runSidebarFixtureDiscoverySequential(fixtureNames);
+  }
+
+  private fixtureNamesForPlan(planName: string): string[] {
+    return Object.values(this.fixtureStore.fixturesByName())
+      .filter((f) => f.plan_name === planName)
+      .map((f) => f.fixture_name);
+  }
+
+  private fixtureNamesForPlanGroup(planGroup: string): string[] {
+    return Array.from(
+      new Set(
+        this.groupedFixturesByPlanGroup()
+          .filter((outerGroup) => outerGroup.plan_group === planGroup)
+          .flatMap((outerGroup) =>
+            outerGroup.plans.flatMap((plan) => plan.fixtures.map((fixture) => fixture.fixture_name)),
+          ),
+      ),
+    );
+  }
+
   protected runSidebarFixtureDiscovery(): void {
     if (!this.checkApiReachable() || this.discoverFixturesLoading()) return;
 
@@ -2773,14 +2853,7 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    this.error.set(null);
-    this.discoverFixturesCancelRequested = false;
-    this.discoverFixturesLoading.set(true);
-    this.discoverFixturesCurrentFixture.set(null);
-    this.discoverFixturesElapsedS.set(0);
-    this.discoverFixturesTotal.set(fixtureNames.length);
-    this.discoverFixturesProcessed.set(0);
-    void this.runSidebarFixtureDiscoverySequential(fixtureNames);
+    void this.runScopedFixtureDiscovery(fixtureNames);
   }
 
   protected runSidebarFixtureDiscoveryOutdated(): void {
@@ -2798,14 +2871,7 @@ export class CommanderComponent implements OnInit {
       return;
     }
 
-    this.error.set(null);
-    this.discoverFixturesCancelRequested = false;
-    this.discoverFixturesLoading.set(true);
-    this.discoverFixturesCurrentFixture.set(null);
-    this.discoverFixturesElapsedS.set(0);
-    this.discoverFixturesTotal.set(fixtureNames.length);
-    this.discoverFixturesProcessed.set(0);
-    void this.runSidebarFixtureDiscoverySequential(fixtureNames);
+    void this.runScopedFixtureDiscovery(fixtureNames);
   }
 
   protected runSidebarFixtureUpdateOutdated(): void {
@@ -3245,6 +3311,8 @@ export class CommanderComponent implements OnInit {
   }
 
   private async runSidebarFixtureDiscoverySequential(fixtureNames: string[]): Promise<void> {
+    this.discoverFixturesAllFixtures.set(fixtureNames);
+    this.discoverFixturesOutcomeLog.set([]);
     const startedAt = performance.now();
     let successCount = 0;
     const failures: string[] = [];
@@ -3259,6 +3327,8 @@ export class CommanderComponent implements OnInit {
         }
         this.discoverFixturesCurrentFixture.set(fixtureName);
         this.sidebarRefreshingFixture.set(fixtureName);
+        const fixtureStartedAt = performance.now();
+        let fixtureOk = false;
         try {
           const result = await firstValueFrom(this.commanderApi.getFixtureVersion(fixtureName, {
             preferQueryTokenAuth: true,
@@ -3266,6 +3336,7 @@ export class CommanderComponent implements OnInit {
           this.ingestQueryResult(result, 'fixture_query', fixtureName);
           this.autoQueriedFixtures.add(fixtureName);
           successCount += 1;
+          fixtureOk = true;
         } catch (err: unknown) {
           console.warn('[cmdr][discover-fixtures] fixture query failed', { fixtureName, err });
           failures.push(fixtureName);
@@ -3273,6 +3344,11 @@ export class CommanderComponent implements OnInit {
             anyAuthFailure = true;
           }
         } finally {
+          const rttMs = performance.now() - fixtureStartedAt;
+          this.discoverFixturesOutcomeLog.update((log) => [
+            ...log,
+            { fixture: fixtureName, ok: fixtureOk, rttMs },
+          ]);
           this.discoverFixturesProcessed.set(successCount + failures.length);
           this.discoverFixturesElapsedS.set((performance.now() - startedAt) / 1000);
         }
@@ -3385,20 +3461,39 @@ export class CommanderComponent implements OnInit {
     this.runPlanGroupQuery();
   }
 
-  /** Called from sidebar reload button — sets the dropdown and fires the plan query. */
+  /**
+   * Called from sidebar reload button next to a plan name — runs the per-fixture
+   * sequential query (same "Querying fixtures" toaster with round-trip times)
+   * scoped to just this plan's fixtures.
+   */
   protected sidebarRefreshPlan(planName: string, event: Event): void {
     event.stopPropagation();
+    if (!this.checkApiReachable() || this.discoverFixturesLoading()) return;
+    const fixtureNames = this.fixtureNamesForPlan(planName);
+    if (!fixtureNames.length) {
+      this.messageService.add({ key: 'app', severity: 'contrast', summary: `No fixtures to query for plan ${planName}`, life: 3000 });
+      return;
+    }
     this.planName.set(planName);
     this.sidebarRefreshingPlan.set(planName);
-    this.runPlanQuery();
+    void this.runScopedFixtureDiscovery(fixtureNames).finally(() => this.sidebarRefreshingPlan.set(null));
   }
 
-  /** Called from sidebar reload button — sets the dropdown and fires the plan group query. */
+  /**
+   * Called from sidebar reload button next to a plan group — runs the per-fixture
+   * sequential query scoped to all fixtures in this plan group.
+   */
   protected sidebarRefreshPlanGroup(planGroup: string, event: Event): void {
     event.stopPropagation();
+    if (!this.checkApiReachable() || this.discoverFixturesLoading()) return;
+    const fixtureNames = this.fixtureNamesForPlanGroup(planGroup);
+    if (!fixtureNames.length) {
+      this.messageService.add({ key: 'app', severity: 'contrast', summary: `No fixtures to query for plan group ${planGroup}`, life: 3000 });
+      return;
+    }
     this.planGroupName.set(planGroup);
     this.sidebarRefreshingPlanGroup.set(planGroup);
-    this.runPlanGroupQuery();
+    void this.runScopedFixtureDiscovery(fixtureNames).finally(() => this.sidebarRefreshingPlanGroup.set(null));
   }
 
   /** Called from sidebar fixture reload button — sets the dropdown and fires the fixture query. */

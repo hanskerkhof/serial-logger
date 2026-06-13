@@ -53,6 +53,7 @@
             [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
           ></p-progressbar>
           <span class="discovery-progress-toast__detail">{{ discoverFixturesProgressLabel() }}</span>
+          <ng-container [ngTemplateOutlet]="fixtureProgressList" [ngTemplateOutletContext]="{ rows: discoverFixturesListRows() }"></ng-container>
         } @else if (message.data?.mode === 'progress_updates') {
           <p-progressbar
             [value]="updateFixturesProgressPct()"
@@ -63,9 +64,7 @@
           @if (updateFixturesProgressLabel(); as label) {
             <span class="discovery-progress-toast__detail">{{ label }}</span>
           }
-          @for (line of updateFixturesListLines(); track $index) {
-            <span class="discovery-progress-toast__detail">{{ line }}</span>
-          }
+          <ng-container [ngTemplateOutlet]="fixtureProgressList" [ngTemplateOutletContext]="{ rows: updateFixturesListRows() }"></ng-container>
         } @else if (message.data?.mode === 'progress_bulk_cmd') {
           <p-progressbar
             [value]="bulkCmdProgressPct()"
@@ -73,9 +72,7 @@
             styleClass="discovery-progress-toast__bar"
             [style]="{ height: '0.3rem', width: '100%', display: 'block' }"
           ></p-progressbar>
-          @for (line of bulkCmdListLines(); track $index) {
-            <span class="discovery-progress-toast__detail">{{ line }}</span>
-          }
+          <ng-container [ngTemplateOutlet]="fixtureProgressList" [ngTemplateOutletContext]="{ rows: bulkCmdListRows() }"></ng-container>
         }
         @if (message.data?.mode === 'progress_full_ws') {
           <span class="discovery-progress-toast__detail">{{ discoveryWsProgressLabel() }}</span>
@@ -98,6 +95,35 @@
     }
   </ng-template>
 </p-toast>
+
+<!-- Shared per-fixture progress list: aligned index · status · name (· rtt) rows.
+     Used by the query, update, and bulk-command progress toasters. -->
+<ng-template #fixtureProgressList let-rows="rows">
+  <div class="discovery-progress-toast__fixture-list">
+    @for (row of rows; track row.name) {
+      <span
+        class="discovery-progress-toast__fixture-row"
+        [class.discovery-progress-toast__fixture-row--active]="row.status === 'active'"
+        [class.discovery-progress-toast__fixture-row--pending]="row.status === 'pending'"
+      >
+        <span class="discovery-progress-toast__fixture-index">{{ row.index }}</span>
+        <span class="discovery-progress-toast__fixture-status">
+          @switch (row.status) {
+            @case ('done-ok') { ✅ }
+            @case ('done-fail') { ❌ }
+            @case ('active') { ⏳ }
+            @default { — }
+          }
+        </span>
+        <span class="discovery-progress-toast__fixture-name">{{ row.name }}</span>
+        @if (row.rttLabel) {
+          <span class="discovery-progress-toast__fixture-rtt">{{ row.rttLabel }}</span>
+        }
+      </span>
+    }
+  </div>
+</ng-template>
+
 <p-dialog
   header="Update Report"
   [visible]="updateReportDialogVisible()"

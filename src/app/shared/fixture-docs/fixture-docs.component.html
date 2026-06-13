@@ -51,6 +51,32 @@
         @if (docImageUrl(); as imgUrl) {
           <img [src]="imgUrl" [alt]="selectedDoc()!" class="fixture-docs__image" (error)="onImageLoadError()" />
         }
+      } @else if (isCsv()) {
+        @if (csvTable(); as table) {
+          <div class="fixture-docs__csv-wrap">
+            <table class="fixture-docs__csv">
+              <thead>
+                <tr>
+                  @for (col of table.header; track $index) {
+                    <th>{{ col }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of table.rows; track $index) {
+                  <tr>
+                    @for (col of table.header; track $index) {
+                      <td>{{ row[$index] }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p class="fixture-docs__csv-count">{{ table.rows.length }} rows</p>
+        } @else {
+          <p class="fixture-docs__status">This CSV file is empty.</p>
+        }
       } @else if (docContent()) {
         <markdown [mermaid]="mermaidReady()" [data]="docContent()!" class="fixture-docs__markdown" />
       }

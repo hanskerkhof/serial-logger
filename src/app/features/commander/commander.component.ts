@@ -2731,12 +2731,6 @@ export class CommanderComponent implements OnInit {
       this.messageService.add({ key: 'app', severity: 'contrast', summary: 'Full discovery cancelled', life: 3000 });
     } else if (this.discoveryWsLoading()) {
       this.clearProgressToastImmediately();
-      const currentSessionId = this.discoveryWsSessionId();
-      this.commanderApi.cancelFixtureDiscoveryWs(currentSessionId).subscribe({
-        next: () => {},
-        error: () => {},
-      });
-      // WS discovery runs server-side; this cancels local waiting state only.
       this.discoveryWsLoading.set(false);
       this.discoveryWsLatestFixture.set(null);
       this.discoveryWsFixturesSeen.set(0);

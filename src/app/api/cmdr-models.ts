@@ -143,8 +143,8 @@ export interface CmdrRelayStateItem {
   remainingOnMs?: number;
 }
 
-export type CmdrFixturePlanStatusSummary = components['schemas']['FixturePlanStatusSummary'];
-export type CmdrFixturePlanStatusResponse = components['schemas']['FixturePlanStatusResponse'];
+export type CmdrFixturePlanStateSummary = components['schemas']['FixturePlanStateSummary'];
+export type CmdrFixturePlanStateResponse = components['schemas']['FixturePlanStateResponse'];
 
 // --- Messages API (not in OpenAPI schema — handwritten) ---
 export interface CmdrMessageSection {

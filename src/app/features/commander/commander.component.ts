@@ -55,7 +55,7 @@ import {
   CmdrPlanControls,
   CmdrPlayerCapabilities,
   CmdrRelayStateItem,
-  CmdrFixturePlanStatusResponse,
+  CmdrFixturePlanStateResponse,
   CmdrVersionsResponse,
   CmdrCommanderFixtureCacheResponse,
   CmdrCommanderFixtureCacheEntry,
@@ -2013,7 +2013,7 @@ export class CommanderComponent implements OnInit {
         },
         issued_commands: [],
         timing: (msg.timing as Record<string, unknown> | null | undefined) ?? null,
-      } as CmdrFixturePlanStatusResponse;
+      } as CmdrFixturePlanStateResponse;
       this.modalQueryError.set(null);
       this.planStateReceivedAt.set(Date.now());
       if (isPassive) {
@@ -2023,7 +2023,7 @@ export class CommanderComponent implements OnInit {
         this.passivePsLastAt.set(now);
         this.passivePsCount.update(n => n + 1);
         if (interval !== null) this.passivePsLastIntervalMs.set(interval);
-        // Resolve pending volume sync from passive state rather than a separate plan-status request.
+        // Resolve pending volume sync from passive state rather than a separate plan-state request.
         const pending = this._pendingVolumeSync;
         if (pending) {
           const state = (normalizedPlanState?.['state'] as Record<string, unknown> | null | undefined) ?? null;
@@ -2043,7 +2043,7 @@ export class CommanderComponent implements OnInit {
           });
         }
       }
-      this.applyFixturePlanStatusResult(fixtureName, result);
+      this.applyFixturePlanStateResult(fixtureName, result);
     });
     const planStateErrorSub = this.healthService.planStateError$.subscribe((msg) => {
       if (!this.fixtureModalVisible() || !this.fixtureModalPollingEnabled()) return;
@@ -3753,14 +3753,14 @@ export class CommanderComponent implements OnInit {
     this.modalQueryError.set(null);
     const startedAt = performance.now();
 
-    this.modalQuerySub = this.commanderApi.getFixturePlanStatus(fixture, {
+    this.modalQuerySub = this.commanderApi.getFixturePlanState(fixture, {
       preferQueryTokenAuth: true,
     }).subscribe({
       next: (result) => {
         this.modalQuerySub = null;
         this.modalQueryLoading.set(false);
         const durationMs = performance.now() - startedAt;
-        this.applyFixturePlanStatusResult(fixture, result);
+        this.applyFixturePlanStateResult(fixture, result);
         this.markFixtureManualRefreshNow(fixture);
         this.setFixtureModalFeedback(`Plan state refresh complete for ${fixture}`, 'success', durationMs);
       },
@@ -3871,9 +3871,9 @@ export class CommanderComponent implements OnInit {
     this.prefetchFixtureDocs(requestedFixtureName);
   }
 
-  private applyFixturePlanStatusResult(
+  private applyFixturePlanStateResult(
     fixtureName: string,
-    result: CmdrFixturePlanStatusResponse,
+    result: CmdrFixturePlanStateResponse,
   ): void {
     const existing = this.fixtureStore.fixturesByName()[fixtureName];
     if (!existing) return;

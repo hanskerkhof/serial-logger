@@ -499,17 +499,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/fixtures/{fixture_name}/plan-status": {
+    "/fixtures/{fixture_name}/plan-state": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Fixture Plan Status */
-        get: operations["fixture_plan_status_fixtures__fixture_name__plan_status_get"];
+        /** Fixture Plan State */
+        get: operations["fixture_plan_state_fixtures__fixture_name__plan_state_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/{fixture_name}/plan-state/passive/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fixture Start Passive Plan State
+         * @description Start (or renew) periodic passive plan state push from a fixture.
+         *
+         *     The fixture will send BK_PASSIVE_PS to the commander at the requested cadence,
+         *     which the API forwards over /health/ws as passive_plan_state events.
+         *     interval_ms is clamped to [200, 60000]. The firmware TTL is fixed at 30 s;
+         *     the API keepalive task re-sends every 10 s to maintain the lease.
+         */
+        post: operations["fixture_start_passive_plan_state_fixtures__fixture_name__plan_state_passive_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fixtures/{fixture_name}/plan-state/passive/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fixture Stop Passive Plan State
+         * @description Stop the periodic passive plan state push from a fixture.
+         */
+        post: operations["fixture_stop_passive_plan_state_fixtures__fixture_name__plan_state_passive_stop_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1253,8 +1298,8 @@ export interface components {
             /** Action */
             action: string;
         };
-        /** FixturePlanStatusResponse */
-        FixturePlanStatusResponse: {
+        /** FixturePlanStateResponse */
+        FixturePlanStateResponse: {
             /** Fixture Name */
             fixture_name: string;
             /** Issued Commands */
@@ -1263,13 +1308,13 @@ export interface components {
             ok: boolean;
             /** Service */
             service: string;
-            summary: components["schemas"]["FixturePlanStatusSummary"];
+            summary: components["schemas"]["FixturePlanStateSummary"];
             timing?: components["schemas"]["PlanStateTiming"] | null;
         } & {
             [key: string]: unknown;
         };
-        /** FixturePlanStatusSummary */
-        FixturePlanStatusSummary: {
+        /** FixturePlanStateSummary */
+        FixturePlanStateSummary: {
             /** Fixture Name */
             fixture_name: string;
             /** Fsps */
@@ -1302,6 +1347,8 @@ export interface components {
         };
         /** FixtureSummary */
         FixtureSummary: {
+            /** Analog Volume Enabled */
+            analog_volume_enabled?: boolean | null;
             /** Build Date */
             build_date: string | null;
             /** Build Date Time */
@@ -1346,8 +1393,6 @@ export interface components {
             plan_group: string | null;
             /** Plan Name */
             plan_name: string | null;
-            /** Analog Volume Enabled */
-            analog_volume_enabled?: boolean | null;
             /** Plan State */
             plan_state?: {
                 [key: string]: unknown;
@@ -2661,7 +2706,7 @@ export interface operations {
             };
         };
     };
-    fixture_plan_status_fixtures__fixture_name__plan_status_get: {
+    fixture_plan_state_fixtures__fixture_name__plan_state_get: {
         parameters: {
             query?: {
                 listen_seconds?: number;
@@ -2680,7 +2725,71 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FixturePlanStatusResponse"];
+                    "application/json": components["schemas"]["FixturePlanStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_start_passive_plan_state_fixtures__fixture_name__plan_state_passive_start_post: {
+        parameters: {
+            query?: {
+                interval_ms?: number;
+            };
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureCommandResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fixture_stop_passive_plan_state_fixtures__fixture_name__plan_state_passive_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureCommandResponse"];
                 };
             };
             /** @description Validation Error */

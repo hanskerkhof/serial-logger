@@ -5785,7 +5785,14 @@ export class CommanderComponent implements OnInit {
     if (selfName && name.toUpperCase() === selfName.toUpperCase()) return;
     if (this._passiveQueryInFlight.has(name)) return;
     const existing = this.fixtureStore.fixturesByName()[name];
-    if (existing?.raw['capabilities'] != null && existing.raw['plan_state'] != null) return;
+    // Only query a fixture we don't know yet, to add it to the store. Never re-query a
+    // known fixture from passive/poll/heartbeat events: version + online already come
+    // from the cheap /fixtures/discovered poll, and capabilities/plan_state are enriched
+    // lazily when a fixture dialog opens. The passive version path returns
+    // capabilities/plan_state as null, so the old "incomplete" guard re-queried every
+    // fixture on every heartbeat — spamming the API (and a directed passive-throttle
+    // reset per call) even with nothing open.
+    if (existing) return;
     this._passiveQueryInFlight.add(name);
     this.commanderApi.getFixtureVersion(name, { preferQueryTokenAuth: true }).subscribe({
       next: (result) => {

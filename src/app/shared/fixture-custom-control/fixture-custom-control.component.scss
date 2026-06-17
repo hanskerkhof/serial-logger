@@ -154,6 +154,15 @@
   grid-column: 1 / -1;
 }
 
+.fixture-custom-control__status-command-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.55;
+  padding: 0.25rem 0 0.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .fixture-custom-control__card-header {
   display: flex;
   align-items: center;

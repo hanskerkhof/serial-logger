@@ -245,6 +245,9 @@
           <strong>Status</strong>
         </div>
         @for (statusCommand of inlineStatusCommands(); track statusCommand.id) {
+          @if (statusCommand.label) {
+            <div class="fixture-custom-control__status-command-label">{{ statusCommand.label }}</div>
+          }
           @if (statusBitmaskArgs(statusCommand).length > 0) {
             <div class="fixture-custom-control__status-row fixture-custom-control__status-row--bitmask" aria-label="Touch mask status row">
               @for (arg of statusBitmaskArgs(statusCommand); track arg.name) {

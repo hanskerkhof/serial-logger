@@ -332,11 +332,21 @@ export class FixtureCustomControlComponent {
       return `${value}`;
     }
     const explicitSuffix = this.statusDisplaySuffix(arg);
-    if (explicitSuffix) return `${value}${explicitSuffix}`;
+    const avgN = typeof arg['running_avg'] === 'number' && arg['running_avg'] > 1 ? Math.trunc(arg['running_avg']) : 0;
+    const decimals = typeof arg['decimals'] === 'number' && arg['decimals'] >= 0 ? Math.trunc(arg['decimals']) : null;
+    const formatted = decimals !== null && typeof value === 'number' && Number.isFinite(value)
+      ? value.toFixed(decimals)
+      : value;
+    if (explicitSuffix) return `${formatted}${explicitSuffix}`;
     if (typeof value === 'number' && this.isSecondsLikeArgName(arg.name)) {
-      return `${value}s`;
+      return `${formatted}s`;
     }
-    return `${value}`;
+    return `${formatted}`;
+  }
+
+  protected statusDisplayAvgSuffix(arg: CmdrCustomCommandUiArg): string {
+    const avgN = typeof arg['running_avg'] === 'number' && arg['running_avg'] > 1 ? Math.trunc(arg['running_avg']) : 0;
+    return avgN > 0 ? ` (avg ${avgN})` : '';
   }
 
   protected statusRemsecDigits(commandId: string, arg: CmdrCustomCommandUiArg): string[] {

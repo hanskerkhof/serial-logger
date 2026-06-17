@@ -303,7 +303,7 @@
                         }
                       </h3>
                     } @else {
-                      <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                      <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong><span class="fixture-custom-control__status-avg-suffix">{{ statusDisplayAvgSuffix(arg) }}</span>
                     }
                   } @else {
                     <span class="fixture-custom-control__status-label">{{ arg.label }}</span>
@@ -322,7 +322,7 @@
                         }
                       </h3>
                     } @else {
-                      <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong>
+                      <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong><span class="fixture-custom-control__status-avg-suffix">{{ statusDisplayAvgSuffix(arg) }}</span>
                     }
                   }
                 }

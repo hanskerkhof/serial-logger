@@ -119,6 +119,8 @@ export type CmdrCustomCommandUiArg = components['schemas']['CustomCommandUiArg']
   suffix?: string | null;
   sequence_keys?: string[] | null;
   sequence_definitions?: Record<string, CmdrSequenceTimelineDefinition> | null;
+  running_avg?: number | null;
+  decimals?: number | null;
 };
 export type CmdrFixtureRssiReport   = components['schemas']['FixtureRssiReport'];
 export type CmdrRssiPeerEntry       = components['schemas']['RssiPeerEntry'];

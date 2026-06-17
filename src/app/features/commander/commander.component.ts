@@ -554,6 +554,7 @@ export class CommanderComponent implements OnInit {
   private readonly customCommandStateBackedOptimisticValues = signal<Record<string, Record<string, CustomCommandValue>>>({});
   private readonly pendingCustomCommandPostRunSync = signal<CustomCommandPostRunSyncToken[]>([]);
   private lastCustomCommandFixtureIdentity: string | null = null;
+  private readonly _runningAvgBuffers = new Map<string, Map<string, number[]>>();
   protected readonly discoveryLockedByOtherTab = signal(false);
   protected readonly modalQueryLoading = signal(false);
   protected readonly modalQueryError = signal<string | null>(null);
@@ -856,6 +857,7 @@ export class CommanderComponent implements OnInit {
       this.customCommandDraftValues.set(this.cloneCustomCommandValues(initialValues));
       this.customCommandStateBackedOptimisticValues.set({});
       this.pendingCustomCommandPostRunSync.set([]);
+      this._runningAvgBuffers.clear();
       // Reset any optimistic plan state when switching fixtures.
       untracked(() => this.optimisticPlanState.set(null));
     });
@@ -5090,7 +5092,20 @@ export class CommanderComponent implements OnInit {
         for (const arg of command.args ?? []) {
           if (!this.hasStatePath(arg)) continue;
           const optimisticValue = this.getOptimisticStateBackedValue(command.id, arg.name);
-          const desired = optimisticValue ?? this.defaultValueForArg(arg);
+          let desired = optimisticValue ?? this.defaultValueForArg(arg);
+
+          // Running average for numeric display args.
+          const avgN = typeof arg['running_avg'] === 'number' && arg['running_avg'] > 1 ? Math.trunc(arg['running_avg']) : 0;
+          if (avgN > 0 && typeof desired === 'number' && Number.isFinite(desired)) {
+            let cmdBuf = this._runningAvgBuffers.get(command.id);
+            if (!cmdBuf) { cmdBuf = new Map(); this._runningAvgBuffers.set(command.id, cmdBuf); }
+            const buf = cmdBuf.get(arg.name) ?? [];
+            buf.push(desired);
+            if (buf.length > avgN) buf.splice(0, buf.length - avgN);
+            cmdBuf.set(arg.name, buf);
+            desired = buf.reduce((s, v) => s + v, 0) / buf.length;
+          }
+
           if (commandValues[arg.name] === desired) continue;
           if (!commandChanged) {
             commandValues = { ...commandValues };

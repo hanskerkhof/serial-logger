@@ -251,6 +251,7 @@ export class CommanderComponent implements OnInit {
 
   protected readonly loading = signal(true);
   protected readonly apiRestarting = signal(false);
+  protected readonly healthReloading = signal(false);
   protected readonly fixtureQueryLoading = signal(false);
   protected readonly planQueryLoading = signal(false);
   protected readonly planGroupQueryLoading = signal(false);
@@ -2411,8 +2412,21 @@ export class CommanderComponent implements OnInit {
   }
 
   protected reloadHealth(): void {
+    if (this.healthReloading()) return;
     this.error.set(null);
-    this.healthService.refresh();
+    this.healthReloading.set(true);
+    this.commanderApi.reloadApi().subscribe({
+      next: () => {
+        window.setTimeout(() => {
+          this.healthService.refresh();
+          this.healthReloading.set(false);
+        }, 1500);
+      },
+      error: () => {
+        this.healthReloading.set(false);
+        this.healthService.refresh();
+      },
+    });
   }
 
   protected restartApiFromHealthPopover(event: MouseEvent): void {

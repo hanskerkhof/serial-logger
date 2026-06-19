@@ -48,6 +48,7 @@ export class AppComponent {
   protected readonly apiVersion = signal<string | null>(null);
   protected readonly apiBuildDate = signal<string | null>(null);
   protected readonly apiRestarting = signal(false);
+  protected readonly healthReloading = signal(false);
   protected readonly isSerialSupported = this.serialService.isSupported;
   protected readonly activeApiUrl = this.commanderApi.apiBaseUrl;
   protected readonly apiConnected = signal<'unknown' | 'ok' | 'error'>('unknown');
@@ -303,6 +304,23 @@ export class AppComponent {
     if (!externalUrl) return;
     window.open(externalUrl, '_blank', 'noopener,noreferrer');
     this.closeQrScannerDialog();
+  }
+
+  protected reloadHealth(): void {
+    if (this.healthReloading()) return;
+    this.healthReloading.set(true);
+    this.commanderApi.reloadApi().subscribe({
+      next: () => {
+        window.setTimeout(() => {
+          this.healthService.refresh();
+          this.healthReloading.set(false);
+        }, 1500);
+      },
+      error: () => {
+        this.healthReloading.set(false);
+        this.healthService.refresh();
+      },
+    });
   }
 
   protected restartApiFromHealthPopover(event: MouseEvent): void {

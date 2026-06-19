@@ -824,8 +824,8 @@
             title="Refresh health"
             aria-label="Refresh health"
             (click)="reloadHealth(); $event.stopPropagation()"
-            [loading]="healthReloading() || healthRefreshing()"
-            [disabled]="loading() || healthReloading() || healthRefreshing()"
+            [loading]="healthRefreshing()"
+            [disabled]="loading() || healthRefreshing()"
           ></button>
         </div>
       </p-panel>

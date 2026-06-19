@@ -116,16 +116,6 @@ export class CommanderApiService {
     );
   }
 
-  reloadApi(): Observable<{ ok: boolean; action: string }> {
-    return this.http.post<{ ok: boolean; action: string }>(
-      `${this.getRequestBaseUrl()}/api/runtime/reload`,
-      {
-        reason: 'fe_health_refresh',
-        action_source: 'commander_health_panel',
-      },
-    );
-  }
-
   /** Open the /health/ws WebSocket. HealthPollService owns the lifetime. */
   openHealthWebSocket(): WebSocket {
     const base = this.getRequestBaseUrl().replace(/^http/i, 'ws');

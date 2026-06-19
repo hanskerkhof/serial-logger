@@ -104,8 +104,8 @@
                   title="Refresh health"
                   aria-label="Refresh health"
                   (click)="reloadHealth()"
-                  [loading]="healthReloading() || healthService.healthRefreshing()"
-                  [disabled]="healthReloading() || healthService.healthRefreshing()"
+                  [loading]="healthService.healthRefreshing()"
+                  [disabled]="healthService.healthRefreshing()"
                 ></button>
                 @if (secondsSinceHealthCheck() !== null) {
                   <span class="health-pop__age">{{ secondsSinceHealthCheck() }}s ago</span>

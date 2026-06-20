@@ -1647,12 +1647,10 @@
                         <dd>{{ info.firmware.buildDate ?? '' }}{{ info.firmware.buildDate && info.firmware.buildTime ? ' · ' : '' }}{{ info.firmware.buildTime ?? '' }}</dd>
                       </div>
                     }
-                    @if (info.firmware.uptimeSeconds !== null) {
-                      <div class="commander__info-row">
-                        <dt>Uptime</dt>
-                        <dd>{{ info.firmware.uptimeSeconds | duration }}</dd>
-                      </div>
-                    }
+                    <div class="commander__info-row">
+                      <dt>Uptime</dt>
+                      <dd>{{ info.firmware.uptimeSeconds !== null ? (info.firmware.uptimeSeconds | duration) : '—' }}</dd>
+                    </div>
                   </dl>
                 </section>
 

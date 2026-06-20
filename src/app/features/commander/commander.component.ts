@@ -9,9 +9,10 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { SwUpdate } from '@angular/service-worker';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom, forkJoin, Subscription } from 'rxjs';
+import { firstValueFrom, forkJoin, Subscription, interval } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { InputGroupModule } from 'primeng/inputgroup';
@@ -248,6 +249,9 @@ export class CommanderComponent implements OnInit {
     }
     return 'Auto-detection active';
   });
+
+  /** Ticks every second — subscribed by resolveLiveUptimeSeconds to drive the uptime counter. */
+  private readonly _secondTick = toSignal(interval(1000), { initialValue: 0 });
 
   protected readonly loading = signal(true);
   protected readonly apiRestarting = signal(false);
@@ -1541,7 +1545,7 @@ export class CommanderComponent implements OnInit {
         version: (r['fw_version'] as string | null | undefined) ?? null,
         buildDate: (r['build_date'] as string | null | undefined) ?? null,
         buildTime: (r['build_time'] as string | null | undefined) ?? null,
-        uptimeSeconds: this.resolveUptimeSeconds(r),
+        uptimeSeconds: this.resolveLiveUptimeSeconds(r),
       },
       network: {
         universe: (r['universe'] as number | null | undefined) ?? null,
@@ -1603,26 +1607,19 @@ export class CommanderComponent implements OnInit {
   }
 
   /**
-   * Resolves fixture uptime as seconds from a raw fixture record.
-   * Prefers the numeric `uptime_seconds` field (single-fixture query path).
-   * Falls back to parsing the `uptime` string from the discovery path (e.g. "2918s").
+   * Returns a live-ticking uptime in seconds for the given raw fixture record.
+   * Reads `_secondTick` so the enclosing computed re-evaluates every second.
+   * Uptime is anchored by `uptime_received_at_ms` (set whenever uptime_seconds is
+   * written), so the counter stays accurate between passive-seen updates.
    */
-  private resolveUptimeSeconds(r: Record<string, unknown>): number | null {
+  private resolveLiveUptimeSeconds(r: Record<string, unknown>): number | null {
+    void this._secondTick(); // register dependency — re-evaluates every second
     const numeric = r['uptime_seconds'];
-    if (typeof numeric === 'number') return numeric;
-    const str = r['uptime'];
-    if (typeof str !== 'string' || !str.trim()) return null;
-    // Parse formats: "2918s", "4m 32s", "2h 10m 32s", "1d 2h 10m"
-    let total = 0;
-    const matches = str.matchAll(/(\d+)\s*([dhms])/g);
-    for (const [, n, unit] of matches) {
-      const v = parseInt(n, 10);
-      if (unit === 'd') total += v * 86400;
-      else if (unit === 'h') total += v * 3600;
-      else if (unit === 'm') total += v * 60;
-      else if (unit === 's') total += v;
-    }
-    return total > 0 ? total : null;
+    const base = typeof numeric === 'number' ? numeric : null;
+    if (base === null) return null;
+    const receivedAt = r['uptime_received_at_ms'];
+    if (typeof receivedAt !== 'number') return base;
+    return base + Math.floor((Date.now() - receivedAt) / 1000);
   }
 
   /** True when the selected fixture's FQBN is ESP8266-based (no RSSI session support). */
@@ -2335,6 +2332,10 @@ export class CommanderComponent implements OnInit {
       if (typeof msg.data?.['fw_version'] === 'string' && msg.data['fw_version']) versionPatch['fw_version'] = msg.data['fw_version'];
       if (typeof msg.data?.['build_date'] === 'string' && msg.data['build_date']) versionPatch['build_date'] = msg.data['build_date'];
       if (typeof msg.data?.['build_time'] === 'string' && msg.data['build_time']) versionPatch['build_time'] = msg.data['build_time'];
+      if (typeof msg.data?.['uptime_ms'] === 'number') {
+        versionPatch['uptime_seconds'] = Math.floor(msg.data['uptime_ms'] / 1000);
+        versionPatch['uptime_received_at_ms'] = Date.now();
+      }
       if (incomingMode !== null) versionPatch['runtime_fixture_mode'] = incomingMode || null;
       if (Object.keys(versionPatch).length > 0) this.fixtureStore.patchFixtureRaw(name, versionPatch);
       // A live fixture_seen WS event (from BK_PASSIVE_SEEN on the serial bus) is the
@@ -4289,6 +4290,7 @@ export class CommanderComponent implements OnInit {
     }
 
     if (source === 'fixture_query') {
+      const now = Date.now();
       for (const fixture of fixtures) {
         const rawLastSeenMs = fixture.raw['last_seen_ms'];
         // Only update the display timer when the server provides an actual last_seen_ms.
@@ -4296,6 +4298,10 @@ export class CommanderComponent implements OnInit {
         // making offline fixtures appear freshly seen even though they haven't responded.
         if (typeof rawLastSeenMs === 'number') {
           this.updateFixtureLastSeen(fixture.fixture_name, rawLastSeenMs);
+        }
+        // Stamp the moment we received uptime_seconds so the live ticker stays accurate.
+        if (typeof fixture.raw['uptime_seconds'] === 'number') {
+          (fixture.raw as Record<string, unknown>)['uptime_received_at_ms'] = now;
         }
       }
     }

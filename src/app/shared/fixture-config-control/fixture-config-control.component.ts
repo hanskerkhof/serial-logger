@@ -42,6 +42,8 @@ export class FixtureConfigControlComponent {
   protected readonly eq = linkedSignal(() => this.config()?.player?.eq ?? 0);
   protected readonly sysVolume = linkedSignal(() => this.config()?.player?.sys_volume ?? null);
   protected readonly autoOff = linkedSignal(() => !!(this.config()?.aux?.auto_off));
+  protected readonly planAutoStart = linkedSignal(() => !!(this.config()?.plan?.auto_start));
+  protected readonly planRepeatPlan = linkedSignal(() => !!(this.config()?.plan?.repeat_plan));
   protected readonly wifiSsidPass = linkedSignal(() => this.config()?.wifi_ssid_pass ?? '');
   protected readonly auxOne = linkedSignal(() => this.config()?.aux?.one ?? null);
   protected readonly auxTwo = linkedSignal(() => this.config()?.aux?.two ?? null);
@@ -113,6 +115,16 @@ export class FixtureConfigControlComponent {
 
   protected saveAutoOff(): void {
     this.commandRequested.emit(`cmd;config;setAutoOff=${this.autoOff() ? 1 : 0};save=1;`);
+  }
+
+  protected savePlanAutoStart(): void {
+    this.commandRequested.emit(`cmd;config;setPlanAutoStart=${this.planAutoStart() ? 1 : 0};save=1;`);
+  }
+
+  protected savePlanRepeatPlan(): void {
+    this.commandRequested.emit(
+      `cmd;config;setPlanRepeatPlan=${this.planRepeatPlan() ? 1 : 0};save=1;`,
+    );
   }
 
   protected saveAuxOne(): void {

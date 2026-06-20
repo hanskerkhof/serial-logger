@@ -1133,6 +1133,7 @@ export interface components {
             magic?: number | null;
             /** Ota Flag */
             ota_flag?: number | null;
+            plan?: components["schemas"]["FixtureConfigPlan"] | null;
             /** Plan Auto Start */
             plan_auto_start?: boolean | null;
             player?: components["schemas"]["FixtureConfigPlayer"] | null;
@@ -1200,6 +1201,15 @@ export interface components {
             fixture_mode?: number | null;
             /** Universe */
             universe?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FixtureConfigPlan */
+        FixtureConfigPlan: {
+            /** Auto Start */
+            auto_start?: boolean | null;
+            /** Repeat Plan */
+            repeat_plan?: boolean | null;
         } & {
             [key: string]: unknown;
         };
@@ -2688,6 +2698,7 @@ export interface operations {
         parameters: {
             query?: {
                 listen_seconds?: number;
+                force_live?: boolean;
             };
             header?: never;
             path: {

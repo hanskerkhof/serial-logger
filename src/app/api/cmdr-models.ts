@@ -129,6 +129,7 @@ export type CmdrFixtureConfig           = components['schemas']['FixtureConfig']
 export type CmdrFixtureConfigPlayer = components['schemas']['FixtureConfigPlayer'];
 export type CmdrFixtureConfigAux    = components['schemas']['FixtureConfigAux'];
 export type CmdrFixtureConfigDmx    = components['schemas']['FixtureConfigDmx'];
+export type CmdrFixtureConfigPlan   = components['schemas']['FixtureConfigPlan'];
 export type CmdrFixtureConfigUi     = components['schemas']['FixtureConfigUi'];
 
 // --- Plan state models (not in OpenAPI schema — firmware-specific, handwritten) ---

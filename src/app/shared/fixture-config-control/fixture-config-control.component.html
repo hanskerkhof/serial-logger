@@ -282,6 +282,48 @@
     </section>
   }
 
+  @if (config()?.plan !== null && config()?.plan !== undefined) {
+    <section class="fixture-config__section">
+      <h4 class="fixture-config__section-title">Plan</h4>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">{{ labelFor('plan.auto_start', 'Auto-start on boot') }}</label>
+        <p-toggleswitch
+          [ngModel]="planAutoStart()"
+          (ngModelChange)="planAutoStart.set($event)"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled()"
+          (click)="savePlanAutoStart()"
+        ></button>
+      </div>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">{{ labelFor('plan.repeat_plan', 'Repeat') }}</label>
+        <p-toggleswitch
+          [ngModel]="planRepeatPlan()"
+          (ngModelChange)="planRepeatPlan.set($event)"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled()"
+          (click)="savePlanRepeatPlan()"
+        ></button>
+      </div>
+    </section>
+  }
+
   <section class="fixture-config__section">
     <h4 class="fixture-config__section-title">WiFi</h4>
 
@@ -360,12 +402,6 @@
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">{{ labelFor('info.fixture_mode', 'Fixture mode') }}</span>
         <span class="fixture-config__value">{{ config()?.fixture_mode }}</span>
-      </div>
-    }
-    @if (config()?.plan_auto_start !== null && config()?.plan_auto_start !== undefined) {
-      <div class="fixture-config__row fixture-config__row--readonly">
-        <span class="fixture-config__label">{{ labelFor('info.plan_auto_start', 'Plan auto-start') }}</span>
-        <span class="fixture-config__value">{{ config()?.plan_auto_start ? 'yes' : 'no' }}</span>
       </div>
     }
     @if (config()?.ota_flag !== null && config()?.ota_flag !== undefined) {

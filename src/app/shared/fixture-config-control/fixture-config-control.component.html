@@ -1,6 +1,48 @@
 @if (!config()) {
   <p class="fixture-config__no-data">No config data — run a query to load config.</p>
 } @else {
+  @if (config()?.plan !== null && config()?.plan !== undefined) {
+    <section class="fixture-config__section">
+      <h4 class="fixture-config__section-title">Plan</h4>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">{{ labelFor('plan.auto_start', 'Auto-start on boot') }}</label>
+        <p-toggleswitch
+          [ngModel]="planAutoStart()"
+          (ngModelChange)="planAutoStart.set($event)"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled()"
+          (click)="savePlanAutoStart()"
+        ></button>
+      </div>
+
+      <div class="fixture-config__row">
+        <label class="fixture-config__label">{{ labelFor('plan.repeat_plan', 'Repeat') }}</label>
+        <p-toggleswitch
+          [ngModel]="planRepeatPlan()"
+          (ngModelChange)="planRepeatPlan.set($event)"
+          [disabled]="controlsDisabled()"
+        />
+        <button
+          pButton
+          type="button"
+          label="Save"
+          size="small"
+          class="fixture-config__save-btn"
+          [disabled]="controlsDisabled()"
+          (click)="savePlanRepeatPlan()"
+        ></button>
+      </div>
+    </section>
+  }
+
   @if (config()?.player !== null && config()?.player !== undefined) {
     <section class="fixture-config__section">
       <h4 class="fixture-config__section-title">Player</h4>
@@ -279,48 +321,6 @@
           ></button>
         </div>
       }
-    </section>
-  }
-
-  @if (config()?.plan !== null && config()?.plan !== undefined) {
-    <section class="fixture-config__section">
-      <h4 class="fixture-config__section-title">Plan</h4>
-
-      <div class="fixture-config__row">
-        <label class="fixture-config__label">{{ labelFor('plan.auto_start', 'Auto-start on boot') }}</label>
-        <p-toggleswitch
-          [ngModel]="planAutoStart()"
-          (ngModelChange)="planAutoStart.set($event)"
-          [disabled]="controlsDisabled()"
-        />
-        <button
-          pButton
-          type="button"
-          label="Save"
-          size="small"
-          class="fixture-config__save-btn"
-          [disabled]="controlsDisabled()"
-          (click)="savePlanAutoStart()"
-        ></button>
-      </div>
-
-      <div class="fixture-config__row">
-        <label class="fixture-config__label">{{ labelFor('plan.repeat_plan', 'Repeat') }}</label>
-        <p-toggleswitch
-          [ngModel]="planRepeatPlan()"
-          (ngModelChange)="planRepeatPlan.set($event)"
-          [disabled]="controlsDisabled()"
-        />
-        <button
-          pButton
-          type="button"
-          label="Save"
-          size="small"
-          class="fixture-config__save-btn"
-          [disabled]="controlsDisabled()"
-          (click)="savePlanRepeatPlan()"
-        ></button>
-      </div>
     </section>
   }
 

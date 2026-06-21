@@ -382,7 +382,17 @@ export class FixtureCustomControlComponent {
     return fieldVal !== undefined ? String(fieldVal) : '';
   }
 
-  private formatElapsedHHMMSS(ms: number): string {
+  protected isElapsedMsArg(arg: CmdrCustomCommandUiArg): boolean {
+    return (arg as unknown as { format?: unknown }).format === 'hhmmss';
+  }
+
+  protected statusElapsedMs(commandId: string, arg: CmdrCustomCommandUiArg): number {
+    const value = this.liveCommandArgValue(commandId, arg);
+    const ms = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(ms) && ms > 0 ? ms : 0;
+  }
+
+  protected formatElapsedPlayback(ms: number): string {
     if (!Number.isFinite(ms) || ms <= 0) return '00:00:00';
     const totalSec = Math.floor(ms / 1000);
     const h = Math.floor(totalSec / 3600);
@@ -395,12 +405,6 @@ export class FixtureCustomControlComponent {
     const fromOption = this.resolveValueFromOption(arg);
     if (fromOption !== null) return fromOption;
     const value = this.liveCommandArgValue(commandId, arg);
-    // hhmmss: elapsed_ms number → always-padded HH:MM:SS (same data format as player)
-    const format = (arg as unknown as { format?: unknown }).format;
-    if (format === 'hhmmss') {
-      const ms = typeof value === 'number' ? value : Number(value);
-      return this.formatElapsedHHMMSS(ms);
-    }
     const optionLabel = this.optionLabelForValue(arg, value);
     if (optionLabel) return optionLabel;
     // REMSEC should render as a right-aligned 4-char seven-segment field.
@@ -554,6 +558,8 @@ export class FixtureCustomControlComponent {
     // Checkboxes are always shown in the command row — they have no dedicated rendering block
     // (unlike RGB / dimmer) and need to be directly interactive.
     if (String(arg.control ?? '').toLowerCase() === 'checkbox') return false;
+    // Nav-select args (prev/select/next row) are always shown as their own interactive block.
+    if (this.isNavSelectArg(arg)) return false;
     return this.isSettableCommand(command) && this.isInputArg(arg);
   }
 

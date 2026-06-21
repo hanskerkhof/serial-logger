@@ -367,6 +367,14 @@
                           }
                         }
                       </h3>
+                    } @else if (isElapsedMsArg(arg)) {
+                      @let ms = statusElapsedMs(statusCommand.id, arg);
+                      @if (ms > 0) {
+                        <span class="fixture-custom-control__playing-badge">PLAYING</span>
+                        <span class="fixture-custom-control__playback-time">{{ formatElapsedPlayback(ms) }}</span>
+                      } @else {
+                        <strong class="fixture-custom-control__status-value">&mdash;</strong>
+                      }
                     } @else {
                       <strong class="fixture-custom-control__status-value">{{ statusDisplayText(statusCommand.id, arg) }}</strong><span class="fixture-custom-control__status-avg-suffix">{{ statusDisplayAvgSuffix(arg) }}</span>
                       @if (isStatusCopyableArg(arg)) {

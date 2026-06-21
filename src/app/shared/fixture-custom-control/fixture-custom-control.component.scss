@@ -234,6 +234,23 @@
   gap: 0.35rem;
 }
 
+.fixture-custom-control__playing-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  background: var(--p-green-100, #dcfce7);
+  color: var(--p-green-700, #15803d);
+}
+
+.fixture-custom-control__playback-time {
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-green-700, #15803d);
+  letter-spacing: 0.02em;
+}
+
 .fixture-custom-control__nav-row {
   display: flex;
   align-items: center;

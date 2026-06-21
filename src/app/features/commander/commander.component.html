@@ -1081,6 +1081,9 @@
               (onHide)="dialogFixtureFilter.set(null)"
               styleClass="commander__fixture-select-input"
             >
+              <ng-template pTemplate="item" let-opt>
+                <span [class.commander__fixture-select-offline]="opt.stale">{{ opt.label }}</span>
+              </ng-template>
               <ng-template pTemplate="filtericon">
                 @if (dialogFixtureFilter()) {
                   <i
@@ -1112,6 +1115,11 @@
             ></button>
             @if (selectedFixture()?.fixture_name) {
               <app-copy-to-clipboard [value]="selectedFixture()!.fixture_name" />
+            }
+            @if (selectedFixture()?.stale) {
+              <span class="commander__fixture-offline" title="Fixture marked offline by commander">
+                <i class="pi pi-exclamation-triangle"></i> offline
+              </span>
             }
             @if (selectedFixtureFwStatus(); as fws) {
               <span class="commander__dialog-fw-version">

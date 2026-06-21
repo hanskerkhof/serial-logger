@@ -1192,7 +1192,7 @@ export class CommanderComponent implements OnInit {
     this.groupedFixturesByPlanGroup().map(({ plan_group, plans }) => ({
       label: plan_group,
       items: plans.flatMap((plan) =>
-        plan.fixtures.map((f) => ({ label: f.fixture_name, value: f.fixture_name })),
+        plan.fixtures.map((f) => ({ label: f.fixture_name, value: f.fixture_name, stale: !!f.stale })),
       ),
     })),
   );

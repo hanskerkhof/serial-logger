@@ -78,6 +78,10 @@ import {
 import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
 import { FixtureDocsComponent } from '../../shared/fixture-docs/fixture-docs.component';
 import { CopyToClipboardComponent } from '../../shared/copy-to-clipboard/copy-to-clipboard.component';
+import {
+  RadioPlanStateComponent,
+  type RadioStationOption,
+} from '../../shared/radio-plan-state/radio-plan-state.component';
 import { DiscoveryWsMessage, FixtureSeenWsMessage, HealthPollService, PlanStateWsMessage } from '../../health-poll.service';
 import {
   QrScannedCommandService,
@@ -206,7 +210,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, DurationPipe, DurationMsCompactPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, DurationPipe, DurationMsCompactPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -1505,6 +1509,54 @@ export class CommanderComponent implements OnInit {
     const v = this.selectedFixture()?.raw['analog_volume_enabled'];
     return typeof v === 'boolean' ? v : null;
   });
+
+  /** True when the selected fixture runs the BAUKLANK_RADIO_BRIDGE plan. */
+  protected readonly isRadioBridgeFixture = computed<boolean>(
+    () => this.selectedFixture()?.plan_name === 'BAUKLANK_RADIO_BRIDGE',
+  );
+
+  /** Parsed `state` object from the fixture's latest passive plan state. */
+  protected readonly radioPlanState = computed<Record<string, unknown> | null>(() => {
+    if (!this.isRadioBridgeFixture()) return null;
+    const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
+    const s = ps?.['state'];
+    return s && typeof s === 'object' && !Array.isArray(s)
+      ? (s as Record<string, unknown>)
+      : null;
+  });
+
+  /** Station options (with url) from the fixture's bauklank_radio_controls command. */
+  protected readonly radioStationOptions = computed<RadioStationOption[]>(() => {
+    if (!this.isRadioBridgeFixture()) return [];
+    const ui = this.selectedFixture()?.raw['custom_command_ui'] as unknown[] | null | undefined;
+    const ctrl = (ui ?? []).find((c): c is Record<string, unknown> =>
+      !!c && typeof c === 'object' && (c as Record<string, unknown>)['id'] === 'bauklank_radio_controls',
+    );
+    const args = (ctrl?.['args'] as unknown[] | undefined) ?? [];
+    const stationArg = args.find((a): a is Record<string, unknown> =>
+      !!a && typeof a === 'object' && (a as Record<string, unknown>)['name'] === 'station',
+    );
+    const options = (stationArg?.['options'] as unknown[] | undefined) ?? [];
+    return options
+      .filter((o): o is Record<string, unknown> => !!o && typeof o === 'object')
+      .map(o => ({
+        label:  String(o['label']  ?? ''),
+        value:  Number(o['value']  ?? 0),
+        url:    typeof o['url'] === 'string' ? o['url'] : undefined,
+      }));
+  });
+
+  protected onRadioStationChange(station: number): void {
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) return;
+    this.sendCommand(fixture, `cmd;radio;station=${station};`, 'default');
+  }
+
+  protected onRadioVolumeChange(volume: number): void {
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) return;
+    this.sendCommand(fixture, `cmd;radio;volume=${volume};`, 'default');
+  }
 
   protected readonly selectedFixtureRelayStates = computed<CmdrRelayStateItem[] | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;

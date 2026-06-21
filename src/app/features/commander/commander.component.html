@@ -1571,7 +1571,15 @@
                 </table>
               }
             </section>
-            @if (selectedFixtureCustomCommands().length > 0) {
+            @if (isRadioBridgeFixture()) {
+              <app-radio-plan-state
+                [planState]="radioPlanState()"
+                [stationOptions]="radioStationOptions()"
+                [disabled]="playerControlsDisabled()"
+                (stationChangeRequested)="onRadioStationChange($event)"
+                (volumeChangeRequested)="onRadioVolumeChange($event)"
+              />
+            } @else if (selectedFixtureCustomCommands().length > 0) {
               <app-fixture-custom-control
                 [commands]="selectedFixtureCustomCommands()"
                 [liveValues]="customCommandLiveValues()"

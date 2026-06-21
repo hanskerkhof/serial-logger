@@ -1,0 +1,135 @@
+.radio-ps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 6px;
+}
+
+// ── stream state badge ─────────────────────────────────────────────────────
+
+.radio-ps__header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.radio-ps__stream-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  white-space: nowrap;
+
+  &--stopped   { background: var(--p-surface-200, #e5e7eb); color: var(--p-text-muted-color, #6b7280); }
+  &--buffering { background: var(--p-yellow-100, #fef9c3);  color: var(--p-yellow-700, #a16207); }
+  &--playing   { background: var(--p-green-100, #dcfce7);   color: var(--p-green-700, #15803d); }
+  &--error     { background: var(--p-red-100, #fee2e2);     color: var(--p-red-700, #b91c1c); }
+  &--timeout   { background: var(--p-orange-100, #ffedd5);  color: var(--p-orange-700, #c2410c); }
+}
+
+.radio-ps__station-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── station selector ───────────────────────────────────────────────────────
+
+.radio-ps__selector {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.radio-ps__select {
+  flex: 1;
+  min-width: 0;
+}
+
+.radio-ps__filter-clear {
+  cursor: pointer;
+  color: var(--p-text-muted-color);
+  transition: color 0.15s;
+
+  &:hover { color: var(--p-text-color); }
+}
+
+// ── volume slider ─────────────────────────────────────────────────────────
+
+.radio-ps__volume {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.radio-ps__volume-slider {
+  flex: 1;
+}
+
+.radio-ps__volume-value {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-text-muted-color);
+  min-width: 1.5rem;
+  text-align: right;
+}
+
+// ── info rows ──────────────────────────────────────────────────────────────
+
+.radio-ps__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+
+.radio-ps__row-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+  min-width: 3.5rem;
+}
+
+.radio-ps__row-value {
+  color: var(--p-text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+
+  &--url {
+    font-size: 0.72rem;
+    color: var(--p-text-muted-color);
+    font-family: monospace;
+  }
+}
+
+// ── playing badge + elapsed ────────────────────────────────────────────────
+
+.radio-ps__playing-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  background: var(--p-green-100, #dcfce7);
+  color: var(--p-green-700, #15803d);
+  white-space: nowrap;
+}
+
+.radio-ps__elapsed {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-green-700, #15803d);
+  letter-spacing: 0.02em;
+}

@@ -1,0 +1,114 @@
+<section class="radio-ps">
+
+  <!-- Stream state badge + station name -->
+  <div class="radio-ps__header">
+    <span class="radio-ps__stream-badge radio-ps__stream-badge--{{ streamStateMeta().mod }}">
+      {{ streamStateMeta().label }}
+    </span>
+    @if (stationName()) {
+      <span class="radio-ps__station-name">{{ stationName() }}</span>
+    }
+  </div>
+
+  <!-- Station selector: ← dropdown → -->
+  <div class="radio-ps__selector">
+    <button
+      pButton
+      type="button"
+      icon="pi pi-chevron-left"
+      [text]="true"
+      [rounded]="true"
+      severity="secondary"
+      size="small"
+      aria-label="Previous station"
+      [disabled]="disabled() || stationOptions().length === 0"
+      (click)="prevStation()"
+    ></button>
+    <p-select
+      class="radio-ps__select"
+      [options]="stationOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="selectedStation()"
+      (ngModelChange)="onStationChange($event)"
+      size="small"
+      scrollHeight="360px"
+      appendTo="body"
+      [filter]="true"
+      filterBy="label"
+      [filterValue]="stationFilter()"
+      (onFilter)="stationFilter.set($event.filter)"
+      (onHide)="stationFilter.set(null)"
+      [disabled]="disabled()"
+    >
+      <ng-template pTemplate="filtericon">
+        @if (stationFilter()) {
+          <i
+            class="pi pi-times radio-ps__filter-clear"
+            role="button"
+            tabindex="0"
+            aria-label="Clear filter"
+            (click)="stationFilter.set(null); $event.stopPropagation()"
+          ></i>
+        } @else {
+          <i class="pi pi-search"></i>
+        }
+      </ng-template>
+    </p-select>
+    <button
+      pButton
+      type="button"
+      icon="pi pi-chevron-right"
+      [text]="true"
+      [rounded]="true"
+      severity="secondary"
+      size="small"
+      aria-label="Next station"
+      [disabled]="disabled() || stationOptions().length === 0"
+      (click)="nextStation()"
+    ></button>
+  </div>
+
+  <!-- Volume slider -->
+  <div class="radio-ps__volume">
+    <span class="radio-ps__row-label">Volume</span>
+    <p-slider
+      class="radio-ps__volume-slider"
+      [min]="0"
+      [max]="30"
+      [step]="1"
+      [ngModel]="displayVolume()"
+      (ngModelChange)="onVolumeInput($event)"
+      (onSlideEnd)="onVolumeRelease($event.value ?? displayVolume())"
+      [disabled]="disabled()"
+    />
+    <span class="radio-ps__volume-value">{{ displayVolume() }}</span>
+  </div>
+
+  <!-- URL -->
+  @if (stationUrl()) {
+    <div class="radio-ps__row">
+      <span class="radio-ps__row-label">URL</span>
+      <span class="radio-ps__row-value radio-ps__row-value--url">{{ stationUrl() }}</span>
+      <app-copy-to-clipboard [value]="stationUrl()" />
+    </div>
+  }
+
+  <!-- Track title -->
+  @if (streamTitle()) {
+    <div class="radio-ps__row">
+      <span class="radio-ps__row-label">Track</span>
+      <strong class="radio-ps__row-value">{{ streamTitle() }}</strong>
+    </div>
+  }
+
+  <!-- Elapsed time — only shown when playing -->
+  @if (elapsedMs() > 0) {
+    <div class="radio-ps__row">
+      <span class="radio-ps__row-label">Playing</span>
+      <span class="radio-ps__playing-badge">PLAYING</span>
+      <span class="radio-ps__elapsed">{{ elapsedFormatted() }}</span>
+    </div>
+  }
+
+</section>

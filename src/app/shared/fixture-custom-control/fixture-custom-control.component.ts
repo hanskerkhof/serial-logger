@@ -13,8 +13,10 @@ import {
   CmdrCustomCommandUiItem,
   CmdrSequenceTimelineDefinition,
 } from '../../api/cmdr-models';
+import { formatPlaybackMs } from '../pipes/playback-ms.pipe';
 import { BitmaskDotsComponent } from '../bitmask-dots/bitmask-dots.component';
 import { SequenceTimelineStatusComponent } from '../sequence-timeline-status/sequence-timeline-status.component';
+import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard.component';
 
 export type FixtureCustomControlValue = string | number | boolean | Record<string, unknown>;
 
@@ -82,6 +84,7 @@ interface SequenceRuntimeState {
     DialogModule,
     BitmaskDotsComponent,
     SequenceTimelineStatusComponent,
+    CopyToClipboardComponent,
   ],
   templateUrl: './fixture-custom-control.component.html',
   styleUrl: './fixture-custom-control.component.scss',
@@ -217,6 +220,50 @@ export class FixtureCustomControlComponent {
     return String(arg.control ?? '').toLowerCase() === 'display';
   }
 
+  protected isStatusCopyableArg(arg: CmdrCustomCommandUiArg): boolean {
+    return !!(arg as unknown as { copyable?: unknown }).copyable;
+  }
+
+  protected isNavSelectArg(arg: CmdrCustomCommandUiArg): boolean {
+    return !!(arg as unknown as { with_navigation?: unknown }).with_navigation &&
+           String(arg.control ?? '').toLowerCase() === 'select';
+  }
+
+  private readonly navSelectFilters = signal<Record<string, string | null>>({});
+
+  protected navSelectFilter(commandId: string, arg: CmdrCustomCommandUiArg): string | null {
+    return this.navSelectFilters()[`${commandId}.${arg.name}`] ?? null;
+  }
+
+  protected setNavSelectFilter(commandId: string, arg: CmdrCustomCommandUiArg, v: string | null): void {
+    const key = `${commandId}.${arg.name}`;
+    this.navSelectFilters.update(f => ({ ...f, [key]: v }));
+  }
+
+  protected onNavSelectChange(command: CmdrCustomCommandUiItem, arg: CmdrCustomCommandUiArg, value: unknown): void {
+    this.onArgChanged(command.id, arg, value);
+    // sliderReleased triggers send for commands with send_on_release: true
+    this.sliderReleased.emit(command);
+  }
+
+  protected prevNavOption(command: CmdrCustomCommandUiItem, arg: CmdrCustomCommandUiArg): void {
+    const opts = this.selectOptions(arg);
+    if (opts.length === 0) return;
+    const current = this.draftCommandArgValue(command.id, arg);
+    const idx = opts.findIndex(o => o.value === current);
+    const prev = idx <= 0 ? opts.length - 1 : idx - 1;
+    this.onNavSelectChange(command, arg, opts[prev].value);
+  }
+
+  protected nextNavOption(command: CmdrCustomCommandUiItem, arg: CmdrCustomCommandUiArg): void {
+    const opts = this.selectOptions(arg);
+    if (opts.length === 0) return;
+    const current = this.draftCommandArgValue(command.id, arg);
+    const idx = opts.findIndex(o => o.value === current);
+    const next = idx < 0 || idx >= opts.length - 1 ? 0 : idx + 1;
+    this.onNavSelectChange(command, arg, opts[next].value);
+  }
+
   protected isStatusRemsecArg(arg: CmdrCustomCommandUiArg): boolean {
     return String(arg.name ?? '').trim().toLowerCase() === 'remsec';
   }
@@ -318,8 +365,42 @@ export class FixtureCustomControlComponent {
     return typeof suffix === 'string' ? suffix : '';
   }
 
+  private resolveValueFromOption(arg: CmdrCustomCommandUiArg): string | null {
+    const vfo = (arg as unknown as { value_from_option?: unknown }).value_from_option;
+    if (!vfo || typeof vfo !== 'object') return null;
+    const { command_id, arg_name, option_field } = vfo as {
+      command_id?: string; arg_name?: string; option_field?: string;
+    };
+    if (!command_id || !arg_name || !option_field) return null;
+    const refCmd = this.commands().find(c => c.id === command_id);
+    const refArg = (refCmd?.args ?? []).find(a => a.name === arg_name);
+    if (!refArg) return null;
+    const refValue = this.liveCommandArgValue(command_id, refArg);
+    const options = (refArg as unknown as { options?: Array<Record<string, unknown>> }).options ?? [];
+    const match = options.find(o => String(o['value']) === String(refValue));
+    const fieldVal = match?.[option_field];
+    return fieldVal !== undefined ? String(fieldVal) : '';
+  }
+
+  private formatElapsedHHMMSS(ms: number): string {
+    if (!Number.isFinite(ms) || ms <= 0) return '00:00:00';
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
   protected statusDisplayText(commandId: string, arg: CmdrCustomCommandUiArg): string {
+    const fromOption = this.resolveValueFromOption(arg);
+    if (fromOption !== null) return fromOption;
     const value = this.liveCommandArgValue(commandId, arg);
+    // hhmmss: elapsed_ms number → always-padded HH:MM:SS (same data format as player)
+    const format = (arg as unknown as { format?: unknown }).format;
+    if (format === 'hhmmss') {
+      const ms = typeof value === 'number' ? value : Number(value);
+      return this.formatElapsedHHMMSS(ms);
+    }
     const optionLabel = this.optionLabelForValue(arg, value);
     if (optionLabel) return optionLabel;
     // REMSEC should render as a right-aligned 4-char seven-segment field.

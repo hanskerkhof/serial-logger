@@ -4266,6 +4266,11 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, wireCommand, 'default', () => {
       this.applyOptimisticStateBackedValues(command, commandValues);
       this.queuePostRunDraftSync(command);
+      // Station switch — immediately blank the track title so the stale ICY title
+      // doesn't persist until the new one arrives via BK_PASSIVE_PS.
+      if ((command.args ?? []).some(a => a.name === 'station')) {
+        this.clearStreamTitleOptimistically();
+      }
     });
   }
 
@@ -5637,6 +5642,20 @@ export class CommanderComponent implements OnInit {
     const byCommand = this.customCommandStateBackedOptimisticValues()[commandId];
     if (!byCommand) return undefined;
     return byCommand[argName];
+  }
+
+  private clearStreamTitleOptimistically(): void {
+    // Find any custom command with a stream_title arg and set its optimistic value to ''.
+    // The optimistic expires once BAUKLANK_RADIO emits BKSTATE with stream_title:"" (on
+    // station switch), after which the next real title from ICY metadata flows through.
+    for (const cmd of this.selectedFixtureCustomCommands()) {
+      if ((cmd.args ?? []).some(a => a.name === 'stream_title')) {
+        this.customCommandStateBackedOptimisticValues.update(current => ({
+          ...current,
+          [cmd.id]: { ...(current[cmd.id] ?? {}), stream_title: '' },
+        }));
+      }
+    }
   }
 
   private clearOptimisticStateBackedValue(

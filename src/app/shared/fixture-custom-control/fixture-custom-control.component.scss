@@ -234,6 +234,28 @@
   gap: 0.35rem;
 }
 
+.fixture-custom-control__nav-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.fixture-custom-control__nav-select {
+  width: 300px;
+}
+
+.fixture-custom-control__nav-filter-clear {
+  cursor: pointer;
+  color: var(--p-text-muted-color);
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--p-text-color);
+  }
+}
+
 .fixture-custom-control__arg-inline-label {
   font-size: 0.75rem;
   font-weight: 700;

@@ -114,6 +114,36 @@
   }
 }
 
+// ── record row ────────────────────────────────────────────────────────────
+
+.radio-ps__row--record {
+  align-items: center;
+}
+
+.radio-ps__sd-status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--p-red-600, #dc2626);
+
+  &--ready {
+    color: var(--p-text-muted-color);
+  }
+}
+
+.radio-ps__rec-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--p-red-600, #dc2626);
+  animation: radio-ps-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes radio-ps-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
 // ── signal quality ────────────────────────────────────────────────────────
 
 .radio-ps__signal-badge {

@@ -1596,6 +1596,7 @@
                 [disabled]="playerControlsDisabled()"
                 (stationChangeRequested)="onRadioStationChange($event)"
                 (volumeChangeRequested)="onRadioVolumeChange($event)"
+                (recordingChangeRequested)="onRadioRecordingChange($event)"
               />
             } @else if (selectedFixtureCustomCommands().length > 0) {
               <app-fixture-custom-control

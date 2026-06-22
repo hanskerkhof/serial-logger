@@ -3,13 +3,15 @@ import {
   Component,
   computed,
   input,
+  linkedSignal,
   output,
-  signal,
+  signal,  // used for volumeDraft and stationFilter
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { SliderModule } from 'primeng/slider';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard.component';
 
 // Mirrors StreamState enum in BAUKLANK_RADIO firmware.
@@ -41,7 +43,7 @@ export interface RadioStationOption {
   selector: 'app-radio-plan-state',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, ButtonModule, SelectModule, SliderModule, CopyToClipboardComponent],
+  imports: [FormsModule, ButtonModule, SelectModule, SliderModule, ToggleSwitchModule, CopyToClipboardComponent],
   templateUrl: './radio-plan-state.component.html',
   styleUrl: './radio-plan-state.component.scss',
 })
@@ -56,6 +58,8 @@ export class RadioPlanStateComponent {
   readonly stationChangeRequested = output<number>();
   /** Emitted on slider release with the new volume (0–30). */
   readonly volumeChangeRequested = output<number>();
+  /** Emitted when the user toggles the record switch (true = start, false = stop). */
+  readonly recordingChangeRequested = output<boolean>();
 
   // ── derived state ─────────────────────────────────────────────────────────
 
@@ -74,7 +78,7 @@ export class RadioPlanStateComponent {
   });
 
   protected readonly stationName = computed(() => {
-    const v = this.planState()?.['station_name'];
+    const v = this.planState()?.['sn'];
     return typeof v === 'string' ? v : '';
   });
 
@@ -86,7 +90,7 @@ export class RadioPlanStateComponent {
   });
 
   protected readonly streamTitle = computed(() => {
-    const v = this.planState()?.['stream_title'];
+    const v = this.planState()?.['st'];
     return typeof v === 'string' ? v.trim() : '';
   });
 
@@ -133,6 +137,22 @@ export class RadioPlanStateComponent {
     const v = this.planState()?.['volume'];
     return typeof v === 'number' ? v : 20;
   });
+
+  protected readonly sdReady = computed(() => {
+    const v = this.planState()?.['sd'];
+    return typeof v === 'number' ? v === 1 : false;
+  });
+
+  // Synced from plan_state `rec` field; writable for immediate UI feedback on toggle click.
+  protected readonly recordingActive = linkedSignal(() => {
+    const v = this.planState()?.['rec'];
+    return typeof v === 'number' ? v === 1 : false;
+  });
+
+  protected onRecordingToggle(value: boolean): void {
+    this.recordingActive.set(value);
+    this.recordingChangeRequested.emit(value);
+  }
 
   // Local draft during drag — shows immediately without waiting for plan state round-trip.
   protected readonly volumeDraft = signal<number | null>(null);

@@ -131,4 +131,24 @@
     </div>
   }
 
+  <!-- Record to SD -->
+  <div class="radio-ps__row radio-ps__row--record">
+    <span class="radio-ps__row-label">Record</span>
+    <p-toggleswitch
+      [ngModel]="recordingActive()"
+      (ngModelChange)="onRecordingToggle($event)"
+      [disabled]="disabled() || !sdReady()"
+      ariaLabel="Record stream to SD card"
+    />
+    @if (planState() !== null) {
+      <span
+        class="radio-ps__sd-status"
+        [class.radio-ps__sd-status--ready]="sdReady()"
+      >sd-card: {{ sdReady() ? 'available' : 'unavailable' }}</span>
+    }
+    @if (recordingActive()) {
+      <span class="radio-ps__rec-badge">● REC</span>
+    }
+  </div>
+
 </section>

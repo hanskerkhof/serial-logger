@@ -1479,6 +1479,24 @@
                   aria-label="Passive plan state interval"
                 ></p-select>
               </div>
+              @if (passivePsLastMsg(); as msg) {
+                <div class="commander__passive-ps-msg-accordion">
+                  <button
+                    type="button"
+                    class="commander__passive-ps-msg-toggle"
+                    (click)="passivePsLastMsgOpen.set(!passivePsLastMsgOpen())"
+                    [attr.aria-expanded]="passivePsLastMsgOpen()"
+                  >
+                    <span>Latest message</span>
+                    <i class="pi" [class.pi-chevron-down]="!passivePsLastMsgOpen()" [class.pi-chevron-up]="passivePsLastMsgOpen()"></i>
+                  </button>
+                  @if (passivePsLastMsgOpen()) {
+                    <div class="commander__passive-ps-last-msg">
+                      <ngx-json-viewer [json]="msg" [expanded]="true"></ngx-json-viewer>
+                    </div>
+                  }
+                </div>
+              }
               @if (passivePsCount() > 0) {
                 <div class="commander__passive-ps-stats">
                   <span class="commander__passive-ps-count">{{ passivePsCount() }} msgs</span>

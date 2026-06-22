@@ -114,6 +114,31 @@
   }
 }
 
+// ── signal quality ────────────────────────────────────────────────────────
+
+.radio-ps__signal-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  white-space: nowrap;
+
+  &--poor      { background: var(--p-red-100, #fee2e2);     color: var(--p-red-700, #b91c1c); }
+  &--fair      { background: var(--p-orange-100, #ffedd5);   color: var(--p-orange-700, #c2410c); }
+  &--good      { background: var(--p-yellow-100, #fef9c3);   color: var(--p-yellow-700, #a16207); }
+  &--excellent { background: var(--p-green-100, #dcfce7);    color: var(--p-green-700, #15803d); }
+}
+
+.radio-ps__signal-detail {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-text-muted-color);
+
+  &--warn { color: var(--p-red-600, #dc2626); font-weight: 600; }
+}
+
 // ── playing badge + elapsed ────────────────────────────────────────────────
 
 .radio-ps__playing-badge {

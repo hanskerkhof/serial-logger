@@ -22,6 +22,15 @@ export const RADIO_STREAM_STATES: Record<number, { label: string; mod: string }>
   4: { label: 'Timeout',   mod: 'timeout' },
 };
 
+// Mirrors the cq field computed in BAUKLANK_RADIO writeStateJson().
+// 0=Poor 1=Fair 2=Good 3=Excellent, derived from RSSI + HTTP stall + zero-read drops.
+const RADIO_CONN_QUALITY: Record<number, { label: string; mod: string }> = {
+  0: { label: 'Poor',      mod: 'poor' },
+  1: { label: 'Fair',      mod: 'fair' },
+  2: { label: 'Good',      mod: 'good' },
+  3: { label: 'Excellent', mod: 'excellent' },
+};
+
 export interface RadioStationOption {
   label: string;
   value: number;
@@ -87,6 +96,38 @@ export class RadioPlanStateComponent {
   });
 
   protected readonly elapsedFormatted = computed(() => this.formatElapsed(this.elapsedMs()));
+
+  // ── connection reliability ─────────────────────────────────────────────────
+
+  protected readonly rssiDbm = computed(() => {
+    const v = this.planState()?.['rssi'];
+    return typeof v === 'number' ? v : null;
+  });
+
+  protected readonly stallMs = computed(() => {
+    const v = this.planState()?.['stall'];
+    return typeof v === 'number' ? v : 0;
+  });
+
+  protected readonly drops = computed(() => {
+    const v = this.planState()?.['drops'];
+    return typeof v === 'number' ? v : 0;
+  });
+
+  protected readonly connQuality = computed(() => {
+    const rssi = this.rssiDbm();
+    if (rssi === null) return null;
+    const stall = this.stallMs();
+    const drops = this.drops();
+    if (rssi < -80 || stall > 100 || drops > 0) return 0;
+    if (rssi < -70 || stall > 50)               return 1;
+    if (rssi < -65 || stall > 30)               return 2;
+    return 3;
+  });
+
+  protected readonly connQualityMeta = computed(
+    () => RADIO_CONN_QUALITY[this.connQuality() ?? -1] ?? null,
+  );
 
   protected readonly planStateVolume = computed(() => {
     const v = this.planState()?.['volume'];

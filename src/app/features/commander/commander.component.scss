@@ -1132,6 +1132,55 @@
   font-style: italic;
 }
 
+.commander__passive-ps-msg-accordion {
+  margin-top: 0.5rem;
+}
+
+.commander__passive-ps-msg-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.25rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--p-text-muted-color, #888);
+  gap: 0.375rem;
+
+  &:hover {
+    color: var(--p-text-color, #1f2937);
+  }
+
+  .pi {
+    font-size: 0.7rem;
+  }
+}
+
+.commander__passive-ps-last-msg {
+  margin: 0.25rem 0 0;
+  padding: 0.5rem 0.625rem;
+  background: var(--p-surface-100, #f3f4f6);
+  border-radius: 4px;
+  max-height: 14rem;
+  overflow-y: auto;
+
+  ::ng-deep ngx-json-viewer {
+    font-size: 0.72rem;
+    line-height: 1.5;
+
+    .segment {
+      padding: 0;
+    }
+
+    .segment-main {
+      word-break: break-all;
+    }
+  }
+}
+
 .commander__rssi {
   margin-top: 0.75rem;
   display: flex;
@@ -1158,6 +1207,11 @@
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+app-radio-plan-state {
+  display: block;
+  margin-top: 1rem;
 }
 
 .commander__plan-state-badge {

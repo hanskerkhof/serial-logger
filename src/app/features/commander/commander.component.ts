@@ -33,6 +33,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { TableModule } from 'primeng/table';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { NgTemplateOutlet } from '@angular/common';
+import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { APP_VERSION, BUILD_DATE } from '../../build-info';
 import { FIXTURE_DETAIL_DRAWER } from '../../feature-flags';
 import {
@@ -210,7 +211,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, DurationPipe, DurationMsCompactPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, NgxJsonViewerModule, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, DurationPipe, DurationMsCompactPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -706,6 +707,10 @@ export class CommanderComponent implements OnInit {
   protected readonly passivePsLastAt = signal<number | null>(null);
   protected readonly passivePsLastIntervalMs = signal<number | null>(null);
   private _passivePsLastRawAt: number | null = null;
+  protected readonly passivePsLastMsg = signal<Record<string, unknown> | null>(null);
+  protected readonly passivePsLastMsgOpen = signal(
+    localStorage.getItem('cmdr.wsDisplayMessageOpen') !== '0',
+  );
   protected readonly passivePsLastAgoLabel = computed<string | null>(() => {
     const at = this.passivePsLastAt();
     if (at === null) return null;
@@ -836,6 +841,9 @@ export class CommanderComponent implements OnInit {
     effect(() => localStorage.setItem('cmdr.selectedFixture', this.fixtureName()));
     effect(() => localStorage.setItem('cmdr.selectedPlan', this.planName()));
     effect(() => localStorage.setItem('cmdr.selectedPlanGroup', this.planGroupName()));
+    effect(() =>
+      localStorage.setItem('cmdr.wsDisplayMessageOpen', this.passivePsLastMsgOpen() ? '1' : '0'),
+    );
     effect(() =>
       localStorage.setItem('cmdr.discovery.timings', JSON.stringify(this.discoveryTimings())),
     );
@@ -2119,6 +2127,7 @@ export class CommanderComponent implements OnInit {
         this.passivePsLastAt.set(now);
         this.passivePsCount.update(n => n + 1);
         if (interval !== null) this.passivePsLastIntervalMs.set(interval);
+        this.passivePsLastMsg.set(normalizedPlanState);
         // Resolve pending volume sync from passive state rather than a separate plan-state request.
         const pending = this._pendingVolumeSync;
         if (pending) {
@@ -3762,6 +3771,7 @@ export class CommanderComponent implements OnInit {
     this.passivePsCount.set(0);
     this.passivePsLastAt.set(null);
     this.passivePsLastIntervalMs.set(null);
+    this.passivePsLastMsg.set(null);
     this._passivePsLastRawAt = null;
     this.passivePsIntervalMs.set(1000);
     this._pendingVolumeSync = null;

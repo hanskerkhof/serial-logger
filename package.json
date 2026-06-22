@@ -1,6 +1,6 @@
 {
   "name": "serial-logger",
-  "version": "2.6.26",
+  "version": "2.6.27",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -39,6 +39,7 @@
     "@fontsource/dseg7-classic": "^5.2.5",
     "@primeuix/themes": "^2.0.3",
     "mermaid": "^11.15.0",
+    "ngx-json-viewer": "^3.2.1",
     "ngx-markdown": "^21.3.0",
     "primeicons": "^7.0.0",
     "primeng": "^21.1.8",

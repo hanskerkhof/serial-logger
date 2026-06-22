@@ -64,7 +64,7 @@ export class RadioPlanStateComponent {
   // ── derived state ─────────────────────────────────────────────────────────
 
   protected readonly streamState = computed(() => {
-    const v = this.planState()?.['stream_state'];
+    const v = this.planState()?.['ss'];
     return typeof v === 'number' ? v : 0;
   });
 
@@ -73,13 +73,15 @@ export class RadioPlanStateComponent {
   );
 
   protected readonly currentStation = computed(() => {
-    const v = this.planState()?.['station'];
+    const v = this.planState()?.['si'];
     return typeof v === 'number' ? v : null;
   });
 
+  // Station name resolved from fixture metadata (stationOptions) by index — not from plan state.
   protected readonly stationName = computed(() => {
-    const v = this.planState()?.['sn'];
-    return typeof v === 'string' ? v : '';
+    const idx = this.currentStation();
+    if (idx === null) return '';
+    return this.stationOptions().find(o => o.value === idx)?.label ?? '';
   });
 
   protected readonly stationUrl = computed(() => {
@@ -95,7 +97,7 @@ export class RadioPlanStateComponent {
   });
 
   protected readonly elapsedMs = computed(() => {
-    const v = this.planState()?.['elapsed_ms'];
+    const v = this.planState()?.['se_ms'];
     return typeof v === 'number' && v > 0 ? v : 0;
   });
 
@@ -134,7 +136,7 @@ export class RadioPlanStateComponent {
   );
 
   protected readonly planStateVolume = computed(() => {
-    const v = this.planState()?.['volume'];
+    const v = this.planState()?.['v'];
     return typeof v === 'number' ? v : 20;
   });
 

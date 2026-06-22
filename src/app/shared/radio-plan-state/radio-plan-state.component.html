@@ -7,8 +7,17 @@
     </span>
     @if (stationName()) {
       <span class="radio-ps__station-name">{{ stationName() }}</span>
+      <app-copy-to-clipboard [value]="stationName()" />
     }
   </div>
+
+  <!-- Station URL — shown between header and selector -->
+  @if (stationUrl()) {
+    <div class="radio-ps__row">
+      <span class="radio-ps__row-value radio-ps__row-value--url">{{ stationUrl() }}</span>
+      <app-copy-to-clipboard [value]="stationUrl()" />
+    </div>
+  }
 
   <!-- Station selector: ← dropdown → -->
   <div class="radio-ps__selector">
@@ -67,6 +76,9 @@
       [disabled]="disabled() || stationOptions().length === 0"
       (click)="nextStation()"
     ></button>
+    @if (stationUrl()) {
+      <app-copy-to-clipboard [value]="stationUrl()" />
+    }
   </div>
 
   <!-- Volume slider -->
@@ -85,20 +97,14 @@
     <span class="radio-ps__volume-value">{{ displayVolume() }}</span>
   </div>
 
-  <!-- URL -->
-  @if (stationUrl()) {
-    <div class="radio-ps__row">
-      <span class="radio-ps__row-label">URL</span>
-      <span class="radio-ps__row-value radio-ps__row-value--url">{{ stationUrl() }}</span>
-      <app-copy-to-clipboard [value]="stationUrl()" />
-    </div>
-  }
-
   <!-- Track title -->
   @if (streamTitle()) {
     <div class="radio-ps__row">
       <span class="radio-ps__row-label">Track</span>
-      <strong class="radio-ps__row-value">{{ streamTitle() }}</strong>
+      <span class="radio-ps__track-group">
+        <strong class="radio-ps__track-title">{{ streamTitle() }}</strong>
+        <app-copy-to-clipboard [value]="streamTitle()" />
+      </span>
     </div>
   }
 

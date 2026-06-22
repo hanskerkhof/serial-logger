@@ -100,6 +100,23 @@
   min-width: 3.5rem;
 }
 
+// Track title + copy button inline — copy appears immediately after the text, not at far right.
+.radio-ps__track-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.radio-ps__track-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--p-text-color);
+  font-weight: 600;
+}
+
 .radio-ps__row-value {
   color: var(--p-text-color);
   overflow: hidden;

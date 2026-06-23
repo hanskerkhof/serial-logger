@@ -1,0 +1,16 @@
+<div class="fixture-time">
+  <span class="fixture-time__value" [class.fixture-time__value--unset]="!displayTime()">
+    {{ displayTime() ?? 'Not set' }}
+  </span>
+  <button
+    pButton
+    type="button"
+    icon="pi pi-clock"
+    label="Sync Time"
+    size="small"
+    severity="secondary"
+    [text]="true"
+    [disabled]="disabled()"
+    (click)="syncRequested.emit()"
+  ></button>
+</div>

@@ -1,0 +1,15 @@
+.fixture-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &__value {
+    font-size: 0.8125rem;
+    font-family: monospace;
+
+    &--unset {
+      color: var(--p-text-muted-color);
+      font-style: italic;
+    }
+  }
+}

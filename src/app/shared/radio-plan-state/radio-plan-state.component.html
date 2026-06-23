@@ -143,9 +143,15 @@
     <p-toggleswitch
       [ngModel]="recordingActive()"
       (ngModelChange)="onRecordingToggle($event)"
-      [disabled]="disabled() || !sdReady()"
+      [disabled]="disabled()"
       ariaLabel="Record stream to SD card"
     />
+<!--    <p-toggleswitch-->
+<!--      [ngModel]="recordingActive()"-->
+<!--      (ngModelChange)="onRecordingToggle($event)"-->
+<!--      [disabled]="disabled() || !sdReady()"-->
+<!--      ariaLabel="Record stream to SD card"-->
+<!--    />-->
     @if (planState() !== null) {
       <span
         class="radio-ps__sd-status"

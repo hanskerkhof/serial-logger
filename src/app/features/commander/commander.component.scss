@@ -178,24 +178,6 @@
   width: 12rem;
 }
 
-.commander__dialog-time {
-  display: flex;
-  align-items: center;
-  gap: 0.1rem;
-}
-
-.commander__dialog-time-label {
-  font-size: 0.7rem;
-  font-family: monospace;
-  color: var(--p-text-muted-color);
-  white-space: nowrap;
-
-  &--unset {
-    font-style: italic;
-    opacity: 0.6;
-  }
-}
-
 .commander__dialog-fixture-nav {
   display: flex;
   align-items: center;

@@ -1531,24 +1531,6 @@ export class CommanderComponent implements OnInit {
     return s && typeof s === 'object' && !Array.isArray(s) ? (s as Record<string, unknown>) : null;
   });
 
-  /** Formatted wall-clock time from fixture plan state `t` field.
-   *  null = no plan state yet; { synced: false } = t=0; { synced: true, label } = live time. */
-  protected readonly selectedFixtureTime = computed<{ synced: boolean; label: string } | null>(() => {
-    const state = this.selectedFixturePlanStateState();
-    if (state === null) return null;
-    const v = state['t'];
-    if (typeof v !== 'number') return null;
-    if (v <= 0) return { synced: false, label: 'not synced' };
-    return {
-      synced: true,
-      label: new Date(v * 1000).toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }),
-    };
-  });
 
   /** Parsed `state` object from the fixture's latest passive plan state. */
   protected readonly radioPlanState = computed<Record<string, unknown> | null>(() => {

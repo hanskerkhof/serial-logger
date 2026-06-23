@@ -10,29 +10,27 @@ import { ButtonModule } from 'primeng/button';
   styleUrl: './fixture-time.component.scss',
 })
 export class FixtureTimeComponent {
-  /** Raw `.state` object from plan_state (the same object passed to other plan-state components). */
+  /** Raw `.state` object from plan_state. */
   readonly planState = input<Record<string, unknown> | null>(null);
   readonly disabled = input(false);
 
-  /** Emitted when the user clicks Sync Time — parent should send the wire command. */
+  /** Emitted when the user clicks the clock button — parent sends the wire command. */
   readonly syncRequested = output<void>();
 
-  protected readonly syncedEpoch = computed(() => {
-    const v = this.planState()?.['t'];
-    return typeof v === 'number' && v > 0 ? v : 0;
-  });
-
-  protected readonly displayTime = computed(() => {
-    const epoch = this.syncedEpoch();
-    if (epoch === 0) return null;
-    return new Date(epoch * 1000).toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
+  protected readonly selectedFixtureTime = computed<{ synced: boolean; label: string } | null>(() => {
+    const state = this.planState();
+    if (state === null) return null;
+    const v = state['t'];
+    if (typeof v !== 'number') return null;
+    if (v <= 0) return { synced: false, label: 'not synced' };
+    return {
+      synced: true,
+      label: new Date(v * 1000).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }),
+    };
   });
 }

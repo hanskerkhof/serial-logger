@@ -14,4 +14,13 @@
   @if (selectedFixtureTime(); as t) {
     <span class="fixture-time__label" [class.fixture-time__label--unset]="!t.synced">{{ t.label }}</span>
   }
+  <label class="fixture-time__auto">
+    <p-toggleswitch
+      size="small"
+      [ngModel]="autoEnabled()"
+      [disabled]="disabled()"
+      (ngModelChange)="onAutoChange($event)"
+    />
+    <span class="fixture-time__auto-label">auto sync</span>
+  </label>
 </span>

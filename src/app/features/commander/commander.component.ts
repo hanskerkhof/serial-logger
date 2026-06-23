@@ -581,6 +581,10 @@ export class CommanderComponent implements OnInit {
   protected readonly liveTimingMovingAverageEnabled = signal(
     localStorage.getItem('cmdr.liveTiming.movingAvg') === '1',
   );
+  /** When true, the FE auto-sends cmd;time;setTime=… to each fixture on first discovery. */
+  protected readonly autoTimeSyncEnabled = signal(
+    localStorage.getItem('cmdr.autoTimeSync') !== '0',
+  );
   private readonly liveTimingSamplesByFixture = signal<Map<string, LiveUpdateTimingSample[]>>(new Map());
   private readonly liveOverBudgetWindowByFixture = signal<Map<string, boolean[]>>(new Map());
   private readonly liveAutoStabilizedByFixture = signal<Map<string, AutoStabilizeStatus>>(new Map());
@@ -588,6 +592,8 @@ export class CommanderComponent implements OnInit {
   private modalQuerySub: Subscription | null = null;
   /** Fixture names that have been auto-queried on first modal open this session. */
   private readonly autoQueriedFixtures = new Set<string>();
+  /** Fixture names that have been auto-time-synced this session (cleared on page reload). */
+  private readonly autoTimeSyncedFixtures = new Set<string>();
   protected readonly rawCommand = signal('');
   protected readonly rawCommandLoading = signal(false);
   protected readonly rawCommandResult = signal<RawCommandResponse | null>(null);
@@ -853,6 +859,9 @@ export class CommanderComponent implements OnInit {
         'cmdr.liveTiming.movingAvg',
         this.liveTimingMovingAverageEnabled() ? '1' : '0',
       ),
+    );
+    effect(() =>
+      localStorage.setItem('cmdr.autoTimeSync', this.autoTimeSyncEnabled() ? '1' : '0'),
     );
     effect(() =>
       localStorage.setItem('cmdr.fixtureModalPollIntervalMs', String(this.fixtureModalPollIntervalMs())),
@@ -2284,6 +2293,13 @@ export class CommanderComponent implements OnInit {
           },
         } as CommanderQueryResponse;
         this.ingestQueryResult(syntheticResult, 'discovery_query');
+        if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(fixtureName)) {
+          this.autoTimeSyncedFixtures.add(fixtureName);
+          const epochSeconds = Math.floor(Date.now() / 1000);
+          this.commanderApi
+            .runFixtureCommand(fixtureName, `tcmd;${fixtureName};cmd;time;setTime=${epochSeconds};`)
+            .subscribe({ error: () => {} });
+        }
         return;
       }
       if (eventType === 'discovery_completed') {
@@ -2427,6 +2443,13 @@ export class CommanderComponent implements OnInit {
         }
       }
       this.queryPassiveFixtureIfIncomplete(name);
+      if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(name)) {
+        this.autoTimeSyncedFixtures.add(name);
+        const epochSeconds = Math.floor(Date.now() / 1000);
+        this.commanderApi
+          .runFixtureCommand(name, `tcmd;${name};cmd;time;setTime=${epochSeconds};`)
+          .subscribe({ error: () => {} });
+      }
     });
 
     const fixtureTimeoutSub = this.healthService.fixtureTimeout$.subscribe(({ fixture_name }) => {
@@ -3887,6 +3910,11 @@ export class CommanderComponent implements OnInit {
       'Stop rejected',
       this.BULK_CMD_INTER_DELAY_MS,
     );
+  }
+
+  protected onFixtureTimeAutoChange(value: boolean): void {
+    this.autoTimeSyncEnabled.set(value);
+    if (value) this.syncFixtureTime();
   }
 
   protected syncFixtureTime(): void {

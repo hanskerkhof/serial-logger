@@ -1293,7 +1293,9 @@
         <app-fixture-time
           [planState]="selectedFixturePlanStateState()"
           [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
+          [autoEnabled]="autoTimeSyncEnabled()"
           (syncRequested)="syncFixtureTime()"
+          (autoEnabledChange)="onFixtureTimeAutoChange($event)"
         ></app-fixture-time>
         @if (!rebootConfirmPending()) {
           <button
@@ -1415,6 +1417,15 @@
           />
           <span>Require fixture ACK</span>
           <small>Slower but confirms fixture-level ACK.</small>
+        </label>
+        <label class="commander__dialog-ack-toggle commander__dialog-ack-toggle--feedback">
+          <input
+            type="checkbox"
+            [ngModel]="autoTimeSyncEnabled()"
+            (ngModelChange)="autoTimeSyncEnabled.set(!!$event)"
+          />
+          <span>Auto-sync time on discovery</span>
+          <small>Sends wall-clock time to each fixture when first seen.</small>
         </label>
       </section>
     </header>
@@ -1759,7 +1770,9 @@
                   <app-fixture-time
                     [planState]="selectedFixturePlanStateState()"
                     [disabled]="fixtureActionLoading() || commanderUnavailable()"
+                    [autoEnabled]="autoTimeSyncEnabled()"
                     (syncRequested)="syncFixtureTime()"
+                    (autoEnabledChange)="onFixtureTimeAutoChange($event)"
                   ></app-fixture-time>
                 </section>
 

@@ -100,6 +100,10 @@ export const COMMAND_OPTIONS: CommandOption[] = [
     label: 'reboot',
     value: 'reboot',
   },
+  {
+    label: 'time (sync clock)',
+    value: 'time',
+  },
 ];
 
 const STORAGE_KEY = 'cmdr.commandBuilder.v1';
@@ -192,6 +196,8 @@ export class CommandBuilderComponent implements OnInit {
       const preset = this.action();
       if (preset === null) return null;
       parts.push(`preset=${preset}`);
+    } else if (cmd.value === 'time') {
+      parts.push(`setTime=${Math.floor(Date.now() / 1000)}`);
     }
 
     return parts.join(';') + ';';
@@ -294,12 +300,21 @@ export class CommandBuilderComponent implements OnInit {
   }
 
   protected onApply(): void {
-    const cmd = this.preview();
+    const cmd = this._freshCommand();
     if (cmd) this.apply.emit(cmd);
   }
 
   protected onSend(): void {
-    const cmd = this.preview();
+    const cmd = this._freshCommand();
     if (cmd) this.send.emit(cmd);
+  }
+
+  private _freshCommand(): string | null {
+    const cmd = this.preview();
+    if (!cmd) return null;
+    if (this.commandType()?.value === 'time') {
+      return cmd.replace(/setTime=\d+/, `setTime=${Math.floor(Date.now() / 1000)}`);
+    }
+    return cmd;
   }
 }

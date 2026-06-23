@@ -79,6 +79,7 @@ import {
 import { FixtureConfigControlComponent } from '../../shared/fixture-config-control/fixture-config-control.component';
 import { FixtureDocsComponent } from '../../shared/fixture-docs/fixture-docs.component';
 import { CopyToClipboardComponent } from '../../shared/copy-to-clipboard/copy-to-clipboard.component';
+import { FixtureTimeComponent } from '../../shared/fixture-time/fixture-time.component';
 import {
   RadioPlanStateComponent,
   type RadioStationOption,
@@ -211,7 +212,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, NgxJsonViewerModule, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, DurationPipe, DurationMsCompactPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, NgxJsonViewerModule, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, FixtureTimeComponent, DurationPipe, DurationMsCompactPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -469,7 +470,7 @@ export class CommanderComponent implements OnInit {
   protected readonly playerVolumeSyncResult = signal<VolumeSyncResultEvent | null>(null);
   private _pendingVolumeSync: { requestId: string; targetVolume: number | null } | null = null;
   protected readonly rebootConfirmPending = signal(false);
-  protected readonly fixtureAckEnabled = signal(false);
+  protected readonly fixtureAckEnabled = signal(true);
   protected readonly fixtureModalTab = signal<string>('commands');
   /** Tracks cached per plan name — persists across modal opens within the session. */
   protected readonly planTracksCache = signal<Map<string, { index: number; name: string; duration_ms: number }[]>>(new Map());
@@ -1522,6 +1523,32 @@ export class CommanderComponent implements OnInit {
   protected readonly isRadioBridgeFixture = computed<boolean>(
     () => this.selectedFixture()?.plan_name === 'BAUKLANK_RADIO_BRIDGE',
   );
+
+  /** Generic `state` sub-object from the selected fixture's latest plan_state. */
+  protected readonly selectedFixturePlanStateState = computed<Record<string, unknown> | null>(() => {
+    const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
+    const s = ps?.['state'];
+    return s && typeof s === 'object' && !Array.isArray(s) ? (s as Record<string, unknown>) : null;
+  });
+
+  /** Formatted wall-clock time from fixture plan state `t` field.
+   *  null = no plan state yet; { synced: false } = t=0; { synced: true, label } = live time. */
+  protected readonly selectedFixtureTime = computed<{ synced: boolean; label: string } | null>(() => {
+    const state = this.selectedFixturePlanStateState();
+    if (state === null) return null;
+    const v = state['t'];
+    if (typeof v !== 'number') return null;
+    if (v <= 0) return { synced: false, label: 'not synced' };
+    return {
+      synced: true,
+      label: new Date(v * 1000).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }),
+    };
+  });
 
   /** Parsed `state` object from the fixture's latest passive plan state. */
   protected readonly radioPlanState = computed<Record<string, unknown> | null>(() => {
@@ -3770,7 +3797,7 @@ export class CommanderComponent implements OnInit {
     this.fixtureActionMessage.set(null);
     this.fixtureActionDurationMs.set(null);
     this.fixtureActionTone.set('info');
-    this.fixtureAckEnabled.set(false);
+    this.fixtureAckEnabled.set(true);
     this.rebootConfirmPending.set(false);
     this.fixtureModalTab.set('commands');
     this.planStateReceivedAt.set(null);
@@ -3880,6 +3907,15 @@ export class CommanderComponent implements OnInit {
     );
   }
 
+  protected syncFixtureTime(): void {
+    const fixture = this.selectedFixture()?.fixture_name;
+    if (!fixture) return;
+    const epochSeconds = Math.floor(Date.now() / 1000);
+    this.sendCommand(fixture, `cmd;time;setTime=${epochSeconds};`, 'default', () => {
+      this.runModalFixtureUpdate();
+    });
+  }
+
   protected rebootFixture(): void {
     if (!this.rebootConfirmPending()) {
       this.rebootConfirmPending.set(true);
@@ -3922,7 +3958,6 @@ export class CommanderComponent implements OnInit {
         const durationMs = performance.now() - startedAt;
         this.applyFixturePlanStateResult(fixture, result);
         this.markFixtureManualRefreshNow(fixture);
-        this.setFixtureModalFeedback(`Plan state refresh complete for ${fixture}`, 'success', durationMs);
       },
       error: (err: unknown) => {
         this.modalQuerySub = null;
@@ -4345,7 +4380,7 @@ export class CommanderComponent implements OnInit {
   private openFixtureModal(): void {
     const fixture = this.selectedFixtureName();
     if (!this.fixtureModalVisible()) {
-      this.fixtureAckEnabled.set(false);
+      this.fixtureAckEnabled.set(true);
       this.fixtureModalVisible.set(true);
       this.startFixtureModalPolling();
     }

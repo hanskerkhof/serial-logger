@@ -1290,6 +1290,23 @@
           [disabled]="modalQueryLoading() || commanderUnavailable() || !!selectedFixture()?.stale"
           class="commander__dialog-run-query-btn"
         ></button>
+        <span class="commander__dialog-time">
+          <button
+            pButton
+            type="button"
+            icon="pi pi-clock"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            title="Sync fixture time from browser"
+            [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
+            (click)="syncFixtureTime()"
+          ></button>
+          @if (selectedFixtureTime(); as t) {
+            <span class="commander__dialog-time-label" [class.commander__dialog-time-label--unset]="!t.synced">{{ t.label }}</span>
+          }
+        </span>
         @if (!rebootConfirmPending()) {
           <button
             pButton
@@ -1747,6 +1764,15 @@
                       </div>
                     }
                   </dl>
+                </section>
+
+                <section class="commander__info-section">
+                  <h4 class="commander__info-section-title">Clock</h4>
+                  <app-fixture-time
+                    [planState]="selectedFixturePlanStateState()"
+                    [disabled]="fixtureActionLoading() || commanderUnavailable()"
+                    (syncRequested)="syncFixtureTime()"
+                  ></app-fixture-time>
                 </section>
 
                 <section class="commander__info-section">

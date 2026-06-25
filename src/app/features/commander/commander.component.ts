@@ -1584,11 +1584,6 @@ export class CommanderComponent implements OnInit {
     this.sendCommand(fixture, `cmd;radio;volume=${volume};`, 'default');
   }
 
-  protected onRadioRecordingChange(record: boolean): void {
-    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
-    if (!fixture) return;
-    this.sendCommand(fixture, `cmd;radio;record=${record ? 1 : 0};`, 'default');
-  }
 
   protected readonly selectedFixtureRelayStates = computed<CmdrRelayStateItem[] | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;

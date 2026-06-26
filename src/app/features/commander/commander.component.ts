@@ -1303,13 +1303,15 @@ export class CommanderComponent implements OnInit {
   );
 
   private readonly triggerableFixtureNames = computed(() =>
-    Object.values(this.fixtureStore.fixturesByName())
+    this.allFixturesOrdered()
+      .filter((f) => f.plan_name !== 'BAUKLANK_COMMANDER')
       .filter((f) => (f.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null)?.plan_controls?.trigger?.available === true)
       .map((f) => f.fixture_name),
   );
 
   private readonly stoppableFixtureNames = computed(() =>
-    Object.values(this.fixtureStore.fixturesByName())
+    this.allFixturesOrdered()
+      .filter((f) => f.plan_name !== 'BAUKLANK_COMMANDER')
       .filter((f) => (f.raw['capabilities'] as CmdrFixtureCapabilities | undefined | null)?.plan_controls?.stop?.available === true)
       .map((f) => f.fixture_name),
   );
@@ -3876,8 +3878,11 @@ export class CommanderComponent implements OnInit {
   }
 
   protected rebootAllFixtures(): void {
+    const names = this.allFixturesOrdered()
+      .filter((f) => f.plan_name !== 'BAUKLANK_COMMANDER')
+      .map((f) => f.fixture_name);
     this.startBulkCmd(
-      Object.keys(this.fixtureStore.fixturesByName()),
+      names,
       (name) => `ack;tcmd;${name};cmd;reboot;`,
       'Rebooting fixtures',
       'Reboot accepted',

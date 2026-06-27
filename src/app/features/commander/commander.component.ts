@@ -2293,11 +2293,16 @@ export class CommanderComponent implements OnInit {
         } as CommanderQueryResponse;
         this.ingestQueryResult(syntheticResult, 'discovery_query');
         if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(fixtureName)) {
-          this.autoTimeSyncedFixtures.add(fixtureName);
-          const epochSeconds = Math.floor(Date.now() / 1000);
-          this.commanderApi
-            .runFixtureCommand(fixtureName, `tcmd;${fixtureName};cmd;time;setTime=${epochSeconds};`)
-            .subscribe({ error: () => {} });
+          const ps = (fixture as Record<string, unknown>)?.['plan_state'] as Record<string, unknown> | null | undefined;
+          const st = ps?.['state'] as Record<string, unknown> | null | undefined;
+          const t = typeof st?.['t'] === 'number' ? (st['t'] as number) : null;
+          if (t === 0) {
+            this.autoTimeSyncedFixtures.add(fixtureName);
+            const epochSeconds = Math.floor(Date.now() / 1000);
+            this.commanderApi
+              .runFixtureCommand(fixtureName, `tcmd;${fixtureName};cmd;time;setTime=${epochSeconds};`)
+              .subscribe({ error: () => {} });
+          }
         }
         return;
       }
@@ -2442,13 +2447,6 @@ export class CommanderComponent implements OnInit {
         }
       }
       this.queryPassiveFixtureIfIncomplete(name);
-      if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(name)) {
-        this.autoTimeSyncedFixtures.add(name);
-        const epochSeconds = Math.floor(Date.now() / 1000);
-        this.commanderApi
-          .runFixtureCommand(name, `tcmd;${name};cmd;time;setTime=${epochSeconds};`)
-          .subscribe({ error: () => {} });
-      }
     });
 
     const fixtureTimeoutSub = this.healthService.fixtureTimeout$.subscribe(({ fixture_name }) => {
@@ -5973,6 +5971,20 @@ export class CommanderComponent implements OnInit {
       next: (result) => {
         this.ingestQueryResult(result, 'fixture_query', name);
         this._passiveQueryInFlight.delete(name);
+        if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(name)) {
+          const fixtures = (result?.summary as Record<string, unknown> | null | undefined)?.['fixtures'] as unknown[] | undefined;
+          const fix = Array.isArray(fixtures) ? (fixtures[0] as Record<string, unknown> | null) : null;
+          const ps = fix?.['plan_state'] as Record<string, unknown> | null | undefined;
+          const st = ps?.['state'] as Record<string, unknown> | null | undefined;
+          const t = typeof st?.['t'] === 'number' ? (st['t'] as number) : null;
+          if (t === 0) {
+            this.autoTimeSyncedFixtures.add(name);
+            const epochSeconds = Math.floor(Date.now() / 1000);
+            this.commanderApi
+              .runFixtureCommand(name, `tcmd;${name};cmd;time;setTime=${epochSeconds};`)
+              .subscribe({ error: () => {} });
+          }
+        }
       },
       error: () => {
         this._passiveQueryInFlight.delete(name);

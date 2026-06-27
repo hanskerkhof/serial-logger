@@ -2058,10 +2058,12 @@ export class CommanderComponent implements OnInit {
       () => this.loadExposedPlans(),
       () => this.loadLanGroups(),
       () => this.pollPassiveDiscovery(),
+      () => this.syncOfflineStateFromCache(),
     );
 
     this.loadExposedPlans();
     this.loadLanGroups();
+    this.syncOfflineStateFromCache();
     const timer = setInterval(() => this.now.set(Date.now()), 1000);
     this.destroyRef.onDestroy(() => clearInterval(timer));
     const tickTimer = setInterval(() => this._tick.set(Date.now()), 250);
@@ -2610,6 +2612,9 @@ export class CommanderComponent implements OnInit {
         this.queryResult.set(null);
         this.fixtureQueryLoading.set(false);
         this.sidebarRefreshingFixture.set(null);
+        if (err instanceof HttpErrorResponse && err.status === 502) {
+          this.fixtureStore.staleFixture(fixture);
+        }
       },
     });
   }
@@ -2700,6 +2705,13 @@ export class CommanderComponent implements OnInit {
    * - online === false  → staleFixture  (FW confirmed the fixture didn't respond)
    * - online === true   → no-op; only live BK_PASSIVE_SEEN / fixture_seen clears stale
    */
+  private syncOfflineStateFromCache(): void {
+    this.commanderApi.getCommanderFixtureCache(0.8).subscribe({
+      next: (result) => this.syncStaleFromCacheEntries(result.entries ?? []),
+      error: () => {},
+    });
+  }
+
   private syncStaleFromCacheEntries(entries: CmdrCommanderFixtureCacheEntry[]): void {
     for (const entry of entries) {
       if (typeof entry.online !== 'boolean') continue; // older firmware — skip
@@ -3436,6 +3448,9 @@ export class CommanderComponent implements OnInit {
           if (err instanceof HttpErrorResponse && err.status === 401) {
             anyAuthFailure = true;
           }
+          if (err instanceof HttpErrorResponse && err.status === 502) {
+            this.fixtureStore.staleFixture(fixtureName);
+          }
         } finally {
           const rttMs = performance.now() - fixtureStartedAt;
           this.discoverFixturesOutcomeLog.update((log) => [
@@ -4059,6 +4074,9 @@ export class CommanderComponent implements OnInit {
         this.modalQueryError.set(compact);
         this.showErrorToast(text, { sticky: true });
         this.modalQueryLoading.set(false);
+        if (err instanceof HttpErrorResponse && err.status === 502) {
+          this.fixtureStore.staleFixture(fixture);
+        }
       },
     });
   }
@@ -5902,6 +5920,10 @@ export class CommanderComponent implements OnInit {
           // processed — queryPassiveFixtureIfIncomplete will add them via ingestQueryResult.
           const name = this.normalizeRawFixtureName(entry['fixture_name']);
           if (!name) continue;
+          // Skip passive cache updates for stale fixtures — the passive cache in the
+          // API persists indefinitely and would make offline fixtures appear recently
+          // seen or fill in a version number from stale data.
+          if (this.fixtureStore.fixturesByName()[name]?.stale) continue;
           const lastSeen = typeof entry['last_seen_ms'] === 'number' ? entry['last_seen_ms'] : null;
           if (lastSeen !== null) {
             this.updateFixtureLastSeen(name, lastSeen);

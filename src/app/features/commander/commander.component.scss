@@ -813,6 +813,10 @@
     color: #f97316;
     cursor: default;
   }
+
+  &--placeholder {
+    min-width: 4rem;
+  }
 }
 
 .commander__fixture-seen {

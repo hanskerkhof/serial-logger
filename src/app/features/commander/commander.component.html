@@ -705,6 +705,8 @@
                           [class.commander__fixture-fw--outdated]="fws.outdated"
                           [title]="fws.outdated && fws.release ? 'latest: v' + fws.release : ''"
                         >v{{ fws.fw }}</span>
+                      } @else {
+                        <span class="commander__fixture-fw commander__fixture-fw--placeholder"></span>
                       }
                       <button
                         pButton

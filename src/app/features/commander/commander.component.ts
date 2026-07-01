@@ -3764,7 +3764,11 @@ export class CommanderComponent implements OnInit {
       const fixture = this.selectedFixtureName();
       if (fixture) this.stopPassivePlanState(fixture);
     }
-    if (visible) this.startFixtureModalPolling();
+    if (visible) {
+      this.startFixtureModalPolling();
+      const fixture = this.selectedFixtureName();
+      if (fixture) this.startPassivePlanState(fixture);
+    }
   }
 
   private loadTracksForPlan(planName: string, forceRefresh = false): void {

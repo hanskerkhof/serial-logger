@@ -1,0 +1,25 @@
+@if (hasState()) {
+  <div class="erb-ps" aria-label="ERBARME playback status">
+    <div class="erb-ps__row">
+      <span class="erb-ps__label">Track</span>
+      <strong class="erb-ps__value">{{ currentTrack() ?? '—' }} / {{ trackCount() ?? '—' }}</strong>
+    </div>
+    <div class="erb-ps__row">
+      <span class="erb-ps__label">Status</span>
+      <span class="erb-ps__badge erb-ps__badge--{{ statusMod() }}">{{ statusLabel() }}</span>
+    </div>
+    <div class="erb-ps__row">
+      <span class="erb-ps__label">Position</span>
+      <strong class="erb-ps__value">{{ tapePositionMs() | playbackMs }}</strong>
+    </div>
+    <div class="erb-ps__row erb-ps__row--path">
+      <span class="erb-ps__label">Path</span>
+      <span class="erb-ps__path" [title]="path()">{{ path() || '—' }}</span>
+      @if (path()) {
+        <app-copy-to-clipboard [value]="path()" />
+      }
+    </div>
+  </div>
+} @else {
+  <div class="erb-ps erb-ps--empty">No plan state yet — run a query.</div>
+}

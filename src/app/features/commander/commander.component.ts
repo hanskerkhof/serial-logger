@@ -84,6 +84,7 @@ import {
   RadioPlanStateComponent,
   type RadioStationOption,
 } from '../../shared/radio-plan-state/radio-plan-state.component';
+import { ErbarmePlanStateComponent } from '../../shared/erbarme-plan-state/erbarme-plan-state.component';
 import { DiscoveryWsMessage, FixtureSeenWsMessage, HealthPollService, PlanStateWsMessage } from '../../health-poll.service';
 import {
   QrScannedCommandService,
@@ -212,7 +213,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, NgxJsonViewerModule, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, FixtureTimeComponent, DurationPipe, DurationMsCompactPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, NgxJsonViewerModule, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, ErbarmePlanStateComponent, FixtureTimeComponent, DurationPipe, DurationMsCompactPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -1533,6 +1534,11 @@ export class CommanderComponent implements OnInit {
   /** True when the selected fixture runs the BAUKLANK_RADIO_BRIDGE plan. */
   protected readonly isRadioBridgeFixture = computed<boolean>(
     () => this.selectedFixture()?.plan_name === 'BAUKLANK_RADIO_BRIDGE',
+  );
+
+  /** True when the selected fixture runs the ERBARME_DICH_TRACKS plan. */
+  protected readonly isErbarmeTracksFixture = computed<boolean>(
+    () => this.selectedFixture()?.plan_name === 'ERBARME_DICH_TRACKS',
   );
 
   /** Generic `state` sub-object from the selected fixture's latest plan_state. */

@@ -1616,6 +1616,9 @@
                 (volumeChangeRequested)="onRadioVolumeChange($event)"
               />
             } @else if (selectedFixtureCustomCommands().length > 0) {
+              @if (isErbarmeTracksFixture()) {
+                <app-erbarme-plan-state [planState]="selectedFixturePlanStateState()" />
+              }
               <app-fixture-custom-control
                 [commands]="selectedFixtureCustomCommands()"
                 [liveValues]="customCommandLiveValues()"

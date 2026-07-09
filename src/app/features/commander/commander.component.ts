@@ -1536,10 +1536,16 @@ export class CommanderComponent implements OnInit {
     () => this.selectedFixture()?.plan_name === 'BAUKLANK_RADIO_BRIDGE',
   );
 
-  /** True when the selected fixture runs the ERBARME_DICH_TRACKS plan. */
-  protected readonly isErbarmeTracksFixture = computed<boolean>(
-    () => this.selectedFixture()?.plan_name === 'ERBARME_DICH_TRACKS',
-  );
+  /**
+   * True when the selected fixture runs an ERBARME shared-timeline WAV player.
+   * Both ERBARME_DICH_TRACKS (ESP32-A1S) and ERBARME_DICH_COMP (component build:
+   * WROOM + PCM5102A + SPI SD + rotary switch) emit the same plan_state shape,
+   * so they share the playback status readout.
+   */
+  protected readonly isErbarmeTracksFixture = computed<boolean>(() => {
+    const planName = this.selectedFixture()?.plan_name;
+    return planName === 'ERBARME_DICH_TRACKS' || planName === 'ERBARME_DICH_COMP';
+  });
 
   /** Generic `state` sub-object from the selected fixture's latest plan_state. */
   protected readonly selectedFixturePlanStateState = computed<Record<string, unknown> | null>(() => {

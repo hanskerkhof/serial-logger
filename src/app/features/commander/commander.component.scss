@@ -1136,6 +1136,11 @@
   font-style: italic;
 }
 
+.commander__passive-ps-error {
+  margin: 0;
+  color: var(--p-orange-400, #fb8c00);
+}
+
 .commander__passive-ps-msg-accordion {
   margin-top: 0.5rem;
 }

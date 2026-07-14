@@ -1525,6 +1525,8 @@
                     <span class="commander__passive-ps-ago">{{ ago }}</span>
                   }
                 </div>
+              } @else if (passivePsStartError(); as startError) {
+                <p class="commander__passive-ps-error">⚠ {{ startError }}</p>
               } @else {
                 <p class="commander__passive-ps-waiting">Waiting for passive_plan_state…</p>
               }

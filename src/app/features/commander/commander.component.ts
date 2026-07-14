@@ -712,6 +712,9 @@ export class CommanderComponent implements OnInit {
   ];
   protected readonly passivePsIntervalMs = signal(1000);
   protected readonly passivePsCount = signal(0);
+  // Set when passive/start keeps failing after retries, so the dialog explains
+  // why no live state arrives instead of showing "Waiting…" forever.
+  protected readonly passivePsStartError = signal<string | null>(null);
   protected readonly passivePsLastAt = signal<number | null>(null);
   protected readonly passivePsLastIntervalMs = signal<number | null>(null);
   private _passivePsLastRawAt: number | null = null;
@@ -2161,6 +2164,7 @@ export class CommanderComponent implements OnInit {
         this._passivePsLastRawAt = now;
         this.passivePsLastAt.set(now);
         this.passivePsCount.update(n => n + 1);
+        this.passivePsStartError.set(null); // stream is live after all (e.g. keepalive re-arm landed)
         if (interval !== null) this.passivePsLastIntervalMs.set(interval);
         this.passivePsLastMsg.set(normalizedPlanState);
         // Resolve pending volume sync from passive state rather than a separate plan-state request.
@@ -3802,8 +3806,33 @@ export class CommanderComponent implements OnInit {
     this.passivePsLastAt.set(null);
     this.passivePsLastIntervalMs.set(null);
     this._passivePsLastRawAt = null;
+    this.passivePsStartError.set(null);
     this._passivePlanStateFixture = fixtureName;
-    this.commanderApi.postFixturePassivePlanStateStart(fixtureName, intervalMs).subscribe({ error: () => {} });
+    this.requestPassivePlanStateStart(fixtureName, intervalMs, 0);
+  }
+
+  // ESP-NOW delivery of the (long) startPassivePS command is occasionally lost,
+  // so retry a couple of times before surfacing the failure. Each failed API
+  // attempt already takes ~6 s (fixture ack timeout), so short pauses suffice.
+  private requestPassivePlanStateStart(fixtureName: string, intervalMs: number, attempt: number): void {
+    this.commanderApi.postFixturePassivePlanStateStart(fixtureName, intervalMs).subscribe({
+      next: () => {
+        if (this._passivePlanStateFixture === fixtureName) this.passivePsStartError.set(null);
+      },
+      error: (err: unknown) => {
+        if (this._passivePlanStateFixture !== fixtureName) return; // session stopped or superseded
+        if (attempt < 2) {
+          setTimeout(() => {
+            if (this._passivePlanStateFixture === fixtureName) {
+              this.requestPassivePlanStateStart(fixtureName, intervalMs, attempt + 1);
+            }
+          }, 750);
+          return;
+        }
+        this.passivePsStartError.set('Live state stream failed to start (fixture did not acknowledge)');
+        this.showWarningToast(this.formatError(`Passive plan-state start failed for ${fixtureName}`, err));
+      },
+    });
   }
 
   protected onPassivePsIntervalChange(value: number | null | undefined): void {
@@ -3837,6 +3866,7 @@ export class CommanderComponent implements OnInit {
     this.passivePsLastIntervalMs.set(null);
     this.passivePsLastMsg.set(null);
     this._passivePsLastRawAt = null;
+    this.passivePsStartError.set(null);
     this.passivePsIntervalMs.set(1000);
     this._pendingVolumeSync = null;
   }

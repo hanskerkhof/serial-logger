@@ -291,6 +291,11 @@ export class CommanderApiService {
     );
   }
 
+  /** Encode a doc path per segment so subdirectory entries (e.g. DOCUMENTATION/x.jpg) keep their slash. */
+  encodeDocPath(filename: string): string {
+    return filename.split('/').map(encodeURIComponent).join('/');
+  }
+
   getFixtureDocs(fixtureName: string): Observable<CmdrFixtureDocsListResponse> {
     return this.http.get<CmdrFixtureDocsListResponse>(
       `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs`,
@@ -299,7 +304,7 @@ export class CommanderApiService {
 
   getFixtureDocContent(fixtureName: string, filename: string): Observable<string> {
     return this.http.get(
-      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs/${encodeURIComponent(filename)}`,
+      `${this.getRequestBaseUrl()}/fixtures/${encodeURIComponent(fixtureName)}/docs/${this.encodeDocPath(filename)}`,
       { responseType: 'text' },
     );
   }

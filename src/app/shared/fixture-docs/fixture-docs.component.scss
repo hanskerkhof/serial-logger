@@ -101,6 +101,16 @@
     }
   }
 
+  &__nav-icon {
+    font-size: 0.75rem;
+    margin-right: 0.35rem;
+    color: var(--p-text-muted-color);
+
+    .fixture-docs__nav-item--active & {
+      color: inherit;
+    }
+  }
+
   &__content {
     flex: 1 1 0;
     height: 100%;
@@ -110,9 +120,32 @@
 
   &__image {
     max-width: 100%;
+    // Fit within the content pane height (minus the title row) without scrolling.
+    max-height: calc(100% - 3rem);
+    width: auto;
     height: auto;
+    object-fit: contain;
     display: block;
     border-radius: 4px;
+    cursor: zoom-in;
+  }
+
+  &__fullscreen {
+    position: fixed;
+    inset: 0;
+    // Above the PrimeNG fixture dialog + its mask.
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.88);
+    cursor: zoom-out;
+  }
+
+  &__fullscreen-image {
+    max-width: 96vw;
+    max-height: 96vh;
+    object-fit: contain;
   }
 
   &__title {

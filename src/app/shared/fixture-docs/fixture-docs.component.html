@@ -31,12 +31,12 @@
           class="fixture-docs__nav-item"
           [class.fixture-docs__nav-item--active]="selectedDoc() === doc"
           (click)="selectDoc(doc)"
-        >{{ doc }}</button>
+        ><i class="{{ docIcon(doc) }} fixture-docs__nav-icon" aria-hidden="true"></i>{{ docLabel(doc) }}</button>
       }
     </nav>
     <div class="fixture-docs__content">
       @if (selectedDoc()) {
-        <h2 class="fixture-docs__title">{{ selectedDoc() }}</h2>
+        <h2 class="fixture-docs__title">{{ docLabel(selectedDoc()!) }}</h2>
       }
 
       @if (contentLoading()) {
@@ -49,7 +49,14 @@
         </div>
       } @else if (isImage()) {
         @if (docImageUrl(); as imgUrl) {
-          <img [src]="imgUrl" [alt]="selectedDoc()!" class="fixture-docs__image" (error)="onImageLoadError()" />
+          <img
+            [src]="imgUrl"
+            [alt]="selectedDoc()!"
+            class="fixture-docs__image"
+            title="Click to view full screen"
+            (click)="openFullscreen()"
+            (error)="onImageLoadError()"
+          />
         }
       } @else if (isCsv()) {
         @if (csvTable(); as table) {
@@ -81,5 +88,11 @@
         <markdown [mermaid]="mermaidReady()" [data]="docContent()!" class="fixture-docs__markdown" />
       }
     </div>
+  </div>
+}
+
+@if (fullscreenImageUrl(); as fsUrl) {
+  <div class="fixture-docs__fullscreen" (click)="closeFullscreen()" role="dialog" aria-label="Full screen image (press Escape to close)">
+    <img [src]="fsUrl" [alt]="selectedDoc() ?? 'Documentation image'" class="fixture-docs__fullscreen-image" />
   </div>
 }

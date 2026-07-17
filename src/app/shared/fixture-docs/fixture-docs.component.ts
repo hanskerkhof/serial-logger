@@ -56,11 +56,55 @@ export class FixtureDocsComponent {
     const name = this.fixtureName();
     const doc = this.selectedDoc();
     if (!name || !doc || !this.isImage()) return null;
-    return `${this.api.apiBaseUrl()}/fixtures/${encodeURIComponent(name)}/docs/${encodeURIComponent(doc)}${this.api.tokenQueryParam()}`;
+    return `${this.api.apiBaseUrl()}/fixtures/${encodeURIComponent(name)}/docs/${this.api.encodeDocPath(doc)}${this.api.tokenQueryParam()}`;
   });
+
+  isImageDoc(doc: string): boolean {
+    return IMAGE_EXTENSIONS.has(doc.slice(doc.lastIndexOf('.')).toLowerCase());
+  }
+
+  /** PrimeIcon class for a doc nav entry, by file type. */
+  docIcon(doc: string): string {
+    if (this.isImageDoc(doc)) return 'pi pi-image';
+    const lower = this.docLabel(doc).toLowerCase();
+    if (lower === 'pins.md') return 'pi pi-microchip';
+    if (lower.endsWith('.csv')) return 'pi pi-table';
+    return 'pi pi-file';
+  }
+
+  /** Nav/title label: strip the DOCUMENTATION/ prefix for subdirectory images. */
+  docLabel(doc: string): string {
+    return doc.startsWith('DOCUMENTATION/') ? doc.slice('DOCUMENTATION/'.length) : doc;
+  }
+
+  readonly fullscreenImageUrl = signal<string | null>(null);
+
+  // Capture-phase Escape listener so closing the lightbox does not also close the fixture dialog.
+  private readonly fullscreenEscListener = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && this.fullscreenImageUrl()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.closeFullscreen();
+    }
+  };
+
+  openFullscreen(): void {
+    const url = this.docImageUrl();
+    if (url) this.fullscreenImageUrl.set(url);
+  }
+
+  closeFullscreen(): void {
+    this.fullscreenImageUrl.set(null);
+  }
 
   constructor() {
     void this.ensureMermaidLoaded();
+
+    effect((onCleanup) => {
+      if (!this.fullscreenImageUrl()) return;
+      window.addEventListener('keydown', this.fullscreenEscListener, true);
+      onCleanup(() => window.removeEventListener('keydown', this.fullscreenEscListener, true));
+    });
 
     effect(() => {
       const name = this.fixtureName();

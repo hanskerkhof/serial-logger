@@ -1901,8 +1901,23 @@ export class CommanderComponent implements OnInit {
     this.persistUpdateFixturesState();
   }
 
-  protected onOtaComplete(event: { fixture_name: string; fw_version?: string }): void {
+  protected onOtaComplete(event: { fixture_name: string; fw_version?: string; renamed_to?: string | null }): void {
     this.otaInProgress.update((s) => { const n = new Set(s); n.delete(event.fixture_name); return n; });
+    // A renamed fixture boots reporting its new name, so the old record is now a
+    // ghost: nothing resolves it and querying it 404s. Retire it and refresh the
+    // known-fixture list, otherwise the new name is not selectable until reload.
+    const renamedTo = (event.renamed_to ?? '').trim();
+    const wasRenamed = renamedTo.length > 0 && renamedTo !== event.fixture_name;
+    if (wasRenamed) {
+      // Capture the selection first: removeFixture() clears it when it matches.
+      const wasSelected = this.selectedFixtureName() === event.fixture_name;
+      this.fixtureStore.removeFixture(event.fixture_name);
+      this.loadLanGroups();
+      if (wasSelected) {
+        this.selectedFixtureName.set(renamedTo);
+      }
+    }
+    const resultFixtureName = wasRenamed ? renamedTo : event.fixture_name;
     if (this.updateFixturesLoading() && this.updateFixturesPendingFixture === event.fixture_name) {
       this.updateFixturesPendingFixture = null;
       this.updateFixturesPendingSinceMs = null;
@@ -1913,11 +1928,17 @@ export class CommanderComponent implements OnInit {
       this.appendUpdateReportStep(
         event.fixture_name,
         'complete',
-        event.fw_version ? `updated to ${event.fw_version}` : null,
+        [
+          event.fw_version ? `updated to ${event.fw_version}` : null,
+          wasRenamed ? `renamed to ${renamedTo}` : null,
+        ].filter(Boolean).join(' · ') || null,
         { markSuccess: true, markCompleted: true },
       );
       if (event.fw_version) {
-        this.fixtureStore.patchFixtureRaw(event.fixture_name, { fw_version: event.fw_version });
+        this.fixtureStore.patchFixtureRaw(resultFixtureName, { fw_version: event.fw_version });
+      }
+      if (wasRenamed) {
+        this.queryFixtureByName(resultFixtureName);
       }
       this.persistUpdateFixturesState();
       this.startNextOutdatedFixtureUpdate();
@@ -1927,14 +1948,16 @@ export class CommanderComponent implements OnInit {
       key: 'app',
       severity: 'success',
       summary: 'Firmware updated',
-      detail: `${event.fixture_name} updated to v${event.fw_version ?? '?'}`,
+      detail: wasRenamed
+        ? `${event.fixture_name} updated to v${event.fw_version ?? '?'} and renamed to ${renamedTo}`
+        : `${event.fixture_name} updated to v${event.fw_version ?? '?'}`,
       life: 6000,
     });
-    if (this.selectedFixtureName() === event.fixture_name) {
+    if (!wasRenamed && this.selectedFixtureName() === event.fixture_name) {
       this.runModalFixtureQuery();
       return;
     }
-    this.queryFixtureByName(event.fixture_name);
+    this.queryFixtureByName(resultFixtureName);
   }
 
   protected onOtaError(event: { fixture_name: string; message?: string }): void {
@@ -4173,8 +4196,26 @@ export class CommanderComponent implements OnInit {
       },
       error: (err: unknown) => {
         console.warn('[cmdr][queryFixtureByName] fixture query failed', { fixtureName, err });
+        this.dropFixtureIfUnknownToApi(fixtureName, err);
       },
     });
+  }
+
+  /**
+   * Retire a stored fixture the API no longer knows about.
+   *
+   * After a rename the fixture reports its new name, so the old record resolves
+   * nowhere and every query for it 404s with `fixture_not_found`. Left in place it
+   * is a clickable ghost that fails on update. Only a definitive 404 from the
+   * resolver removes it — transient/offline errors must keep the record.
+   */
+  private dropFixtureIfUnknownToApi(fixtureName: string, err: unknown): void {
+    const response = err as { status?: number; error?: { error?: string; step?: string } } | null;
+    if (!response || response.status !== 404) return;
+    if (response.error?.error !== 'fixture_not_found') return;
+    if (!this.fixtureStore.fixturesByName()[fixtureName]) return;
+    console.info('[cmdr][queryFixtureByName] dropping fixture unknown to API', { fixtureName });
+    this.fixtureStore.removeFixture(fixtureName);
   }
 
   private prefetchFixtureDocs(fixtureName: string): void {

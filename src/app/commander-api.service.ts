@@ -59,6 +59,9 @@ export interface OtaStreamEvent {
   message?: string;
   fw_version?: string; // present on 'complete'
   error?: string;      // present on 'error'
+  /** Set on 'complete' when the fixture was renamed in metadata and now reports
+   *  its new name. The old name no longer resolves anywhere. */
+  renamed_to?: string | null;
 }
 
 export interface CommanderStreamHandlers {

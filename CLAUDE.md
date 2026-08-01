@@ -63,11 +63,9 @@ Before building, the script also auto-writes:
 
 When bumping the version (patch, minor, or major), always do **all** of the following before committing:
 
-1. `npm version <new-version> --no-git-tag-version` — updates `package.json` and `package-lock.json`.
-2. Update `src/app/build-info.ts` — set `APP_VERSION` and `BUILD_DATE` to match.
-   `ngsw-config.json` (`appData.version`) is also auto-updated by the deploy script — no manual edit needed.
-3. Add a new section to the **root** `../../CHANGELOG.md` — `## <FW version> / FE <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets. Prefix every bullet with **FE**, **FW**, or **BE** to indicate scope. Move items from `## Unreleased` if any exist. Do NOT update `frontend/serial-logger/CHANGELOG.md` — it has been removed; the root changelog is the single source of truth.
-4. Commit all changed files together.
+1. `npm run bump:version -- <new-version>` — updates `package.json`, `package-lock.json`, `src/app/build-info.ts`, and `ngsw-config.json`.
+2. Add a new section to the **root** `../../CHANGELOG.md` — `## <FW version> / FE <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets. Prefix every bullet with **FE**, **FW**, or **BE** to indicate scope. Move items from `## Unreleased` if any exist. Do NOT update `frontend/serial-logger/CHANGELOG.md` — it has been removed; the root changelog is the single source of truth.
+3. Commit all changed files together.
 
 ## PWA & Service Worker
 

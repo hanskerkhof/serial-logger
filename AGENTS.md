@@ -42,11 +42,9 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 
 When bumping the version (patch, minor, or major), always do **all** of the following before committing:
 
-1. `npm version <new-version> --no-git-tag-version` — updates `package.json` and `package-lock.json`.
-2. Update `src/app/build-info.ts` — set `APP_VERSION` and `BUILD_DATE` to match.
-   `ngsw-config.json` (`appData.version`) is also auto-updated by the deploy script — no manual edit needed.
-3. Add a new section to the **root** `../../CHANGELOG.md` — `## <FW version> / FE <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets. Prefix every bullet with **FE**, **FW**, or **BE** to indicate scope. Move items from `## Unreleased` if any exist. Do NOT maintain `frontend/serial-logger/CHANGELOG.md` — it has been removed; the root changelog is the single source of truth.
-4. Commit all changed files together.
+1. `npm run bump:version -- <new-version>` — updates `package.json`, `package-lock.json`, `src/app/build-info.ts`, and `ngsw-config.json`.
+2. Add a new section to the **root** `../../CHANGELOG.md` — `## <FW version> / FE <version> - <date>` with `### Changed` / `### Fixed` / `### Added` bullets. Prefix every bullet with **FE**, **FW**, or **BE** to indicate scope. Move items from `## Unreleased` if any exist. Do NOT maintain `frontend/serial-logger/CHANGELOG.md` — it has been removed; the root changelog is the single source of truth.
+3. Commit all changed files together.
 
 ## API Types
 
@@ -109,7 +107,7 @@ protected readonly selectedFixtureFwStatus = computed<{ fw: string; release: str
 
 ### Deploy script and ngsw-config
 
-`scripts/deploy-bauklank.mjs` auto-writes `ngsw-config.json appData.version` before `ng build` so the new version number is available in `VersionReadyEvent.latestVersion.appData`. Commit `ngsw-config.json` alongside each release — it is auto-managed, not hand-edited.
+`scripts/deploy-bauklank.mjs` auto-writes `src/app/build-info.ts` and `ngsw-config.json appData.version` before `ng build`. `npm run bump:version -- <new-version>` uses the same metadata sync logic, so releases no longer require manual version edits in multiple files. Commit `ngsw-config.json` alongside each release — it is auto-managed, not hand-edited.
 
 ## Pi update
 

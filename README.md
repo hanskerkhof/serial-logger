@@ -21,6 +21,14 @@ Angular app for two control modes:
 
 Current app version: `0.0.4`.
 
+Version bumps for BAUKLANK releases should use the repo task instead of manual multi-file edits:
+
+```bash
+npm run bump:version -- 2.8.2
+```
+
+This updates `package.json`, `package-lock.json`, `src/app/build-info.ts`, and `ngsw-config.json` together.
+
 ## Development
 
 ```bash

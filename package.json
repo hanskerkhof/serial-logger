@@ -1,6 +1,6 @@
 {
   "name": "serial-logger",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -10,6 +10,7 @@
     "test": "ng test",
     "serve:prod": "npx serve -s dist/serial-logger && open http://localhost:5000",
     "build:prod": "ng build",
+    "bump:version": "node scripts/bump-version.mjs",
     "generate:cmdr-types": "../../.venv1/bin/python ../../scripts/export_cmdr_openapi.py --out tmp/cmdr-openapi.json && npx openapi-typescript tmp/cmdr-openapi.json -o src/app/api/generated/cmdr-api.types.ts",
     "deploy:bauklank-micros-api": "node scripts/deploy-bauklank.mjs",
     "deploy:bauklank-studio": "npm run deploy:bauklank-micros-api"

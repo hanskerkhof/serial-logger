@@ -18,6 +18,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { SelectChangeEvent, SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { PanelModule } from 'primeng/panel';
@@ -92,6 +94,7 @@ import {
 } from '../../shared/qr-scanner-demo/qr-scanned-command.service';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { DurationMsCompactPipe } from '../../shared/pipes/duration-ms-compact.pipe';
+import { HighlightMatchPipe } from '../../shared/pipes/highlight-match.pipe';
 
 interface SelectOption {
   label: string;
@@ -213,7 +216,7 @@ function compareVersions(a: string, b: string): number {
 @Component({
   selector: 'app-commander',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, NgxJsonViewerModule, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, ErbarmePlanStateComponent, FixtureTimeComponent, DurationPipe, DurationMsCompactPipe],
+  imports: [FormsModule, ButtonModule, SplitButtonModule, BadgeModule, InputGroupModule, InputGroupAddonModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, ToastModule, PanelModule, DialogModule, ToggleSwitchModule, TooltipModule, DrawerModule, TabsModule, ProgressBarModule, TableModule, PopoverModule, NgTemplateOutlet, NgxJsonViewerModule, CommanderConsoleComponent, CommandBuilderComponent, FixturePlayerControlsComponent, FixturePlanControlComponent, FixtureCustomControlComponent, FixtureConfigControlComponent, FixtureDocsComponent, CopyToClipboardComponent, RadioPlanStateComponent, ErbarmePlanStateComponent, FixtureTimeComponent, DurationPipe, DurationMsCompactPipe, HighlightMatchPipe],
   providers: [MessageService],
   templateUrl: './commander.component.html',
   styleUrls: ['./commander.component.scss'],
@@ -1195,6 +1198,49 @@ export class CommanderComponent implements OnInit {
         return a.plan_group.localeCompare(b.plan_group);
       });
   });
+
+  /** Free-text sidebar filter over plan group, plan name and fixture name. */
+  protected readonly fixtureFilterText = signal<string>('');
+
+  protected clearFixtureFilter(): void {
+    this.fixtureFilterText.set('');
+  }
+
+  /**
+   * Sidebar tree narrowed by {@link fixtureFilterText}. A match on the plan group
+   * or plan name keeps everything below it; otherwise only matching fixtures
+   * survive, and empty plans/groups are dropped.
+   */
+  protected readonly filteredFixturesByPlanGroup = computed(() => {
+    const filter = this.fixtureFilterText().trim().toLowerCase();
+    const groups = this.groupedFixturesByPlanGroup();
+    if (!filter) return groups;
+
+    return groups
+      .map(({ plan_group, plans }) => {
+        const groupMatches = plan_group.toLowerCase().includes(filter);
+        const keptPlans = plans
+          .map((plan) => {
+            if (groupMatches || plan.plan_name.toLowerCase().includes(filter)) return plan;
+            const fixtures = plan.fixtures.filter((f) =>
+              f.fixture_name.toLowerCase().includes(filter),
+            );
+            return fixtures.length ? { ...plan, fixtures } : null;
+          })
+          .filter((plan): plan is FixturePlanGroup => plan !== null);
+        return { plan_group, plans: keptPlans };
+      })
+      .filter((group) => group.plans.length > 0);
+  });
+
+  /** True when a filter is active but nothing matches it. */
+  protected readonly fixtureFilterHasNoMatches = computed(
+    () =>
+      this.fixtureFilterText().trim().length > 0 &&
+      this.filteredFixturesByPlanGroup().length === 0 &&
+      this.groupedFixturesByPlanGroup().length > 0,
+  );
+
   protected readonly FIXTURE_DETAIL_DRAWER = FIXTURE_DETAIL_DRAWER;
   protected readonly selectedFixtureName = this.fixtureStore.selectedFixtureName;
   protected readonly selectedFixture = this.fixtureStore.selectedFixture;

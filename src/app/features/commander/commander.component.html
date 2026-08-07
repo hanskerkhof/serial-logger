@@ -352,14 +352,42 @@
       <p class="commander__sidebar-warning" role="status">{{ warning }}</p>
     }
 
+    @if (groupedFixturesByPlanGroup().length > 0) {
+      <div class="commander__sidebar-filter-row">
+        <p-iconfield class="commander__sidebar-filter">
+          <input
+            pInputText
+            type="text"
+            placeholder="Filter plan, group or fixture…"
+            aria-label="Filter fixtures by plan, plan group or fixture name"
+            [ngModel]="fixtureFilterText()"
+            (ngModelChange)="fixtureFilterText.set($event)"
+            (keydown.escape)="clearFixtureFilter(); $event.stopPropagation()"
+          />
+          @if (fixtureFilterText()) {
+            <p-inputicon
+              class="pi pi-times commander__sidebar-filter-clear"
+              role="button"
+              tabindex="0"
+              aria-label="Clear fixture filter"
+              (click)="clearFixtureFilter()"
+              (keydown.enter)="clearFixtureFilter()"
+            />
+          }
+        </p-iconfield>
+      </div>
+    }
+
     @if (groupedFixturesByPlanGroup().length === 0) {
       <p class="commander__sidebar-empty">No fixtures yet. Fixtures will appear here automatically when the commander starts seeing them.</p>
+    } @else if (fixtureFilterHasNoMatches()) {
+      <p class="commander__sidebar-empty">No fixtures match “{{ fixtureFilterText() }}”.</p>
     } @else {
       <div class="commander__groups">
-        @for (outerGroup of groupedFixturesByPlanGroup(); track outerGroup.plan_group) {
+        @for (outerGroup of filteredFixturesByPlanGroup(); track outerGroup.plan_group) {
           <section class="commander__plan-group">
             <header class="commander__plan-group-header">
-              <h4 class="commander__plan-group-title">{{ outerGroup.plan_group }}</h4>
+              <h4 class="commander__plan-group-title" [innerHTML]="outerGroup.plan_group | highlightMatch: fixtureFilterText()"></h4>
               @if (outerGroup.plans.length > 1 || allFixturesForGroup(outerGroup.plans).length > 1) {
               <button
                 pButton
@@ -441,7 +469,7 @@
             @for (plan of outerGroup.plans; track plan.plan_name) {
               <section class="commander__group">
                 <header class="commander__group-header">
-                  <h4 class="commander__group-title">{{ plan.plan_name }}</h4>
+                  <h4 class="commander__group-title" [innerHTML]="plan.plan_name | highlightMatch: fixtureFilterText()"></h4>
                   @if (plan.fixtures.length > 1) {
                   <button
                     pButton
@@ -579,7 +607,7 @@
                         [class.commander__fixture-btn--active]="selectedFixtureName() === fixture.fixture_name"
                         (click)="selectFixture(fixture)"
                       >
-                        {{ fixture.fixture_name }}
+                        <span [innerHTML]="fixture.fixture_name | highlightMatch: fixtureFilterText()"></span>
                       </button>
                       <button
                         pButton

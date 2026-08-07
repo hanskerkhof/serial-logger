@@ -296,6 +296,30 @@
   }
 }
 
+.commander__sidebar-filter-row {
+  margin-top: 0.5rem;
+}
+
+.commander__sidebar-filter {
+  width: 100%;
+
+  .p-inputtext {
+    width: 100%;
+    font-size: 0.8rem;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+}
+
+.commander__sidebar-filter-clear {
+  cursor: pointer;
+  color: var(--p-text-muted-color);
+
+  &:hover {
+    color: var(--p-text-color);
+  }
+}
+
 .commander__sidebar-debug {
   margin: 0.35rem 0 0;
   font-size: 0.72rem;

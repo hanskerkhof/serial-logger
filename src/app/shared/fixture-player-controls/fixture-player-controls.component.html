@@ -1,5 +1,5 @@
 @if (player(); as p) {
-  @if (p.attached) {
+  @if (p.attached || currentPlayerStatus()) {
     <section class="fixture-player-controls">
       <div class="fixture-player-controls__header">
         <span class="fixture-player-controls__label">Player</span>
@@ -7,8 +7,10 @@
           <span class="fixture-player-controls__player-type">{{ pt }}</span>
         }
         @if (currentPlayerStatus(); as status) {
-          <span class="fixture-player-controls__player-status"
-                [class.fixture-player-controls__player-status--playing]="status === 'PLAYING'">
+          <span
+            class="fixture-player-controls__player-status"
+            [class.fixture-player-controls__player-status--playing]="status === 'PLAYING'"
+          >
             {{ status }}
           </span>
           @if (playbackTimeLabel(); as timeLabel) {
@@ -17,268 +19,295 @@
         }
       </div>
 
-      @if (p.play_track_available) {
-        <div class="fixture-player-controls__row">
-          @if (trackOptions(); as opts) {
-            <button
-              pButton
-              type="button"
-              icon="pi pi-chevron-left"
-              [text]="true"
-              [rounded]="true"
-              severity="secondary"
-              size="small"
-              [disabled]="disabled() || opts.length === 0"
-              aria-label="Previous track"
-              (click)="prevTrack()"
-            ></button>
-            <p-select
-              [options]="opts"
-              [ngModel]="trackNumber()"
-              (ngModelChange)="onTrackSelectChange($event)"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="select track"
-              size="small"
-              scrollHeight="300px"
-              appendTo="body"
-              [disabled]="disabled()"
-              styleClass="fixture-player-controls__sound-select"
-              [filter]="true"
-              filterBy="label"
-              [filterValue]="trackFilter()"
-              (onFilter)="trackFilter.set($event.filter)"
-              (onShow)="onTrackSelectOpen()"
-              (onHide)="trackFilter.set(null); onTrackSelectClose()"
-            >
-              <ng-template pTemplate="filtericon">
-                @if (trackFilter()) {
-                  <i
-                    class="pi pi-times fixture-player-controls__filter-clear"
-                    role="button"
-                    tabindex="0"
-                    aria-label="Clear filter"
-                    (click)="trackFilter.set(null); $event.stopPropagation()"
-                  ></i>
-                } @else {
-                  <i class="pi pi-search"></i>
-                }
-              </ng-template>
-            </p-select>
-            <button
-              pButton
-              type="button"
-              icon="pi pi-chevron-right"
-              [text]="true"
-              [rounded]="true"
-              severity="secondary"
-              size="small"
-              [disabled]="disabled() || opts.length === 0"
-              aria-label="Next track"
-              (click)="nextTrack()"
-            ></button>
-            @if (selectedTrackName(); as selectedTrackName) {
-              <app-copy-to-clipboard [value]="selectedTrackName" />
-            }
-            <label class="fixture-player-controls__autoplay-label"
-                   [class.fixture-player-controls__autoplay-label--inactive]="planStatus() === 'RUNNING'"
-                   [pTooltip]="autoPlayTooltip()"
-                   tooltipPosition="top">
-              <p-toggleswitch
-                [ngModel]="autoPlay()"
-                (ngModelChange)="autoPlay.set($event)"
-                [disabled]="disabled() || planStatus() === 'RUNNING'"
+      @if (
+        p.attached &&
+        (p.play_track_available || p.volume_control_available || p.analog_volume_active)
+      ) {
+        @if (p.play_track_available) {
+          <div class="fixture-player-controls__row">
+            @if (trackOptions(); as opts) {
+              <button
+                pButton
+                type="button"
+                icon="pi pi-chevron-left"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="disabled() || opts.length === 0"
+                aria-label="Previous track"
+                (click)="prevTrack()"
+              ></button>
+              <p-select
+                [options]="opts"
+                [ngModel]="trackNumber()"
+                (ngModelChange)="onTrackSelectChange($event)"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="select track"
+                size="small"
+                scrollHeight="300px"
+                appendTo="body"
+                [disabled]="disabled()"
+                styleClass="fixture-player-controls__sound-select"
+                [filter]="true"
+                filterBy="label"
+                [filterValue]="trackFilter()"
+                (onFilter)="trackFilter.set($event.filter)"
+                (onShow)="onTrackSelectOpen()"
+                (onHide)="trackFilter.set(null); onTrackSelectClose()"
+              >
+                <ng-template pTemplate="filtericon">
+                  @if (trackFilter()) {
+                    <i
+                      class="pi pi-times fixture-player-controls__filter-clear"
+                      role="button"
+                      tabindex="0"
+                      aria-label="Clear filter"
+                      (click)="trackFilter.set(null); $event.stopPropagation()"
+                    ></i>
+                  } @else {
+                    <i class="pi pi-search"></i>
+                  }
+                </ng-template>
+              </p-select>
+              <button
+                pButton
+                type="button"
+                icon="pi pi-chevron-right"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="disabled() || opts.length === 0"
+                aria-label="Next track"
+                (click)="nextTrack()"
+              ></button>
+              @if (selectedTrackName(); as selectedTrackName) {
+                <app-copy-to-clipboard [value]="selectedTrackName" />
+              }
+              <label
+                class="fixture-player-controls__autoplay-label"
+                [class.fixture-player-controls__autoplay-label--inactive]="
+                  planStatus() === 'RUNNING'
+                "
+                [pTooltip]="autoPlayTooltip()"
+                tooltipPosition="top"
+              >
+                <p-toggleswitch
+                  [ngModel]="autoPlay()"
+                  (ngModelChange)="autoPlay.set($event)"
+                  [disabled]="disabled() || planStatus() === 'RUNNING'"
+                />
+                Auto play
+              </label>
+            } @else {
+              <input
+                class="fixture-player-controls__track-input"
+                type="number"
+                placeholder="track #"
+                min="1"
+                [value]="trackNumber() ?? ''"
+                [disabled]="disabled()"
+                (input)="onTrackInput($event)"
               />
-              Auto play
-            </label>
-          } @else {
-            <input
-              class="fixture-player-controls__track-input"
-              type="number"
-              placeholder="track #"
-              min="1"
-              [value]="trackNumber() ?? ''"
+            }
+          </div>
+          <div class="fixture-player-controls__row">
+            <button
+              pButton
+              severity="secondary"
+              size="small"
+              [disabled]="trackNumber() === null || disabled()"
+              (click)="playSound()"
+            >
+              &#x25B6; Play
+            </button>
+            <button
+              pButton
+              severity="secondary"
+              size="small"
               [disabled]="disabled()"
-              (input)="onTrackInput($event)"
-            />
-          }
-        </div>
-        <div class="fixture-player-controls__row">
-          <button
-            pButton
-            severity="secondary"
-            size="small"
-            [disabled]="trackNumber() === null || disabled()"
-            (click)="playSound()"
-          >&#x25B6; Play</button>
-          <button
-            pButton
-            severity="secondary"
-            size="small"
-            [disabled]="disabled()"
-            (click)="stopSound()"
-          >&#x25A0; Stop</button>
-          <p-slider
-            class="fixture-player-controls__range"
-            min="0"
-            max="30"
-            [step]="1"
-            [ngModel]="fadeInVolume()"
-            [disabled]="disabled()"
-            (ngModelChange)="onFadeInVolumeInput($event)"
-          ></p-slider>
-          <span class="fixture-player-controls__range-value">{{ fadeInVolume() }}</span>
-          <span
-            class="fixture-player-controls__fill-wrap"
-            [class.fade-filling]="fadeInMsPhase() === 'filling'"
-            [class.fade-fading]="fadeInMsPhase() === 'fading'"
-            [class.fade-rtl]="fadeInMsDirection() === 'rtl'"
-            [style.--fill-ms]="fadeInDurationMs() + 'ms'"
-          ><input
-            class="fixture-player-controls__duration-input"
-            type="number"
-            min="1000"
-            max="15000"
-            step="100"
-            [value]="fadeInDurationMs()"
-            [disabled]="disabled()"
-            (input)="onFadeInDurationInput($event)"
-          /></span>
-          <span class="fixture-player-controls__row-unit">ms</span>
-          <button
-            pButton
-            severity="secondary"
-            size="small"
-            [disabled]="trackNumber() === null || disabled()"
-            (click)="fadeIn()"
-          >Fade In</button>
-        </div>
-      }
-
-      @if (p.analog_volume_active) {
-        <div class="fixture-player-controls__row">
-          <span class="fixture-player-controls__row-label">Pot</span>
-          <p-toggleswitch
-            [ngModel]="localAnalogVolumeEnabled()"
-            (ngModelChange)="onAnalogVolumeToggle($event)"
-            [disabled]="disabled()"
-          />
-          <span class="fixture-player-controls__analog-note">
-            {{ localAnalogVolumeEnabled() ? 'potmeter active' : 'potmeter disabled' }}
-          </span>
-        </div>
-      }
-
-      <div class="fixture-player-controls__row">
-        <span class="fixture-player-controls__row-label">Vol</span>
-        @if (p.analog_volume_active && localAnalogVolumeEnabled() && !analogOverride()) {
-          <span class="fixture-player-controls__analog-note">not available (analog)</span>
-        }
-        @if (!p.analog_volume_active || !localAnalogVolumeEnabled() || analogOverride()) {
-          <span #volumeSliderHost>
+              (click)="stopSound()"
+            >
+              &#x25A0; Stop
+            </button>
             <p-slider
               class="fixture-player-controls__range"
               min="0"
               max="30"
               [step]="1"
-              [ngModel]="volumeLevel()"
+              [ngModel]="fadeInVolume()"
               [disabled]="disabled()"
-              (pointerdown)="onVolumePointerDown($event)"
-              (mousedown)="onVolumePointerDown($event)"
-              (touchstart)="onVolumePointerDown($event)"
-              (pointerup)="onVolumeDragEnd()"
-              (pointercancel)="onVolumeDragEnd()"
-              (mouseup)="onVolumeDragEnd()"
-              (touchend)="onVolumeDragEnd()"
-              (touchcancel)="onVolumeDragEnd()"
-              (focusin)="onVolumeFocusIn()"
-              (focusout)="onVolumeFocusOut($event)"
-              (ngModelChange)="onVolumeInput($event)"
-              (onSlideEnd)="onVolumeSlideEnd()"
+              (ngModelChange)="onFadeInVolumeInput($event)"
             ></p-slider>
-          </span>
-          <span class="fixture-player-controls__range-value">{{ volumeLevel() }}</span>
-          @if (defaultVolume() !== null) {
+            <span class="fixture-player-controls__range-value">{{ fadeInVolume() }}</span>
+            <span
+              class="fixture-player-controls__fill-wrap"
+              [class.fade-filling]="fadeInMsPhase() === 'filling'"
+              [class.fade-fading]="fadeInMsPhase() === 'fading'"
+              [class.fade-rtl]="fadeInMsDirection() === 'rtl'"
+              [style.--fill-ms]="fadeInDurationMs() + 'ms'"
+              ><input
+                class="fixture-player-controls__duration-input"
+                type="number"
+                min="1000"
+                max="15000"
+                step="100"
+                [value]="fadeInDurationMs()"
+                [disabled]="disabled()"
+                (input)="onFadeInDurationInput($event)"
+            /></span>
+            <span class="fixture-player-controls__row-unit">ms</span>
             <button
-              type="button"
-              class="fixture-player-controls__default-vol-link"
+              pButton
+              severity="secondary"
+              size="small"
+              [disabled]="trackNumber() === null || disabled()"
+              (click)="fadeIn()"
+            >
+              Fade In
+            </button>
+          </div>
+        }
+
+        @if (p.analog_volume_active) {
+          <div class="fixture-player-controls__row">
+            <span class="fixture-player-controls__row-label">Pot</span>
+            <p-toggleswitch
+              [ngModel]="localAnalogVolumeEnabled()"
+              (ngModelChange)="onAnalogVolumeToggle($event)"
               [disabled]="disabled()"
-              (click)="applyDefaultVolume()"
-            >default vol ({{ defaultVolume() }})</button>
-          }
+            />
+            <span class="fixture-player-controls__analog-note">
+              {{ localAnalogVolumeEnabled() ? 'potmeter active' : 'potmeter disabled' }}
+            </span>
+          </div>
         }
-        @if (p.analog_volume_active && localAnalogVolumeEnabled()) {
-          <label class="fixture-player-controls__override-label">
-            <input type="checkbox" [checked]="analogOverride()" (change)="analogOverride.set(!analogOverride())" />
-            override
-          </label>
+
+        @if (p.volume_control_available) {
+          <div class="fixture-player-controls__row">
+            <span class="fixture-player-controls__row-label">Vol</span>
+            @if (p.analog_volume_active && localAnalogVolumeEnabled() && !analogOverride()) {
+              <span class="fixture-player-controls__analog-note">not available (analog)</span>
+            }
+            @if (!p.analog_volume_active || !localAnalogVolumeEnabled() || analogOverride()) {
+              <span #volumeSliderHost>
+                <p-slider
+                  class="fixture-player-controls__range"
+                  min="0"
+                  max="30"
+                  [step]="1"
+                  [ngModel]="volumeLevel()"
+                  [disabled]="disabled()"
+                  (pointerdown)="onVolumePointerDown($event)"
+                  (mousedown)="onVolumePointerDown($event)"
+                  (touchstart)="onVolumePointerDown($event)"
+                  (pointerup)="onVolumeDragEnd()"
+                  (pointercancel)="onVolumeDragEnd()"
+                  (mouseup)="onVolumeDragEnd()"
+                  (touchend)="onVolumeDragEnd()"
+                  (touchcancel)="onVolumeDragEnd()"
+                  (focusin)="onVolumeFocusIn()"
+                  (focusout)="onVolumeFocusOut($event)"
+                  (ngModelChange)="onVolumeInput($event)"
+                  (onSlideEnd)="onVolumeSlideEnd()"
+                ></p-slider>
+              </span>
+              <span class="fixture-player-controls__range-value">{{ volumeLevel() }}</span>
+              @if (defaultVolume() !== null) {
+                <button
+                  type="button"
+                  class="fixture-player-controls__default-vol-link"
+                  [disabled]="disabled()"
+                  (click)="applyDefaultVolume()"
+                >
+                  default vol ({{ defaultVolume() }})
+                </button>
+              }
+            }
+            @if (p.analog_volume_active && localAnalogVolumeEnabled()) {
+              <label class="fixture-player-controls__override-label">
+                <input
+                  type="checkbox"
+                  [checked]="analogOverride()"
+                  (change)="analogOverride.set(!analogOverride())"
+                />
+                override
+              </label>
+            }
+          </div>
+
+          <div class="fixture-player-controls__row">
+            <span class="fixture-player-controls__row-label">Fade</span>
+            <p-slider
+              class="fixture-player-controls__range"
+              min="0"
+              max="30"
+              [step]="1"
+              [ngModel]="fadeToVolume()"
+              [disabled]="disabled()"
+              (ngModelChange)="onFadeToVolumeInput($event)"
+            ></p-slider>
+            <span class="fixture-player-controls__range-value">{{ fadeToVolume() }}</span>
+            <span
+              class="fixture-player-controls__fill-wrap"
+              [class.fade-filling]="fadeMsPhase() === 'filling'"
+              [class.fade-fading]="fadeMsPhase() === 'fading'"
+              [class.fade-rtl]="fadeMsDirection() === 'rtl'"
+              [style.--fill-ms]="fadeDurationMs() + 'ms'"
+              ><input
+                class="fixture-player-controls__duration-input"
+                type="number"
+                min="1000"
+                max="15000"
+                step="500"
+                [value]="fadeDurationMs()"
+                [disabled]="disabled()"
+                (input)="onFadeDurationInput($event)"
+            /></span>
+            <span class="fixture-player-controls__row-unit">ms</span>
+            <button
+              pButton
+              severity="secondary"
+              size="small"
+              [disabled]="disabled()"
+              (click)="fadeTo()"
+            >
+              Fade To
+            </button>
+            <button
+              pButton
+              severity="secondary"
+              size="small"
+              [disabled]="disabled()"
+              (click)="fadeOut()"
+            >
+              Fade Out
+            </button>
+          </div>
+
+          <div class="fixture-player-controls__row">
+            <span class="fixture-player-controls__row-label">EQ</span>
+            <p-select
+              [options]="eqPresets()"
+              [ngModel]="eqPreset()"
+              (ngModelChange)="eqPreset.set($event); setEqualizer()"
+              optionLabel="label"
+              optionValue="value"
+              size="small"
+              scrollHeight="300px"
+              appendTo="body"
+              [disabled]="disabled()"
+            />
+          </div>
         }
-      </div>
-
-      <div class="fixture-player-controls__row">
-        <span class="fixture-player-controls__row-label">Fade</span>
-        <p-slider
-          class="fixture-player-controls__range"
-          min="0"
-          max="30"
-          [step]="1"
-          [ngModel]="fadeToVolume()"
-          [disabled]="disabled()"
-          (ngModelChange)="onFadeToVolumeInput($event)"
-        ></p-slider>
-        <span class="fixture-player-controls__range-value">{{ fadeToVolume() }}</span>
-        <span
-          class="fixture-player-controls__fill-wrap"
-          [class.fade-filling]="fadeMsPhase() === 'filling'"
-          [class.fade-fading]="fadeMsPhase() === 'fading'"
-          [class.fade-rtl]="fadeMsDirection() === 'rtl'"
-          [style.--fill-ms]="fadeDurationMs() + 'ms'"
-        ><input
-          class="fixture-player-controls__duration-input"
-          type="number"
-          min="1000"
-          max="15000"
-          step="500"
-          [value]="fadeDurationMs()"
-          [disabled]="disabled()"
-          (input)="onFadeDurationInput($event)"
-        /></span>
-        <span class="fixture-player-controls__row-unit">ms</span>
-        <button
-          pButton
-          severity="secondary"
-          size="small"
-          [disabled]="disabled()"
-          (click)="fadeTo()"
-        >Fade To</button>
-        <button
-          pButton
-          severity="secondary"
-          size="small"
-          [disabled]="disabled()"
-          (click)="fadeOut()"
-        >Fade Out</button>
-      </div>
-
-      <div class="fixture-player-controls__row">
-        <span class="fixture-player-controls__row-label">EQ</span>
-        <p-select
-          [options]="eqPresets()"
-          [ngModel]="eqPreset()"
-          (ngModelChange)="eqPreset.set($event); setEqualizer()"
-          optionLabel="label"
-          optionValue="value"
-          size="small"
-          scrollHeight="300px"
-          appendTo="body"
-          [disabled]="disabled()"
-        />
-      </div>
+      }
     </section>
   } @else {
     <section class="fixture-player-controls">
       <span class="fixture-player-controls__label">Player - No player attached</span>
-<!--      <span>No player attached</span>-->
+      <!--      <span>No player attached</span>-->
     </section>
   }
 }

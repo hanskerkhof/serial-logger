@@ -5978,7 +5978,7 @@ export class CommanderComponent implements OnInit {
       }
 
       if (err.status === 401) {
-        return `${prefix}: not authenticated — enable auth in .env.cmdr or log in first`;
+        return `${prefix}: not authenticated — enable auth in .env.bauklank_studio or log in first`;
       }
 
       return `${prefix} (HTTP ${err.status}): ${detailText}`;

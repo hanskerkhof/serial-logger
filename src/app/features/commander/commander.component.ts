@@ -703,7 +703,6 @@ export class CommanderComponent implements OnInit {
   protected readonly planStateReceivedAt = signal<number | null>(null);
   // Passive plan-state WS monitor
   protected readonly passivePsIntervalOptions: PollIntervalOption[] = [
-    { label: '25ms', value: 25 },
     { label: '50ms', value: 50 },
     { label: '100ms', value: 100 },
     { label: '250ms', value: 250 },

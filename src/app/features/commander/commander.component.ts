@@ -3904,6 +3904,20 @@ export class CommanderComponent implements OnInit {
     });
   }
 
+  protected subscribePassivePlanState(): void {
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) return;
+    this._passivePlanStateFixture = fixture;
+    this.passivePsStartError.set(null);
+    this.requestPassivePlanStateStart(fixture, this.passivePsIntervalMs(), 0);
+  }
+
+  protected unsubscribePassivePlanState(): void {
+    const fixture = (this.selectedFixture()?.fixture_name ?? this.fixtureName()).trim();
+    if (!fixture) return;
+    this.stopPassivePlanState(fixture);
+  }
+
   protected onPassivePsIntervalChange(value: number | null | undefined): void {
     const ms = typeof value === 'number' && value > 0 ? value : 1000;
     const fixture = this._passivePlanStateFixture;

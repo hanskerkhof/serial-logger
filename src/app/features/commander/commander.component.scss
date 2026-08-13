@@ -1127,6 +1127,12 @@
   margin-bottom: 0.35rem;
 }
 
+.commander__passive-ps-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .commander__passive-ps-title {
   margin: 0;
   font-size: 0.85rem;

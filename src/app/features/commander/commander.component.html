@@ -1512,18 +1512,46 @@
             <section class="commander__passive-ps-monitor" aria-label="Passive plan state monitor">
               <div class="commander__passive-ps-header">
                 <h4 class="commander__passive-ps-title">Passive plan state</h4>
-                <p-select
-                  class="commander__passive-ps-interval-select"
-                  [ngModel]="passivePsIntervalMs()"
-                  (ngModelChange)="onPassivePsIntervalChange($event)"
-                  [options]="passivePsIntervalOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  size="small"
-                  appendTo="body"
-                  [disabled]="commanderUnavailable()"
-                  aria-label="Passive plan state interval"
-                ></p-select>
+                <div class="commander__passive-ps-actions">
+                  <button
+                    pButton
+                    type="button"
+                    label="Subscribe"
+                    severity="secondary"
+                    size="small"
+                    [text]="true"
+                    [disabled]="commanderUnavailable()"
+                    pTooltip="Manually (re)start the passive plan-state stream"
+                    tooltipPosition="bottom"
+                    (click)="subscribePassivePlanState()"
+                    aria-label="Subscribe to passive plan state"
+                  ></button>
+                  <button
+                    pButton
+                    type="button"
+                    label="Stop"
+                    severity="secondary"
+                    size="small"
+                    [text]="true"
+                    [disabled]="commanderUnavailable()"
+                    pTooltip="Stop the passive plan-state stream"
+                    tooltipPosition="bottom"
+                    (click)="unsubscribePassivePlanState()"
+                    aria-label="Stop passive plan state subscription"
+                  ></button>
+                  <p-select
+                    class="commander__passive-ps-interval-select"
+                    [ngModel]="passivePsIntervalMs()"
+                    (ngModelChange)="onPassivePsIntervalChange($event)"
+                    [options]="passivePsIntervalOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    size="small"
+                    appendTo="body"
+                    [disabled]="commanderUnavailable()"
+                    aria-label="Passive plan state interval"
+                  ></p-select>
+                </div>
               </div>
               @if (passivePsLastMsg(); as msg) {
                 <div class="commander__passive-ps-msg-accordion">

@@ -29,6 +29,8 @@ npm run bump:version -- 2.8.2
 
 This updates `package.json`, `package-lock.json`, `src/app/build-info.ts`, and `ngsw-config.json` together.
 
+For script-specific notes, see [scripts/README.md](/Users/hanskerkhof/bauklank-micros/frontend/serial-logger/scripts/README.md).
+
 ## Development
 
 ```bash

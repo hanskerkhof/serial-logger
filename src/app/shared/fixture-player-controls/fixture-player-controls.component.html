@@ -185,7 +185,7 @@
           </div>
         }
 
-        @if (p.volume_control_available) {
+        @if (p.volume_control_available || p.analog_volume_active) {
           <div class="fixture-player-controls__row">
             <span class="fixture-player-controls__row-label">Vol</span>
             @if (p.analog_volume_active && localAnalogVolumeEnabled() && !analogOverride()) {

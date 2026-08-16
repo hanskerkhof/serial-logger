@@ -327,8 +327,17 @@
 }
 
 .commander__sidebar-empty {
-  font-size: 0.7rem;
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
   color: var(--p-text-muted-color);
+
+  &:first-child {
+    margin-top: 0.5rem;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .commander__sidebar-discovery-ws-row {

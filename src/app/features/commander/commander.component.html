@@ -379,8 +379,7 @@
     }
 
     @if (groupedFixturesByPlanGroup().length === 0) {
-      <p class="commander__sidebar-empty">No fixtures yet. Fixtures will appear here automatically when </p>
-      <p class="commander__sidebar-empty">the commander starts seeing them.</p>
+      <p class="commander__sidebar-empty">No fixtures yet. Fixtures will appear here automatically when the commander starts seeing them.</p>
     } @else if (fixtureFilterHasNoMatches()) {
       <p class="commander__sidebar-empty">No fixtures match “{{ fixtureFilterText() }}”.</p>
     } @else {

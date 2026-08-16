@@ -327,17 +327,12 @@
 }
 
 .commander__sidebar-empty {
-  margin-bottom: 0.2rem;
+  // Matches .commander__sidebar-filter-row's margin-top: with no fixtures,
+  // the filter row is hidden entirely and this is the next element after
+  // .commander__sidebar-actions (the p-splitbutton row).
+  margin-top: 0.5rem;
   font-size: 0.72rem;
   color: var(--p-text-muted-color);
-
-  &:first-child {
-    margin-top: 0.5rem;
-  }
-
-  &:last-child {
-    margin-bottom: 0;
-  }
 }
 
 .commander__sidebar-discovery-ws-row {

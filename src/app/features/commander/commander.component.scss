@@ -326,6 +326,11 @@
   color: var(--p-text-muted-color);
 }
 
+.commander__sidebar-empty {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+}
+
 .commander__sidebar-discovery-ws-row {
   display: flex;
   align-items: center;

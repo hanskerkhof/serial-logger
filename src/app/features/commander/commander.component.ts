@@ -1558,18 +1558,22 @@ export class CommanderComponent implements OnInit {
   });
 
   protected readonly selectedFixturePlayerState = computed<{
-    volume?: number; eq?: number; trackIndex?: number; playerStatus?: string;
+    volume?: number; eq?: number; trackIndex?: number; playerStatus?: number;
     elapsedMs?: number; durationMs?: number;
   } | null>(() => {
     const ps = this.selectedFixture()?.raw['plan_state'] as Record<string, unknown> | null | undefined;
     const s = ps?.['state'] as Record<string, unknown> | null | undefined;
     if (!s) return null;
-    const volume = typeof s['volume'] === 'number' ? (s['volume'] as number) : undefined;
-    const eq = typeof s['eq'] === 'number' ? (s['eq'] as number) : undefined;
-    const trackIndex = typeof s['track_index'] === 'number' ? (s['track_index'] as number) : undefined;
-    const playerStatus = typeof s['player_status'] === 'string' ? (s['player_status'] as string) : undefined;
-    const elapsedMs = typeof s['elapsed_ms'] === 'number' ? (s['elapsed_ms'] as number) : undefined;
-    const durationMs = typeof s['duration_ms'] === 'number' ? (s['duration_ms'] as number) : undefined;
+    // _l/_q/_i/_s/_e/_d are the underscore-prefixed CU_PLAYER base-contract
+    // fields (was volume/eq/track_index/player_status/elapsed_ms/duration_ms) —
+    // see docs/PLAYER_TYPES.md and FixturePlayer.cpp's writePlayerStateJson().
+    // _s is numeric on the wire (1=PLAYING, 0=STOPPED), not a string.
+    const volume = typeof s['_l'] === 'number' ? (s['_l'] as number) : undefined;
+    const eq = typeof s['_q'] === 'number' ? (s['_q'] as number) : undefined;
+    const trackIndex = typeof s['_i'] === 'number' ? (s['_i'] as number) : undefined;
+    const playerStatus = typeof s['_s'] === 'number' ? (s['_s'] as number) : undefined;
+    const elapsedMs = typeof s['_e'] === 'number' ? (s['_e'] as number) : undefined;
+    const durationMs = typeof s['_d'] === 'number' ? (s['_d'] as number) : undefined;
     if (volume === undefined && eq === undefined && trackIndex === undefined && playerStatus === undefined) return null;
     return { volume, eq, trackIndex, playerStatus, elapsedMs, durationMs };
   });
@@ -2239,7 +2243,7 @@ export class CommanderComponent implements OnInit {
         const pending = this._pendingVolumeSync;
         if (pending) {
           const state = (normalizedPlanState?.['state'] as Record<string, unknown> | null | undefined) ?? null;
-          const authoritativeVolume = typeof state?.['volume'] === 'number' ? (state['volume'] as number) : undefined;
+          const authoritativeVolume = typeof state?.['_l'] === 'number' ? (state['_l'] as number) : undefined;
           const isMismatch =
             pending.targetVolume !== null &&
             typeof authoritativeVolume === 'number' &&
@@ -2379,7 +2383,7 @@ export class CommanderComponent implements OnInit {
         if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(fixtureName)) {
           const ps = (fixture as Record<string, unknown>)?.['plan_state'] as Record<string, unknown> | null | undefined;
           const st = ps?.['state'] as Record<string, unknown> | null | undefined;
-          const t = typeof st?.['t'] === 'number' ? (st['t'] as number) : null;
+          const t = typeof st?.['_t'] === 'number' ? (st['_t'] as number) : null;
           if (t === 0) {
             this.autoTimeSyncedFixtures.add(fixtureName);
             const epochSeconds = Math.floor(Date.now() / 1000);
@@ -6122,7 +6126,7 @@ export class CommanderComponent implements OnInit {
           const fix = Array.isArray(fixtures) ? (fixtures[0] as Record<string, unknown> | null) : null;
           const ps = fix?.['plan_state'] as Record<string, unknown> | null | undefined;
           const st = ps?.['state'] as Record<string, unknown> | null | undefined;
-          const t = typeof st?.['t'] === 'number' ? (st['t'] as number) : null;
+          const t = typeof st?.['_t'] === 'number' ? (st['_t'] as number) : null;
           if (t === 0) {
             this.autoTimeSyncedFixtures.add(name);
             const epochSeconds = Math.floor(Date.now() / 1000);

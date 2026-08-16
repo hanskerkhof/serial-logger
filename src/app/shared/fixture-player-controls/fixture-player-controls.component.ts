@@ -64,7 +64,7 @@ export class FixturePlayerControlsComponent {
   readonly player = input<CmdrPlayerCapabilities | null>(null);
   readonly playerType = input<string | null>(null);
   readonly defaultVolume = input<number | null>(null);
-  readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: string; elapsedMs?: number; durationMs?: number } | null>(null);
+  readonly playerState = input<{ volume?: number; eq?: number; trackIndex?: number; playerStatus?: number; elapsedMs?: number; durationMs?: number } | null>(null);
   readonly volumeSyncResult = input<VolumeSyncResultEvent | null>(null);
   readonly planTracks = input<PlayerTrack[] | null>(null);
   readonly planStatus = input<string | null>(null);
@@ -101,7 +101,7 @@ export class FixturePlayerControlsComponent {
   private readonly fadeTimers   = { t1: 0 as ReturnType<typeof setTimeout>, t2: 0 as ReturnType<typeof setTimeout> };
   private volumeSyncTimeout: ReturnType<typeof setTimeout> | null = null;
   /** Plain (non-signal) fields — used inside effects to track previous values without creating reactive dependencies. */
-  private _autoPlayPrevStatus: string | null = null;
+  private _autoPlayPrevStatus: number | null = null;
   private _autoPlayWasOn = false;
   /** Fallback timer: fires after poll-interval + buffer for sounds shorter than one poll cycle. */
   private _autoPlayFallbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -211,7 +211,7 @@ export class FixturePlayerControlsComponent {
       const isOn      = this.autoPlay();
       const status    = this.currentPlayerStatus();
       const planRunning = this.planStatus() === 'RUNNING';
-      const wasPlaying  = this._autoPlayPrevStatus === 'PLAYING';
+      const wasPlaying  = this._autoPlayPrevStatus === 1;
       const justTurnedOn = isOn && !this._autoPlayWasOn;
 
       this._autoPlayPrevStatus = status;
@@ -223,8 +223,8 @@ export class FixturePlayerControlsComponent {
         // If a sound is already playing, just arm auto-play without restarting it.
         // Prime _autoPlayPrevStatus so the PLAYING→STOPPED transition is detected
         // correctly when the current track eventually finishes.
-        if (status === 'PLAYING') {
-          this._autoPlayPrevStatus = 'PLAYING';
+        if (status === 1) {
+          this._autoPlayPrevStatus = 1;
           return;
         }
         // Play current selection, or fall back to the first track in the list.
@@ -242,7 +242,7 @@ export class FixturePlayerControlsComponent {
         return;
       }
 
-      if (isOn && wasPlaying && status === 'STOPPED') {
+      if (isOn && wasPlaying && status === 0) {
         this.clearAutoPlayFallbackTimer(); // reactive path won — cancel the safety net
         setTimeout(() => this.nextTrack(), 0);
       }
@@ -251,9 +251,17 @@ export class FixturePlayerControlsComponent {
 
   protected readonly currentPlayerStatus = computed(() => this.playerState()?.playerStatus ?? null);
 
+  /** `currentPlayerStatus()` is 0/1/null; `@if...as` treats 0 as falsy, so the
+   * template needs a label that's never falsy while STOPPED (0). */
+  protected readonly currentPlayerStatusLabel = computed(() => {
+    const status = this.currentPlayerStatus();
+    if (status === null) return null;
+    return status === 1 ? 'PLAYING' : 'STOPPED';
+  });
+
   protected readonly playbackTimeLabel = computed(() => {
     const state = this.playerState();
-    if (state?.playerStatus !== 'PLAYING' || state?.elapsedMs === undefined) return null;
+    if (state?.playerStatus !== 1 || state?.elapsedMs === undefined) return null;
     const elapsed = formatPlaybackMs(state.elapsedMs);
     const duration = state.durationMs ? formatPlaybackMs(state.durationMs) : null;
     return duration ? `${elapsed} / ${duration}` : elapsed;
@@ -305,7 +313,7 @@ export class FixturePlayerControlsComponent {
 
   /** Emits a play command without touching auto-play state. Used by the auto-play system. */
   private emitPlayTrack(track: number): void {
-    this._autoPlayPrevStatus = 'PLAYING';
+    this._autoPlayPrevStatus = 1;
     this.commandRequested.emit({ command: `cmd;playSound;track=${track};` });
     this.scheduleAutoPlayFallbackIfNeeded();
   }
@@ -550,7 +558,7 @@ export class FixturePlayerControlsComponent {
       this._autoPlayFallbackTimer = null;
       if (!this.autoPlay() || this.disabled() || this.planStatus() === 'RUNNING') return;
       // If the player isn't actively playing, the sound already ended — advance.
-      if (this.currentPlayerStatus() !== 'PLAYING') {
+      if (this.currentPlayerStatus() !== 1) {
         this._autoPlayPrevStatus = null; // reset so next cycle starts clean
         this.nextTrack();
       }

@@ -6,7 +6,7 @@
         @if (playerType(); as pt) {
           <span class="fixture-player-controls__player-type">{{ pt }}</span>
         }
-        @if (currentPlayerStatus(); as status) {
+        @if (currentPlayerStatusLabel(); as status) {
           <span
             class="fixture-player-controls__player-status"
             [class.fixture-player-controls__player-status--playing]="status === 'PLAYING'"

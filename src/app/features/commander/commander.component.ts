@@ -585,10 +585,6 @@ export class CommanderComponent implements OnInit {
   protected readonly liveTimingMovingAverageEnabled = signal(
     localStorage.getItem('cmdr.liveTiming.movingAvg') === '1',
   );
-  /** When true, the FE auto-sends cmd;time;setTime=… to each fixture on first discovery. */
-  protected readonly autoTimeSyncEnabled = signal(
-    localStorage.getItem('cmdr.autoTimeSync') !== '0',
-  );
   private readonly liveTimingSamplesByFixture = signal<Map<string, LiveUpdateTimingSample[]>>(new Map());
   private readonly liveOverBudgetWindowByFixture = signal<Map<string, boolean[]>>(new Map());
   private readonly liveAutoStabilizedByFixture = signal<Map<string, AutoStabilizeStatus>>(new Map());
@@ -596,8 +592,6 @@ export class CommanderComponent implements OnInit {
   private modalQuerySub: Subscription | null = null;
   /** Fixture names that have been auto-queried on first modal open this session. */
   private readonly autoQueriedFixtures = new Set<string>();
-  /** Fixture names that have been auto-time-synced this session (cleared on page reload). */
-  private readonly autoTimeSyncedFixtures = new Set<string>();
   protected readonly rawCommand = signal('');
   protected readonly rawCommandLoading = signal(false);
   protected readonly rawCommandResult = signal<RawCommandResponse | null>(null);
@@ -865,9 +859,6 @@ export class CommanderComponent implements OnInit {
         'cmdr.liveTiming.movingAvg',
         this.liveTimingMovingAverageEnabled() ? '1' : '0',
       ),
-    );
-    effect(() =>
-      localStorage.setItem('cmdr.autoTimeSync', this.autoTimeSyncEnabled() ? '1' : '0'),
     );
     effect(() =>
       localStorage.setItem('cmdr.fixtureModalPollIntervalMs', String(this.fixtureModalPollIntervalMs())),
@@ -2380,18 +2371,6 @@ export class CommanderComponent implements OnInit {
           },
         } as CommanderQueryResponse;
         this.ingestQueryResult(syntheticResult, 'discovery_query');
-        if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(fixtureName)) {
-          const ps = (fixture as Record<string, unknown>)?.['plan_state'] as Record<string, unknown> | null | undefined;
-          const st = ps?.['state'] as Record<string, unknown> | null | undefined;
-          const t = typeof st?.['_t'] === 'number' ? (st['_t'] as number) : null;
-          if (t === 0) {
-            this.autoTimeSyncedFixtures.add(fixtureName);
-            const epochSeconds = Math.floor(Date.now() / 1000);
-            this.commanderApi
-              .runFixtureCommand(fixtureName, `tcmd;${fixtureName};cmd;time;setTime=${epochSeconds};`)
-              .subscribe({ error: () => {} });
-          }
-        }
         return;
       }
       if (eventType === 'discovery_completed') {
@@ -4055,11 +4034,6 @@ export class CommanderComponent implements OnInit {
       'Stop rejected',
       this.BULK_CMD_INTER_DELAY_MS,
     );
-  }
-
-  protected onFixtureTimeAutoChange(value: boolean): void {
-    this.autoTimeSyncEnabled.set(value);
-    if (value) this.syncFixtureTime();
   }
 
   protected syncFixtureTime(): void {
@@ -6121,20 +6095,6 @@ export class CommanderComponent implements OnInit {
       next: (result) => {
         this.ingestQueryResult(result, 'fixture_query', name);
         this._passiveQueryInFlight.delete(name);
-        if (this.autoTimeSyncEnabled() && !this.autoTimeSyncedFixtures.has(name)) {
-          const fixtures = (result?.summary as Record<string, unknown> | null | undefined)?.['fixtures'] as unknown[] | undefined;
-          const fix = Array.isArray(fixtures) ? (fixtures[0] as Record<string, unknown> | null) : null;
-          const ps = fix?.['plan_state'] as Record<string, unknown> | null | undefined;
-          const st = ps?.['state'] as Record<string, unknown> | null | undefined;
-          const t = typeof st?.['_t'] === 'number' ? (st['_t'] as number) : null;
-          if (t === 0) {
-            this.autoTimeSyncedFixtures.add(name);
-            const epochSeconds = Math.floor(Date.now() / 1000);
-            this.commanderApi
-              .runFixtureCommand(name, `tcmd;${name};cmd;time;setTime=${epochSeconds};`)
-              .subscribe({ error: () => {} });
-          }
-        }
       },
       error: () => {
         this._passiveQueryInFlight.delete(name);

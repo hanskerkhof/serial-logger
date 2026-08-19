@@ -1,8 +1,8 @@
 {
   "name": "BAUKLANK Studio",
   "short_name": "BAUKLANK",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/studio/",
+  "scope": "/studio/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#0d0d0d",

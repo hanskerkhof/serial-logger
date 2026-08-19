@@ -10,8 +10,11 @@ const appRoot = process.cwd();
 syncVersionMetadata(appRoot);
 
 // --- 2. Build ---
-console.log('🔨 Building...');
-execSync('npx ng build', { cwd: appRoot, stdio: 'inherit' });
+// Served by nginx at /studio/ (alongside bauklank-apps at site root and
+// esp-audio-fx at /audio-fx/, see deploy/raspberrypi/nginx/cmdr-studio.conf),
+// so the build needs a matching --base-href.
+console.log('🔨 Building (base-href /studio/)...');
+execSync('npx ng build --base-href /studio/', { cwd: appRoot, stdio: 'inherit' });
 
 // --- 3. Copy dist to bauklank-micros ---
 const inRepoMarker = path.resolve(appRoot, '..', '..', 'CMDR_hello_api.py');

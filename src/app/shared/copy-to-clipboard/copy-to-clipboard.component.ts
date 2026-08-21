@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnDestroy, signal } from '@angular/core';
 
 @Component({
   selector: 'app-copy-to-clipboard',
@@ -9,13 +9,13 @@ import { ChangeDetectionStrategy, Component, OnDestroy, input, signal } from '@a
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CopyToClipboardComponent implements OnDestroy {
-  readonly value = input.required<string>();
+  @Input({ required: true }) value = '';
 
   protected readonly copied = signal(false);
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected onCopy(): void {
-    const text = this.value();
+    const text = this.value;
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
       this.copied.set(true);

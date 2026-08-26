@@ -1,6 +1,6 @@
 {
   "name": "serial-logger",
-  "version": "2.8.55",
+  "version": "2.8.58",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

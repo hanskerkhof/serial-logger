@@ -615,7 +615,13 @@
                               [text]="true"
                               size="small"
                               severity="secondary"
-                              [disabled]="commanderUnavailable() || updateFixturesLoading() || !!fixture.stale"
+                              [disabled]="
+                                commanderUnavailable() ||
+                                updateFixturesLoading() ||
+                                !!fixture.stale ||
+                                fixture.raw['ota_binary_available'] !== true
+                              "
+                              [title]="fixture.raw['ota_binary_available'] !== true ? 'No matching binary available for this fixture' : ''"
                               (click)="popoverUpdateFixture(fixture.fixture_name, 'binary'); fixtureRowMenu.hide()"><i class="pi pi-box"></i> Update from bin</button>
                           </div>
                           <div class="fixture-row-menu__rssi">
@@ -660,11 +666,19 @@
                         ><i class="pi" [class.pi-clock]="label !== 'OTA'" [class.pi-upload]="label === 'OTA'"></i>{{ label }}</span>
                       }
                       @if (fixtureFwStatusMap().get(fixture.fixture_name); as fws) {
-                        <span
-                          class="commander__fixture-fw"
-                          [class.commander__fixture-fw--outdated]="fws.outdated"
-                          [title]="fws.outdated && fws.release ? 'latest: v' + fws.release : ''"
-                        >v{{ fws.fw }}</span>
+                        <span class="commander__fixture-fw-group">
+                          @if (fws.outdated && fws.binaryAvailable) {
+                            <i
+                              class="pi pi-box commander__fixture-fw-binary"
+                              title="Matching binary available to flash"
+                            ></i>
+                          }
+                          <span
+                            class="commander__fixture-fw"
+                            [class.commander__fixture-fw--outdated]="fws.outdated"
+                            [title]="fws.outdated && fws.release ? 'latest: v' + fws.release : ''"
+                          >v{{ fws.fw }}</span>
+                        </span>
                       } @else {
                         <span class="commander__fixture-fw commander__fixture-fw--placeholder"></span>
                       }

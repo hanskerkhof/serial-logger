@@ -836,11 +836,18 @@
   }
 }
 
+.commander__fixture-fw-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .commander__fixture-fw {
   font-size: 0.7rem;
   color: var(--p-text-muted-color, #6b7280);
   flex-shrink: 0;
-  margin-left: auto;
 
   &--outdated {
     color: #f97316;
@@ -849,7 +856,15 @@
 
   &--placeholder {
     min-width: 4rem;
+    margin-left: auto;
   }
+}
+
+.commander__fixture-fw-binary {
+  font-size: 0.65rem;
+  color: #f97316;
+  flex-shrink: 0;
+  cursor: default;
 }
 
 .commander__fixture-seen {

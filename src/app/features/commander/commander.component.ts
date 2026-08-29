@@ -1364,7 +1364,7 @@ export class CommanderComponent implements OnInit {
     const release = h?.api?.release_version ?? null;
     const commanderFw = h?.commander?.fw_version ?? null;
     const commanderFixture = h?.commander?.detected_fixture_name ?? null;
-    const map = new Map<string, { fw: string; outdated: boolean; release: string | null }>();
+    const map = new Map<string, { fw: string; outdated: boolean; release: string | null; binaryAvailable: boolean }>();
     for (const group of this.groupedFixtures()) {
       for (const fixture of group.fixtures) {
         const raw = fixture.raw['fw_version'];
@@ -1377,7 +1377,8 @@ export class CommanderComponent implements OnInit {
               : null;
         if (v !== null) {
           const outdated = release !== null && compareVersions(v, release) < 0;
-          map.set(fixture.fixture_name, { fw: v, outdated, release });
+          const binaryAvailable = fixture.raw['ota_binary_available'] === true;
+          map.set(fixture.fixture_name, { fw: v, outdated, release, binaryAvailable });
         }
       }
     }

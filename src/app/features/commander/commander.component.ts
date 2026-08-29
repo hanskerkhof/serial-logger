@@ -27,7 +27,7 @@ import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService, MenuItem } from 'primeng/api';
+import { MessageService, MenuItem, ToastMessageOptions } from 'primeng/api';
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { TabsModule } from 'primeng/tabs';
 import { DrawerModule } from 'primeng/drawer';
@@ -665,6 +665,12 @@ export class CommanderComponent implements OnInit {
   private _discoveryWsStartedAtMs: number | null = null;
   private _skipNextProgressHold = false;
   private _discoveryInProgressToastLastAtMs = 0;
+  // PrimeNG v22's toast stack always brings the most-recently-added message to the
+  // front (newest-on-top), replacing v21's simple insertion-order rendering. This app
+  // relies on a sticky status toast (progress/error) staying on top while transient
+  // toasts fire alongside it, so `wrapMessageServiceForStickyOrdering()` re-asserts the
+  // active sticky message to the front after every non-sticky add.
+  private _activeStickyMessage: ToastMessageOptions | null = null;
 
   // TODO: auto-discovery on empty store disabled — passive heartbeat discovery replaces it.
   // private _autoDiscoveryTriggered = false;
@@ -844,7 +850,49 @@ export class CommanderComponent implements OnInit {
     return `${seconds}s`;
   }
 
+  /**
+   * PrimeNG v22's <p-toast> always renders the most-recently-added message at the
+   * front of the stack (newest-on-top) instead of v21's simple insertion order. This
+   * app relies on a sticky status toast (progress/error) staying pinned on top while
+   * transient toasts (e.g. "OTA mode") fire alongside it, so wrap the injected
+   * MessageService instance to re-add the active sticky message right after any
+   * non-sticky one — that makes the sticky message the newest again, restoring it to
+   * the front. Scoped to this component's own MessageService instance only (this
+   * component provides its own via `providers: [MessageService]`).
+   */
+  private wrapMessageServiceForStickyOrdering(): void {
+    const rawAdd = this.messageService.add.bind(this.messageService);
+    const rawClear = this.messageService.clear.bind(this.messageService);
+
+    this.messageService.add = (message: ToastMessageOptions) => {
+      if (message?.key !== 'app') {
+        rawAdd(message);
+        return;
+      }
+      if (message.sticky) {
+        this._activeStickyMessage = message;
+        rawAdd(message);
+        return;
+      }
+      if (this._activeStickyMessage) {
+        rawClear('app');
+        rawAdd(message);
+        rawAdd(this._activeStickyMessage);
+      } else {
+        rawAdd(message);
+      }
+    };
+
+    this.messageService.clear = (key?: string) => {
+      if (!key || key === 'app') {
+        this._activeStickyMessage = null;
+      }
+      rawClear(key);
+    };
+  }
+
   constructor() {
+    this.wrapMessageServiceForStickyOrdering();
     effect(() => localStorage.setItem('cmdr.selectedFixture', this.fixtureName()));
     effect(() => localStorage.setItem('cmdr.selectedPlan', this.planName()));
     effect(() => localStorage.setItem('cmdr.selectedPlanGroup', this.planGroupName()));

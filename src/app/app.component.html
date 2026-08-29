@@ -66,12 +66,10 @@
                         [text]="true"
                         size="small"
                         severity="secondary"
-                        [label]="apiRestarting() ? 'restarting API…' : '<restart API>'"
                         [loading]="apiRestarting()"
                         [disabled]="apiRestarting()"
                         (click)="restartApiFromHealthPopover($event)"
-                        class="health-pop__restart"
-                      ></button>
+                        class="health-pop__restart">{{ apiRestarting() ? 'restarting API…' : '&lt;restart API&gt;' }}</button>
                     </dd>
                   }
                   @if (s.fixtureName) {
@@ -91,7 +89,6 @@
                   pButton
                   type="button"
                   class="health-pop__refresh"
-                  icon="pi pi-refresh"
                   [text]="true"
                   [rounded]="true"
                   severity="secondary"
@@ -100,8 +97,7 @@
                   aria-label="Refresh health"
                   (click)="reloadHealth()"
                   [loading]="healthService.healthRefreshing()"
-                  [disabled]="healthService.healthRefreshing()"
-                ></button>
+                  [disabled]="healthService.healthRefreshing()"><i class="pi pi-refresh"></i></button>
                 @if (secondsSinceHealthCheck() !== null) {
                   <span class="health-pop__age">{{ secondsSinceHealthCheck() }}s ago</span>
                 }

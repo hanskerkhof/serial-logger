@@ -1,7 +1,7 @@
 @if (!config()) {
   <p class="fixture-config__no-data">No config data — run a query to load config.</p>
 } @else {
-  @if (config()?.plan !== null && config()?.plan !== undefined) {
+  @if ($safeNavigationMigration(config()?.plan) !== null && $safeNavigationMigration(config()?.plan) !== undefined) {
     <section class="fixture-config__section">
       <h4 class="fixture-config__section-title">Plan</h4>
 
@@ -15,12 +15,10 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled()"
-          (click)="savePlanAutoStart()"
-        ></button>
+          (click)="savePlanAutoStart()">Save</button>
       </div>
 
       <div class="fixture-config__row">
@@ -33,17 +31,15 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled()"
-          (click)="savePlanRepeatPlan()"
-        ></button>
+          (click)="savePlanRepeatPlan()">Save</button>
       </div>
     </section>
   }
 
-  @if (config()?.player !== null && config()?.player !== undefined) {
+  @if ($safeNavigationMigration(config()?.player) !== null && $safeNavigationMigration(config()?.player) !== undefined) {
     <section class="fixture-config__section">
       <h4 class="fixture-config__section-title">Player</h4>
 
@@ -62,12 +58,10 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled() || volume() === null"
-          (click)="saveVolume()"
-        ></button>
+          (click)="saveVolume()">Save</button>
       </div>
 
       <div class="fixture-config__row">
@@ -85,12 +79,10 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled() || defaultVolume() === null"
-          (click)="saveDefaultVolume()"
-        ></button>
+          (click)="saveDefaultVolume()">Save</button>
       </div>
 
       <div class="fixture-config__row">
@@ -108,12 +100,10 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled() || minVolume() === null"
-          (click)="saveMinVolume()"
-        ></button>
+          (click)="saveMinVolume()">Save</button>
       </div>
 
       <div class="fixture-config__row">
@@ -131,12 +121,10 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled() || maxVolume() === null"
-          (click)="saveMaxVolume()"
-        ></button>
+          (click)="saveMaxVolume()">Save</button>
       </div>
 
       <div class="fixture-config__row">
@@ -154,12 +142,10 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled()"
-          (click)="saveEq()"
-        ></button>
+          (click)="saveEq()">Save</button>
       </div>
 
       <div class="fixture-config__row">
@@ -177,17 +163,15 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled() || sysVolume() === null"
-          (click)="saveSysVolume()"
-        ></button>
+          (click)="saveSysVolume()">Save</button>
       </div>
     </section>
   }
 
-  @if (config()?.aux !== null && config()?.aux !== undefined) {
+  @if ($safeNavigationMigration(config()?.aux) !== null && $safeNavigationMigration(config()?.aux) !== undefined) {
     <section class="fixture-config__section">
       <h4 class="fixture-config__section-title">Aux</h4>
 
@@ -201,29 +185,27 @@
         <button
           pButton
           type="button"
-          label="Save"
           size="small"
           class="fixture-config__save-btn"
           [disabled]="controlsDisabled()"
-          (click)="saveAutoOff()"
-        ></button>
+          (click)="saveAutoOff()">Save</button>
       </div>
 
-      @if (config()?.aux?.freq_mhz !== null && config()?.aux?.freq_mhz !== undefined) {
+      @if ($safeNavigationMigration(config()?.aux?.freq_mhz) !== null && $safeNavigationMigration(config()?.aux?.freq_mhz) !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
           <span class="fixture-config__label">{{ labelFor('aux.freq_mhz', 'FM frequency') }}</span>
           <span class="fixture-config__value">{{ config()?.aux?.freq_mhz }} MHz</span>
         </div>
       }
 
-      @if (config()?.aux?.fm_tx_power_pct !== null && config()?.aux?.fm_tx_power_pct !== undefined) {
+      @if ($safeNavigationMigration(config()?.aux?.fm_tx_power_pct) !== null && $safeNavigationMigration(config()?.aux?.fm_tx_power_pct) !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
           <span class="fixture-config__label">{{ labelFor('aux.fm_tx_power_pct', 'FM TX power') }}</span>
           <span class="fixture-config__value">{{ config()?.aux?.fm_tx_power_pct }}%</span>
         </div>
       }
 
-      @if (config()?.aux?.one !== null && config()?.aux?.one !== undefined) {
+      @if ($safeNavigationMigration(config()?.aux?.one) !== null && $safeNavigationMigration(config()?.aux?.one) !== undefined) {
         <div class="fixture-config__row">
           <label class="fixture-config__label">{{ labelFor('aux.one', 'aux.one') }}</label>
           <input
@@ -239,16 +221,14 @@
           <button
             pButton
             type="button"
-            label="Save"
             size="small"
             class="fixture-config__save-btn"
             [disabled]="controlsDisabled() || auxOne() === null"
-            (click)="saveAuxOne()"
-          ></button>
+            (click)="saveAuxOne()">Save</button>
         </div>
       }
 
-      @if (config()?.aux?.two !== null && config()?.aux?.two !== undefined) {
+      @if ($safeNavigationMigration(config()?.aux?.two) !== null && $safeNavigationMigration(config()?.aux?.two) !== undefined) {
         <div class="fixture-config__row">
           <label class="fixture-config__label">{{ labelFor('aux.two', 'aux.two') }}</label>
           <input
@@ -264,12 +244,10 @@
           <button
             pButton
             type="button"
-            label="Save"
             size="small"
             class="fixture-config__save-btn"
             [disabled]="controlsDisabled() || auxTwo() === null"
-            (click)="saveAuxTwo()"
-          ></button>
+            (click)="saveAuxTwo()">Save</button>
         </div>
       }
 
@@ -289,12 +267,10 @@
           <button
             pButton
             type="button"
-            label="Save"
             size="small"
             class="fixture-config__save-btn"
             [disabled]="controlsDisabled() || auxIntValue(index) === null"
-            (click)="saveAuxInt(index)"
-          ></button>
+            (click)="saveAuxInt(index)">Save</button>
         </div>
       }
 
@@ -313,12 +289,10 @@
           <button
             pButton
             type="button"
-            label="Save"
             size="small"
             class="fixture-config__save-btn"
             [disabled]="controlsDisabled()"
-            (click)="saveAuxChar(index)"
-          ></button>
+            (click)="saveAuxChar(index)">Save</button>
         </div>
       }
     </section>
@@ -363,31 +337,29 @@
       <button
         pButton
         type="button"
-        label="Save"
         size="small"
         class="fixture-config__save-btn"
         [disabled]="controlsDisabled() || !newSsid().trim()"
-        (click)="saveWifi()"
-      ></button>
+        (click)="saveWifi()">Save</button>
     </div>
   </section>
 
   @if (config()?.dmx) {
     <section class="fixture-config__section">
       <h4 class="fixture-config__section-title">DMX</h4>
-      @if (config()?.dmx?.universe !== null && config()?.dmx?.universe !== undefined) {
+      @if ($safeNavigationMigration(config()?.dmx?.universe) !== null && $safeNavigationMigration(config()?.dmx?.universe) !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
           <span class="fixture-config__label">{{ labelFor('dmx.universe', 'Universe') }}</span>
           <span class="fixture-config__value">{{ config()?.dmx?.universe }}</span>
         </div>
       }
-      @if (config()?.dmx?.address !== null && config()?.dmx?.address !== undefined) {
+      @if ($safeNavigationMigration(config()?.dmx?.address) !== null && $safeNavigationMigration(config()?.dmx?.address) !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
           <span class="fixture-config__label">{{ labelFor('dmx.address', 'Address') }}</span>
           <span class="fixture-config__value">{{ config()?.dmx?.address }}</span>
         </div>
       }
-      @if (config()?.dmx?.fixture_mode !== null && config()?.dmx?.fixture_mode !== undefined) {
+      @if ($safeNavigationMigration(config()?.dmx?.fixture_mode) !== null && $safeNavigationMigration(config()?.dmx?.fixture_mode) !== undefined) {
         <div class="fixture-config__row fixture-config__row--readonly">
           <span class="fixture-config__label">{{ labelFor('dmx.fixture_mode', 'Fixture mode') }}</span>
           <span class="fixture-config__value">{{ config()?.dmx?.fixture_mode }}</span>
@@ -398,37 +370,37 @@
 
   <section class="fixture-config__section">
     <h4 class="fixture-config__section-title">Info</h4>
-    @if (config()?.fixture_mode !== null && config()?.fixture_mode !== undefined) {
+    @if ($safeNavigationMigration(config()?.fixture_mode) !== null && $safeNavigationMigration(config()?.fixture_mode) !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">{{ labelFor('info.fixture_mode', 'Fixture mode') }}</span>
         <span class="fixture-config__value">{{ config()?.fixture_mode }}</span>
       </div>
     }
-    @if (config()?.ota_flag !== null && config()?.ota_flag !== undefined) {
+    @if ($safeNavigationMigration(config()?.ota_flag) !== null && $safeNavigationMigration(config()?.ota_flag) !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">{{ labelFor('info.ota_flag', 'OTA flag') }}</span>
         <span class="fixture-config__value">{{ config()?.ota_flag }}</span>
       </div>
     }
-    @if (config()?.blob_version !== null && config()?.blob_version !== undefined) {
+    @if ($safeNavigationMigration(config()?.blob_version) !== null && $safeNavigationMigration(config()?.blob_version) !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">{{ labelFor('info.blob_version', 'Blob version') }}</span>
         <span class="fixture-config__value">{{ config()?.blob_version }}</span>
       </div>
     }
-    @if (config()?.save_count !== null && config()?.save_count !== undefined) {
+    @if ($safeNavigationMigration(config()?.save_count) !== null && $safeNavigationMigration(config()?.save_count) !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">{{ labelFor('info.save_count', 'Config saves') }}</span>
         <span class="fixture-config__value">{{ config()?.save_count }}</span>
       </div>
     }
-    @if (config()?.is_default !== null && config()?.is_default !== undefined) {
+    @if ($safeNavigationMigration(config()?.is_default) !== null && $safeNavigationMigration(config()?.is_default) !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">{{ labelFor('info.is_default', 'Is default') }}</span>
         <span class="fixture-config__value">{{ config()?.is_default ? 'yes' : 'no' }}</span>
       </div>
     }
-    @if (config()?.magic !== null && config()?.magic !== undefined) {
+    @if ($safeNavigationMigration(config()?.magic) !== null && $safeNavigationMigration(config()?.magic) !== undefined) {
       <div class="fixture-config__row fixture-config__row--readonly">
         <span class="fixture-config__label">{{ labelFor('info.magic', 'Magic') }}</span>
         <span class="fixture-config__value">{{ config()?.magic }}</span>

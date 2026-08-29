@@ -1,5 +1,5 @@
-<p-toast key="app" position="top-center" styleClass="commander-toast">
-  <ng-template pTemplate="message" let-message>
+<p-toast key="app" position="top-center" mode="expanded" styleClass="commander-toast">
+  <ng-template #message let-message>
     @if (message.data?.mode === 'offline') {
       <div class="cmdr-offline-toast">
         <strong class="cmdr-offline-toast__summary">
@@ -197,25 +197,22 @@
   styleClass="commander__cache-dialog"
   (visibleChange)="onCommanderCacheDialogVisibleChange(!!$event)"
 >
-  <ng-template pTemplate="header">
+  <ng-template #header>
     <div class="commander__cache-header">
       <span class="commander__cache-header-title">Commander Fixture Cache</span>
       <div class="commander__cache-header-actions">
         <button
           pButton
           type="button"
-          label="clear list"
           severity="secondary"
           size="small"
           [text]="true"
           [disabled]="commanderCacheLoading()"
           (click)="clearList()"
-          aria-label="Clear fixture list and caches"
-        ></button>
+          aria-label="Clear fixture list and caches">clear list</button>
         <button
           pButton
           type="button"
-          icon="pi pi-refresh"
           severity="secondary"
           [text]="true"
           [rounded]="true"
@@ -223,8 +220,7 @@
           pTooltip="Refresh now"
           tooltipPosition="bottom"
           (click)="refreshCommanderCacheNow()"
-          aria-label="Refresh commander cache"
-        ></button>
+          aria-label="Refresh commander cache"><i class="pi pi-refresh"></i></button>
         <label class="commander__cache-polling-toggle">
           <span>Auto refresh</span>
           <p-toggleswitch
@@ -255,29 +251,29 @@
           [sortField]="'fixture_name'"
           [sortOrder]="1"
         >
-          <ng-template pTemplate="header">
+          <ng-template #header>
             <tr>
               <th pSortableColumn="fixture_name">
                 Name
-                <p-sortIcon field="fixture_name"></p-sortIcon>
+                <p-sort-icon field="fixture_name"></p-sort-icon>
               </th>
               <th>MAC</th>
               <th pSortableColumn="universe">
                 U/Ch
-                <p-sortIcon field="universe"></p-sortIcon>
+                <p-sort-icon field="universe"></p-sort-icon>
               </th>
               <th>Source</th>
               <th pSortableColumn="age_ms">
                 Age
-                <p-sortIcon field="age_ms"></p-sortIcon>
+                <p-sort-icon field="age_ms"></p-sort-icon>
               </th>
               <th pSortableColumn="online">
                 Status
-                <p-sortIcon field="online"></p-sortIcon>
+                <p-sort-icon field="online"></p-sort-icon>
               </th>
             </tr>
           </ng-template>
-          <ng-template pTemplate="body" let-entry>
+          <ng-template #body let-entry>
             <tr>
               <td>{{ entry.fixture_name }}</td>
               <td>{{ entry.wifi_mac_address }}</td>
@@ -335,7 +331,6 @@
         <button
           pButton
           type="button"
-          icon="pi pi-list-check"
           severity="secondary"
           size="small"
           [rounded]="true"
@@ -344,8 +339,7 @@
           tooltipPosition="bottom"
           (click)="updateReportDialogVisible.set(true)"
           [disabled]="!updateReportAvailable()"
-          aria-label="Open update report"
-        ></button>
+          aria-label="Open update report"><i class="pi pi-list-check"></i></button>
       </div>
     </div>
     @if (storageWarning(); as warning) {
@@ -392,15 +386,13 @@
               <button
                 pButton
                 type="button"
-                icon="pi pi-ellipsis-v"
                 [text]="true"
                 [rounded]="true"
                 severity="secondary"
                 size="small"
                 title="Group actions"
                 aria-label="Group actions for {{ outerGroup.plan_group }}"
-                (click)="planGroupMenu.toggle($event)"
-              ></button>
+                (click)="planGroupMenu.toggle($event)"><i class="pi pi-ellipsis-v"></i></button>
               <p-popover #planGroupMenu appendTo="body">
                 <div class="fixture-row-menu">
                   <h4 class="commander__plan-group-title commander__plan-group-title--popover">
@@ -410,41 +402,26 @@
                   <div class="fixture-row-menu__actions">
                     <button
                       pButton type="button" [text]="true" size="small" severity="secondary"
-                      icon="pi pi-play"
-                      label="Trigger all ({{ allFixturesForGroup(outerGroup.plans).length }})"
                       [disabled]="commanderUnavailable()"
-                      (click)="popoverTriggerPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
-                    ></button>
+                      (click)="popoverTriggerPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"><i class="pi pi-play"></i> Trigger all ({{ allFixturesForGroup(outerGroup.plans).length }})</button>
                     <button
                       pButton type="button" [text]="true" size="small" severity="secondary"
-                      icon="pi pi-stop-circle"
-                      label="Stop all ({{ allFixturesForGroup(outerGroup.plans).length }})"
                       [disabled]="commanderUnavailable()"
-                      (click)="popoverStopPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
-                    ></button>
+                      (click)="popoverStopPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"><i class="pi pi-stop-circle"></i> Stop all ({{ allFixturesForGroup(outerGroup.plans).length }})</button>
                     @if (compileSupported()) {
                       <button
                         pButton type="button" [text]="true" size="small" severity="secondary"
-                        icon="pi pi-cloud-upload"
-                        label="Compile &amp; Update ({{ allFixturesForGroup(outerGroup.plans).length }})"
                         [disabled]="commanderUnavailable() || updateFixturesLoading()"
-                        (click)="popoverCompileUpdatePlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
-                      ></button>
+                        (click)="popoverCompileUpdatePlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"><i class="pi pi-cloud-upload"></i> Compile &amp; Update ({{ allFixturesForGroup(outerGroup.plans).length }})</button>
                     }
                     <button
                       pButton type="button" [text]="true" size="small" severity="secondary"
-                      icon="pi pi-box"
-                      label="Update from bin ({{ allFixturesForGroup(outerGroup.plans).length }})"
                       [disabled]="commanderUnavailable() || updateFixturesLoading()"
-                      (click)="popoverUpdateFromBinPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
-                    ></button>
+                      (click)="popoverUpdateFromBinPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"><i class="pi pi-box"></i> Update from bin ({{ allFixturesForGroup(outerGroup.plans).length }})</button>
                     <button
                       pButton type="button" [text]="true" size="small" severity="secondary"
-                      icon="pi pi-power-off"
-                      label="Reboot all ({{ allFixturesForGroup(outerGroup.plans).length }})"
                       [disabled]="commanderUnavailable()"
-                      (click)="popoverRebootPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"
-                    ></button>
+                      (click)="popoverRebootPlan(allFixturesForGroup(outerGroup.plans)); planGroupMenu.hide()"><i class="pi pi-power-off"></i> Reboot all ({{ allFixturesForGroup(outerGroup.plans).length }})</button>
                   </div>
                 </div>
               </p-popover>
@@ -453,7 +430,6 @@
                 pButton
                 type="button"
                 class="commander__reload-btn"
-                icon="pi pi-refresh"
                 [text]="true"
                 [rounded]="true"
                 severity="secondary"
@@ -462,8 +438,7 @@
                 [disabled]="commanderUnavailable() || backendBusy()"
                 title="Re-query plan group {{ outerGroup.plan_group }}"
                 aria-label="Reload plan group {{ outerGroup.plan_group }}"
-                (click)="sidebarRefreshPlanGroup(outerGroup.plan_group, $event)"
-              ></button>
+                (click)="sidebarRefreshPlanGroup(outerGroup.plan_group, $event)"><i class="pi pi-refresh"></i></button>
             </header>
 
             @for (plan of outerGroup.plans; track plan.plan_name) {
@@ -474,15 +449,13 @@
                   <button
                     pButton
                     type="button"
-                    icon="pi pi-ellipsis-v"
                     [text]="true"
                     [rounded]="true"
                     severity="secondary"
                     size="small"
                     title="Plan actions"
                     aria-label="Plan actions for {{ plan.plan_name }}"
-                    (click)="planMenu.toggle($event)"
-                  ></button>
+                    (click)="planMenu.toggle($event)"><i class="pi pi-ellipsis-v"></i></button>
                   <p-popover #planMenu appendTo="body">
                     <div class="fixture-row-menu">
                       <h4 class="commander__group-title commander__group-title--popover">
@@ -496,22 +469,16 @@
                           [text]="true"
                           size="small"
                           severity="secondary"
-                          icon="pi pi-play"
-                          label="Trigger all plans ({{ plan.fixtures.length }})"
                           [disabled]="commanderUnavailable()"
-                          (click)="popoverTriggerPlan(plan.fixtures); planMenu.hide()"
-                        ></button>
+                          (click)="popoverTriggerPlan(plan.fixtures); planMenu.hide()"><i class="pi pi-play"></i> Trigger all plans ({{ plan.fixtures.length }})</button>
                         <button
                           pButton
                           type="button"
                           [text]="true"
                           size="small"
                           severity="secondary"
-                          icon="pi pi-stop-circle"
-                          label="Stop all plans ({{ plan.fixtures.length }})"
                           [disabled]="commanderUnavailable()"
-                          (click)="popoverStopPlan(plan.fixtures); planMenu.hide()"
-                        ></button>
+                          (click)="popoverStopPlan(plan.fixtures); planMenu.hide()"><i class="pi pi-stop-circle"></i> Stop all plans ({{ plan.fixtures.length }})</button>
                         @if (compileSupported()) {
                           <button
                             pButton
@@ -519,11 +486,8 @@
                             [text]="true"
                             size="small"
                             severity="secondary"
-                            icon="pi pi-cloud-upload"
-                            label="Compile &amp; Update ({{ plan.fixtures.length }})"
                             [disabled]="commanderUnavailable() || updateFixturesLoading()"
-                            (click)="popoverCompileUpdatePlan(plan.fixtures); planMenu.hide()"
-                          ></button>
+                            (click)="popoverCompileUpdatePlan(plan.fixtures); planMenu.hide()"><i class="pi pi-cloud-upload"></i> Compile &amp; Update ({{ plan.fixtures.length }})</button>
                         }
                         <button
                           pButton
@@ -531,22 +495,16 @@
                           [text]="true"
                           size="small"
                           severity="secondary"
-                          icon="pi pi-box"
-                          label="Update from bin ({{ plan.fixtures.length }})"
                           [disabled]="commanderUnavailable() || updateFixturesLoading()"
-                          (click)="popoverUpdateFromBinPlan(plan.fixtures); planMenu.hide()"
-                        ></button>
+                          (click)="popoverUpdateFromBinPlan(plan.fixtures); planMenu.hide()"><i class="pi pi-box"></i> Update from bin ({{ plan.fixtures.length }})</button>
                         <button
                           pButton
                           type="button"
                           [text]="true"
                           size="small"
                           severity="secondary"
-                          icon="pi pi-power-off"
-                          label="Reboot Fixtures ({{ plan.fixtures.length }})"
                           [disabled]="commanderUnavailable()"
-                          (click)="popoverRebootPlan(plan.fixtures); planMenu.hide()"
-                        ></button>
+                          (click)="popoverRebootPlan(plan.fixtures); planMenu.hide()"><i class="pi pi-power-off"></i> Reboot Fixtures ({{ plan.fixtures.length }})</button>
                       </div>
                     </div>
                   </p-popover>
@@ -556,20 +514,17 @@
                     type="button"
                     class="commander__pin-btn"
                     [class.commander__pin-btn--pinned]="pinnedPlans().has(plan.plan_name)"
-                    [icon]="pinnedPlans().has(plan.plan_name) ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'"
                     [text]="true"
                     [rounded]="true"
                     severity="secondary"
                     size="small"
                     [title]="pinnedPlans().has(plan.plan_name) ? 'Unpin plan' : 'Pin plan to top'"
                     [attr.aria-label]="(pinnedPlans().has(plan.plan_name) ? 'Unpin' : 'Pin') + ' plan ' + plan.plan_name"
-                    (click)="togglePinPlan(plan.plan_name, $event)"
-                  ></button>
+                    (click)="togglePinPlan(plan.plan_name, $event)"><i [class]="pinnedPlans().has(plan.plan_name) ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'"></i></button>
                   <button
                     pButton
                     type="button"
                     class="commander__reload-btn"
-                    icon="pi pi-refresh"
                     [text]="true"
                     [rounded]="true"
                     severity="secondary"
@@ -578,21 +533,18 @@
                     [disabled]="commanderUnavailable() || backendBusy()"
                     title="Re-query plan {{ plan.plan_name }}"
                     aria-label="Reload plan {{ plan.plan_name }}"
-                    (click)="sidebarRefreshPlan(plan.plan_name, $event)"
-                  ></button>
+                    (click)="sidebarRefreshPlan(plan.plan_name, $event)"><i class="pi pi-refresh"></i></button>
                   <button
                     pButton
                     type="button"
                     class="commander__trash-btn"
-                    icon="pi pi-trash"
                     [text]="true"
                     [rounded]="true"
                     severity="secondary"
                     size="small"
                     title="Remove this plan from local store"
                     aria-label="Remove plan {{ plan.plan_name }}"
-                    (click)="removePlan(plan.plan_name, $event)"
-                  ></button>
+                    (click)="removePlan(plan.plan_name, $event)"><i class="pi pi-trash"></i></button>
                 </header>
 
                 <ul class="commander__fixture-list">
@@ -613,14 +565,12 @@
                         pButton
                         type="button"
                         class="commander__fixture-menu-btn"
-                        icon="pi pi-ellipsis-v"
                         [text]="true"
                         [rounded]="true"
                         severity="secondary"
                         size="small"
                         [attr.aria-label]="'Quick actions for ' + fixture.fixture_name"
-                        (click)="toggleFixtureRowMenu(fixtureRowMenu, $event)"
-                      ></button>
+                        (click)="toggleFixtureRowMenu(fixtureRowMenu, $event)"><i class="pi pi-ellipsis-v"></i></button>
                       <p-popover #fixtureRowMenu appendTo="body">
                         <div class="fixture-row-menu">
                           <h4 class="commander__group-title commander__group-title--popover">{{ fixture.fixture_name }}</h4>
@@ -631,33 +581,24 @@
                               [text]="true"
                               size="small"
                               severity="secondary"
-                              icon="pi pi-play"
-                              label="Plan trigger"
                               [disabled]="commanderUnavailable() || !!fixture.stale || otaInProgress().has(fixture.fixture_name)"
-                              (click)="popoverPlanAction(fixture.fixture_name, 'trigger'); fixtureRowMenu.hide()"
-                            ></button>
+                              (click)="popoverPlanAction(fixture.fixture_name, 'trigger'); fixtureRowMenu.hide()"><i class="pi pi-play"></i> Plan trigger</button>
                             <button
                               pButton
                               type="button"
                               [text]="true"
                               size="small"
                               severity="secondary"
-                              icon="pi pi-stop-circle"
-                              label="Plan stop"
                               [disabled]="commanderUnavailable() || !!fixture.stale || otaInProgress().has(fixture.fixture_name)"
-                              (click)="popoverPlanAction(fixture.fixture_name, 'stop'); fixtureRowMenu.hide()"
-                            ></button>
+                              (click)="popoverPlanAction(fixture.fixture_name, 'stop'); fixtureRowMenu.hide()"><i class="pi pi-stop-circle"></i> Plan stop</button>
                             <button
                               pButton
                               type="button"
                               [text]="true"
                               size="small"
                               severity="secondary"
-                              icon="pi pi-power-off"
-                              label="Reboot fixture"
                               [disabled]="commanderUnavailable() || !!fixture.stale || otaInProgress().has(fixture.fixture_name)"
-                              (click)="popoverRebootFixture(fixture.fixture_name); fixtureRowMenu.hide()"
-                            ></button>
+                              (click)="popoverRebootFixture(fixture.fixture_name); fixtureRowMenu.hide()"><i class="pi pi-power-off"></i> Reboot fixture</button>
                             @if (compileSupported()) {
                               <button
                                 pButton
@@ -665,11 +606,8 @@
                                 [text]="true"
                                 size="small"
                                 severity="secondary"
-                                icon="pi pi-cloud-upload"
-                                label="Compile &amp; Update"
                                 [disabled]="commanderUnavailable() || updateFixturesLoading() || !!fixture.stale"
-                                (click)="popoverUpdateFixture(fixture.fixture_name, 'compile'); fixtureRowMenu.hide()"
-                              ></button>
+                                (click)="popoverUpdateFixture(fixture.fixture_name, 'compile'); fixtureRowMenu.hide()"><i class="pi pi-cloud-upload"></i> Compile &amp; Update</button>
                             }
                             <button
                               pButton
@@ -677,11 +615,8 @@
                               [text]="true"
                               size="small"
                               severity="secondary"
-                              icon="pi pi-box"
-                              label="Update from bin"
                               [disabled]="commanderUnavailable() || updateFixturesLoading() || !!fixture.stale"
-                              (click)="popoverUpdateFixture(fixture.fixture_name, 'binary'); fixtureRowMenu.hide()"
-                            ></button>
+                              (click)="popoverUpdateFixture(fixture.fixture_name, 'binary'); fixtureRowMenu.hide()"><i class="pi pi-box"></i> Update from bin</button>
                           </div>
                           <div class="fixture-row-menu__rssi">
                             <div class="fixture-row-menu__rssi-header">
@@ -709,11 +644,8 @@
                             [text]="true"
                             size="small"
                             severity="danger"
-                            icon="pi pi-trash"
-                            label="Remove"
                             title="Remove fixture from local store and CMDR cache"
-                            (click)="removeFixture(fixture, $event); fixtureRowMenu.hide()"
-                          ></button>
+                            (click)="removeFixture(fixture, $event); fixtureRowMenu.hide()"><i class="pi pi-trash"></i> Remove</button>
                         </div>
                       </p-popover>
                       @if (fixture.stale) {
@@ -740,7 +672,6 @@
                         pButton
                         type="button"
                         class="commander__reload-btn"
-                        icon="pi pi-refresh"
                         [text]="true"
                         [rounded]="true"
                         severity="secondary"
@@ -749,8 +680,7 @@
                         [disabled]="commanderUnavailable() || backendBusy()"
                         title="Re-query fixture {{ fixture.fixture_name }}"
                         aria-label="Reload fixture {{ fixture.fixture_name }}"
-                        (click)="sidebarRefreshFixture(fixture.fixture_name, $event)"
-                      ></button>
+                        (click)="sidebarRefreshFixture(fixture.fixture_name, $event)"><i class="pi pi-refresh"></i></button>
                     </li>
                   }
                 </ul>
@@ -817,12 +747,10 @@
                   [text]="true"
                   size="small"
                   severity="secondary"
-                  [label]="apiRestarting() ? 'restarting API…' : '<restart API>'"
                   [loading]="apiRestarting()"
                   [disabled]="apiRestarting()"
                   (click)="restartApiFromHealthPopover($event)"
-                  class="commander__health-restart-btn"
-                ></button>
+                  class="commander__health-restart-btn">{{ apiRestarting() ? 'restarting API…' : '&lt;restart API&gt;' }}</button>
               </div>
               @if (commanderVersionRefreshHint(); as refreshHint) {
                 <div class="commander__health-stale"><strong>note:</strong> {{ refreshHint }}</div>
@@ -846,7 +774,6 @@
             pButton
             type="button"
             class="commander__health-refresh-btn"
-            icon="pi pi-refresh"
             [text]="true"
             [rounded]="true"
             severity="secondary"
@@ -855,8 +782,7 @@
             aria-label="Refresh health"
             (click)="reloadHealth(); $event.stopPropagation()"
             [loading]="healthRefreshing()"
-            [disabled]="loading() || healthRefreshing()"
-          ></button>
+            [disabled]="loading() || healthRefreshing()"><i class="pi pi-refresh"></i></button>
         </div>
       </p-panel>
     } @else if (error(); as err) {
@@ -889,13 +815,10 @@
         <button
           pButton
           type="button"
-          label="Run"
-          icon="pi pi-play"
           iconPos="right"
           [loading]="fixtureQueryLoading()"
           (click)="runFixtureQuery()"
-          [disabled]="backendBusy() || commanderUnavailable() || lanGroupListLoading() || fixtureOptions().length === 0 || !fixtureName()"
-        ></button>
+          [disabled]="backendBusy() || commanderUnavailable() || lanGroupListLoading() || fixtureOptions().length === 0 || !fixtureName()"><i class="pi pi-play"></i> Run</button>
       </p-inputgroup>
 
       <p-inputgroup>
@@ -921,13 +844,10 @@
         <button
           pButton
           type="button"
-          label="Run"
-          icon="pi pi-play"
           iconPos="right"
           [loading]="planQueryLoading()"
           (click)="runPlanQuery()"
-          [disabled]="backendBusy() || commanderUnavailable() || planListLoading() || planOptions().length === 0 || !planName()"
-        ></button>
+          [disabled]="backendBusy() || commanderUnavailable() || planListLoading() || planOptions().length === 0 || !planName()"><i class="pi pi-play"></i> Run</button>
       </p-inputgroup>
 
       <p-inputgroup>
@@ -953,13 +873,10 @@
         <button
           pButton
           type="button"
-          label="Run"
-          icon="pi pi-play"
           iconPos="right"
           [loading]="planGroupQueryLoading()"
           (click)="runPlanGroupQuery()"
-          [disabled]="backendBusy() || commanderUnavailable() || lanGroupListLoading() || !planGroupName()"
-        ></button>
+          [disabled]="backendBusy() || commanderUnavailable() || lanGroupListLoading() || !planGroupName()"><i class="pi pi-play"></i> Run</button>
       </p-inputgroup>
 
     </section>
@@ -993,11 +910,9 @@
         <button
           pButton
           type="button"
-          icon="pi pi-send"
           [loading]="rawCommandLoading()"
           [disabled]="!rawCommand().trim()"
-          (click)="runRawCommand()"
-        ></button>
+          (click)="runRawCommand()"><i class="pi pi-send"></i></button>
       </p-inputgroup>
       @if (rawCommandError(); as err) {
         <p class="commander__raw-error">{{ err }}</p>
@@ -1080,7 +995,6 @@
           <button
             pButton
             type="button"
-            icon="pi pi-chevron-left"
             [text]="true"
             [rounded]="true"
             severity="secondary"
@@ -1090,8 +1004,7 @@
           [pTooltip]="previousFixtureName() ? 'Previous: ' + previousFixtureName() : 'Previous fixture'"
           tooltipPosition="bottom"
           [tooltipDisabled]="allFixturesOrdered().length <= 1"
-          aria-label="Previous fixture"
-        ></button>
+          aria-label="Previous fixture"><i class="pi pi-chevron-left"></i></button>
 
           <div class="commander__dialog-fixture-select">
             <p-select
@@ -1111,10 +1024,10 @@
               (onHide)="dialogFixtureFilter.set(null)"
               styleClass="commander__fixture-select-input"
             >
-              <ng-template pTemplate="item" let-opt>
+              <ng-template #item let-opt>
                 <span [class.commander__fixture-select-offline]="opt.stale">{{ opt.label }}</span>
               </ng-template>
-              <ng-template pTemplate="filtericon">
+              <ng-template #filtericon>
                 @if (dialogFixtureFilter()) {
                   <i
                     class="pi pi-times commander__fixture-filter-clear"
@@ -1131,7 +1044,6 @@
             <button
               pButton
               type="button"
-              icon="pi pi-chevron-right"
               [text]="true"
               [rounded]="true"
               severity="secondary"
@@ -1141,8 +1053,7 @@
               [pTooltip]="nextFixtureName() ? 'Next: ' + nextFixtureName() : 'Next fixture'"
               tooltipPosition="bottom"
               [tooltipDisabled]="allFixturesOrdered().length <= 1"
-              aria-label="Next fixture"
-            ></button>
+              aria-label="Next fixture"><i class="pi pi-chevron-right"></i></button>
             @if (selectedFixture()?.fixture_name) {
               <app-copy-to-clipboard [value]="selectedFixture()!.fixture_name" />
             }
@@ -1163,14 +1074,11 @@
                         [text]="true"
                         size="small"
                         severity="secondary"
-                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update'"
-                        icon="pi pi-download"
                         iconPos="left"
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
                         (click)="runDialogFixtureUpdateSingle()"
-                        class="commander__dialog-fw-update-btn"
-                      ></button>
+                        class="commander__dialog-fw-update-btn"><i class="pi pi-download"></i> {{ modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update' }}</button>
                     }
                     @if (selectedFixtureBinaryUpdateAvailable()) {
                       <button
@@ -1179,14 +1087,11 @@
                         [text]="true"
                         size="small"
                         severity="secondary"
-                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update from binary'"
-                        icon="pi pi-box"
                         iconPos="left"
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
                         (click)="runDialogFixtureUpdateFromBinarySingle()"
-                        class="commander__dialog-fw-update-btn"
-                      ></button>
+                        class="commander__dialog-fw-update-btn"><i class="pi pi-box"></i> {{ modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update from binary' }}</button>
                     }
                   }
                   @case ('fixture-ahead') {
@@ -1198,14 +1103,11 @@
                         [text]="true"
                         size="small"
                         severity="secondary"
-                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update'"
-                        icon="pi pi-download"
                         iconPos="left"
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
                         (click)="runDialogFixtureUpdateSingle()"
-                        class="commander__dialog-fw-update-btn"
-                      ></button>
+                        class="commander__dialog-fw-update-btn"><i class="pi pi-download"></i> {{ modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update' }}</button>
                     }
                     @if (selectedFixtureBinaryUpdateAvailable()) {
                       <button
@@ -1214,14 +1116,11 @@
                         [text]="true"
                         size="small"
                         severity="secondary"
-                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update from binary'"
-                        icon="pi pi-box"
                         iconPos="left"
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
                         (click)="runDialogFixtureUpdateFromBinarySingle()"
-                        class="commander__dialog-fw-update-btn"
-                      ></button>
+                        class="commander__dialog-fw-update-btn"><i class="pi pi-box"></i> {{ modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Update from binary' }}</button>
                     }
                   }
                   @default {
@@ -1233,14 +1132,11 @@
                         [text]="true"
                         size="small"
                         severity="secondary"
-                        [label]="modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Compile & update'"
-                        icon="pi pi-upload"
                         iconPos="left"
                         [loading]="modalQueryLoading() || selectedFixtureOtaInProgress()"
                         [disabled]="modalQueryLoading() || selectedFixtureOtaInProgress() || commanderUnavailable() || serialHoldActive()"
                         (click)="runDialogFixtureUpdateSingle()"
-                        class="commander__dialog-fw-update-btn"
-                      ></button>
+                        class="commander__dialog-fw-update-btn"><i class="pi pi-upload"></i> {{ modalQueryLoading() ? 'Checking…' : selectedFixtureOtaInProgress() ? 'Updating…' : 'Compile & update' }}</button>
                     }
                   }
                 }
@@ -1252,14 +1148,12 @@
             pButton
             type="button"
             class="commander__dialog-close-btn"
-            icon="pi pi-times"
             [text]="true"
             [rounded]="true"
             severity="secondary"
             size="small"
             (click)="closeFixtureModal()"
-            aria-label="Close"
-          ></button>
+            aria-label="Close"><i class="pi pi-times"></i></button>
         </div>
       </div>
       <div class="commander__dialog-header-actions">
@@ -1298,28 +1192,22 @@
         <button
           pButton
           type="button"
-          label="Refresh plan state"
-          icon="pi pi-refresh"
           iconPos="right"
           severity="secondary"
           size="small"
           [loading]="modalQueryLoading()"
           (click)="runModalFixtureUpdate()"
-          [disabled]="modalQueryLoading() || commanderUnavailable()"
-        ></button>
+          [disabled]="modalQueryLoading() || commanderUnavailable()"><i class="pi pi-refresh"></i> Refresh plan state</button>
         <button
           pButton
           type="button"
-          [label]="runQueryButtonLabel()"
-          icon="pi pi-play"
           iconPos="right"
           severity="secondary"
           size="small"
           [loading]="modalQueryLoading()"
           (click)="runModalFixtureQuery()"
           [disabled]="modalQueryLoading() || commanderUnavailable() || !!selectedFixture()?.stale"
-          class="commander__dialog-run-query-btn"
-        ></button>
+          class="commander__dialog-run-query-btn"><i class="pi pi-play"></i> {{ runQueryButtonLabel() }}</button>
         <app-fixture-time
           [planState]="selectedFixturePlanStateState()"
           [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
@@ -1329,36 +1217,29 @@
           <button
             pButton
             type="button"
-            icon="pi pi-power-off"
             [text]="true"
             [rounded]="true"
             severity="secondary"
             size="small"
             title="Reboot fixture"
             [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
-            (click)="rebootFixture()"
-          ></button>
+            (click)="rebootFixture()"><i class="pi pi-power-off"></i></button>
         } @else {
           <button
             pButton
             type="button"
-            label="Confirm reboot"
-            icon="pi pi-power-off"
             iconPos="right"
             severity="danger"
             size="small"
             [disabled]="fixtureActionLoading() || commanderUnavailable() || selectedFixtureIsInOtaMode()"
-            (click)="rebootFixture()"
-          ></button>
+            (click)="rebootFixture()"><i class="pi pi-power-off"></i> Confirm reboot</button>
           <button
             pButton
             type="button"
             [text]="true"
             size="small"
             severity="secondary"
-            label="Cancel"
-            (click)="rebootConfirmPending.set(false)"
-          ></button>
+            (click)="rebootConfirmPending.set(false)">Cancel</button>
         }
       </div>
       <div class="commander__dialog-live-timing-row">
@@ -1505,7 +1386,6 @@
                   <button
                     pButton
                     type="button"
-                    label="Subscribe"
                     severity="secondary"
                     size="small"
                     [text]="true"
@@ -1513,12 +1393,10 @@
                     pTooltip="Manually (re)start the passive plan-state stream"
                     tooltipPosition="bottom"
                     (click)="subscribePassivePlanState()"
-                    aria-label="Subscribe to passive plan state"
-                  ></button>
+                    aria-label="Subscribe to passive plan state">Subscribe</button>
                   <button
                     pButton
                     type="button"
-                    label="Stop"
                     severity="secondary"
                     size="small"
                     [text]="true"
@@ -1526,8 +1404,7 @@
                     pTooltip="Stop the passive plan-state stream"
                     tooltipPosition="bottom"
                     (click)="unsubscribePassivePlanState()"
-                    aria-label="Stop passive plan state subscription"
-                  ></button>
+                    aria-label="Stop passive plan state subscription">Stop</button>
                   <p-select
                     class="commander__passive-ps-interval-select"
                     [ngModel]="passivePsIntervalMs()"
@@ -1860,19 +1737,15 @@
       <button
         pButton
         type="button"
-        label="Send"
         size="small"
         (click)="runManualCommand()"
-        [disabled]="fixtureActionLoading() || commanderUnavailable() || !manualCommand().trim()"
-      ></button>
+        [disabled]="fixtureActionLoading() || commanderUnavailable() || !manualCommand().trim()">Send</button>
       <button
         pButton
         type="button"
-        label="Close"
         severity="secondary"
         size="small"
-        (click)="closeFixtureModal()"
-      ></button>
+        (click)="closeFixtureModal()">Close</button>
     </footer>
     </div>
   </ng-template>

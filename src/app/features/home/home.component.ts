@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../auth/auth.service';
@@ -8,6 +8,7 @@ import { AuthService } from '../../auth/auth.service';
   standalone: true,
   imports: [FormsModule],
   templateUrl: './home.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {

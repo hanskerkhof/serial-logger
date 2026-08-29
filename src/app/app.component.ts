@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -23,6 +23,7 @@ import { FixtureStoreService } from './fixture-store.service';
   standalone: true,
   imports: [RouterOutlet, TabsModule, ToolbarModule, PopoverModule, ButtonModule, ReleaseNotesComponent, QrScannerDemoComponent],
   templateUrl: './app.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {

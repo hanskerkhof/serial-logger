@@ -13,47 +13,37 @@
     <button
       pButton
       type="button"
-      label="Quick connect"
       severity="primary"
       size="small"
       (click)="quickConnect()"
-      [disabled]="serial.connected$.value || !serial.pairedPortsAvailable$.value || !serial.isSupported"
-    ></button>
+      [disabled]="serial.connected$.value || !serial.pairedPortsAvailable$.value || !serial.isSupported">Quick connect</button>
     <button
       pButton
       type="button"
-      label="Choose port…"
       severity="secondary"
       size="small"
       (click)="connect()"
-      [disabled]="serial.connected$.value || !serial.isSupported"
-    ></button>
+      [disabled]="serial.connected$.value || !serial.isSupported">Choose port…</button>
     <button
       pButton
       type="button"
-      label="Disconnect"
       severity="secondary"
       size="small"
       (click)="disconnect()"
-      [disabled]="!serial.connected$.value"
-    ></button>
+      [disabled]="!serial.connected$.value">Disconnect</button>
 
     <button
       pButton
       type="button"
-      label="View history"
       severity="secondary"
       size="small"
-      (click)="openHistoryDialog()"
-    ></button>
+      (click)="openHistoryDialog()">View history</button>
     <button
       pButton
       type="button"
-      label="Clear history"
       severity="secondary"
       size="small"
-      (click)="clearHistoryAll()"
-    ></button>
+      (click)="clearHistoryAll()">Clear history</button>
   </div>
 
   @if (!serial.isSupported) {
@@ -78,10 +68,8 @@
     <button
       pButton
       type="button"
-      label="Send"
       (click)="sendLine()"
-      [disabled]="!serial.connected$.value"
-    ></button>
+      [disabled]="!serial.connected$.value">Send</button>
   </p-inputgroup>
 
   <dialog #historyDialog class="direct__history-dialog">
@@ -90,14 +78,12 @@
       <button
         pButton
         type="button"
-        icon="pi pi-times"
         [text]="true"
         [rounded]="true"
         severity="secondary"
         size="small"
         (click)="closeHistoryDialog()"
-        aria-label="Close"
-      ></button>
+        aria-label="Close"><i class="pi pi-times"></i></button>
     </header>
 
     <div class="direct__history-list">
@@ -110,32 +96,26 @@
               <button
                 pButton
                 type="button"
-                label="Use"
                 severity="secondary"
                 size="small"
-                (click)="reuseHistoryItem(cmd)"
-              ></button>
+                (click)="reuseHistoryItem(cmd)">Use</button>
               <button
                 pButton
                 type="button"
-                label="Use + Send"
                 severity="secondary"
                 size="small"
                 (click)="reuseAndSend(cmd)"
                 [disabled]="!serial.connected$.value"
-                title="Use and send immediately"
-              ></button>
+                title="Use and send immediately">Use + Send</button>
               <button
                 pButton
                 type="button"
-                icon="pi pi-trash"
                 [text]="true"
                 [rounded]="true"
                 severity="secondary"
                 size="small"
                 (click)="deleteHistoryAt(i)"
-                title="Delete this entry"
-              ></button>
+                title="Delete this entry"><i class="pi pi-trash"></i></button>
             </li>
           }
         </ul>
@@ -148,19 +128,15 @@
       <button
         pButton
         type="button"
-        label="Clear all"
         severity="secondary"
         size="small"
-        (click)="clearHistoryAll()"
-      ></button>
+        (click)="clearHistoryAll()">Clear all</button>
       <button
         pButton
         type="button"
-        label="Close"
         severity="secondary"
         size="small"
-        (click)="closeHistoryDialog()"
-      ></button>
+        (click)="closeHistoryDialog()">Close</button>
     </footer>
   </dialog>
 </div>

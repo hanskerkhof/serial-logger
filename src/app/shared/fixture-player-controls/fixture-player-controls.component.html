@@ -29,15 +29,13 @@
               <button
                 pButton
                 type="button"
-                icon="pi pi-chevron-left"
                 [text]="true"
                 [rounded]="true"
                 severity="secondary"
                 size="small"
                 [disabled]="disabled() || opts.length === 0"
                 aria-label="Previous track"
-                (click)="prevTrack()"
-              ></button>
+                (click)="prevTrack()"><i class="pi pi-chevron-left"></i></button>
               <p-select
                 [options]="opts"
                 [ngModel]="trackNumber()"
@@ -57,7 +55,7 @@
                 (onShow)="onTrackSelectOpen()"
                 (onHide)="trackFilter.set(null); onTrackSelectClose()"
               >
-                <ng-template pTemplate="filtericon">
+                <ng-template #filtericon>
                   @if (trackFilter()) {
                     <i
                       class="pi pi-times fixture-player-controls__filter-clear"
@@ -74,15 +72,13 @@
               <button
                 pButton
                 type="button"
-                icon="pi pi-chevron-right"
                 [text]="true"
                 [rounded]="true"
                 severity="secondary"
                 size="small"
                 [disabled]="disabled() || opts.length === 0"
                 aria-label="Next track"
-                (click)="nextTrack()"
-              ></button>
+                (click)="nextTrack()"><i class="pi pi-chevron-right"></i></button>
               @if (selectedTrackName(); as selectedTrackName) {
                 <app-copy-to-clipboard [value]="selectedTrackName" />
               }

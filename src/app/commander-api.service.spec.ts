@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { CommanderApiService } from './commander-api.service';
@@ -17,7 +17,7 @@ describe('CommanderApiService', () => {
     TestBed.configureTestingModule({
       providers: [
         CommanderApiService,
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: AuthService, useClass: AuthServiceStub },
       ],

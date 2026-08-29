@@ -24,15 +24,13 @@
     <button
       pButton
       type="button"
-      icon="pi pi-chevron-left"
       [text]="true"
       [rounded]="true"
       severity="secondary"
       size="small"
       aria-label="Previous station"
       [disabled]="disabled() || stationOptions().length === 0"
-      (click)="prevStation()"
-    ></button>
+      (click)="prevStation()"><i class="pi pi-chevron-left"></i></button>
     <p-select
       class="radio-ps__select"
       [options]="stationOptions()"
@@ -50,7 +48,7 @@
       (onHide)="stationFilter.set(null)"
       [disabled]="disabled()"
     >
-      <ng-template pTemplate="filtericon">
+      <ng-template #filtericon>
         @if (stationFilter()) {
           <i
             class="pi pi-times radio-ps__filter-clear"
@@ -67,15 +65,13 @@
     <button
       pButton
       type="button"
-      icon="pi pi-chevron-right"
       [text]="true"
       [rounded]="true"
       severity="secondary"
       size="small"
       aria-label="Next station"
       [disabled]="disabled() || stationOptions().length === 0"
-      (click)="nextStation()"
-    ></button>
+      (click)="nextStation()"><i class="pi pi-chevron-right"></i></button>
     @if (stationUrl()) {
       <app-copy-to-clipboard [value]="stationUrl()" />
     }

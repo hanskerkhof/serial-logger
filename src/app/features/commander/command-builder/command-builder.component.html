@@ -12,11 +12,10 @@
       <span class="command-builder__field-label">fixture</span>
       <div class="command-builder__track-row">
         <button
-          pButton type="button" icon="pi pi-chevron-left" [text]="true" [rounded]="true"
+          pButton type="button" [text]="true" [rounded]="true"
           severity="secondary" size="small"
           [disabled]="disabled() || !fixtureOptions().length"
-          aria-label="Previous fixture" (click)="prevFixture()"
-        ></button>
+          aria-label="Previous fixture" (click)="prevFixture()"><i class="pi pi-chevron-left"></i></button>
         <p-select
           [options]="fixtureOptions()" optionLabel="label" optionValue="value"
           [ngModel]="fixture()" (ngModelChange)="fixture.set($event); fixtureChanged.emit($event)"
@@ -26,11 +25,10 @@
           styleClass="command-builder__select"
         ></p-select>
         <button
-          pButton type="button" icon="pi pi-chevron-right" [text]="true" [rounded]="true"
+          pButton type="button" [text]="true" [rounded]="true"
           severity="secondary" size="small"
           [disabled]="disabled() || !fixtureOptions().length"
-          aria-label="Next fixture" (click)="nextFixture()"
-        ></button>
+          aria-label="Next fixture" (click)="nextFixture()"><i class="pi pi-chevron-right"></i></button>
       </div>
     </div>
 
@@ -64,11 +62,10 @@
         <span class="command-builder__field-label">track</span>
         <div class="command-builder__track-row">
           <button
-            pButton type="button" icon="pi pi-chevron-left" [text]="true" [rounded]="true"
+            pButton type="button" [text]="true" [rounded]="true"
             severity="secondary" size="small"
             [disabled]="disabled() || !trackOptions().length"
-            aria-label="Previous track" (click)="prevTrack()"
-          ></button>
+            aria-label="Previous track" (click)="prevTrack()"><i class="pi pi-chevron-left"></i></button>
           <p-select
             [options]="trackOptions()" optionLabel="label" optionValue="value"
             [ngModel]="track()" (ngModelChange)="track.set($event)"
@@ -78,11 +75,10 @@
             styleClass="command-builder__select"
           ></p-select>
           <button
-            pButton type="button" icon="pi pi-chevron-right" [text]="true" [rounded]="true"
+            pButton type="button" [text]="true" [rounded]="true"
             severity="secondary" size="small"
             [disabled]="disabled() || !trackOptions().length"
-            aria-label="Next track" (click)="nextTrack()"
-          ></button>
+            aria-label="Next track" (click)="nextTrack()"><i class="pi pi-chevron-right"></i></button>
         </div>
       </div>
     }
@@ -106,16 +102,14 @@
       <span class="command-builder__field-label">&nbsp;</span>
       <div class="command-builder__actions">
         <button
-          pButton type="button" label="Apply" severity="secondary" size="small"
+          pButton type="button" severity="secondary" size="small"
           [disabled]="disabled() || !canApply()"
-          (click)="onApply()"
-        ></button>
+          (click)="onApply()">Apply</button>
         <button
-          pButton type="button" label="Send" size="small"
+          pButton type="button" size="small"
           [disabled]="disabled() || !canApply()"
           [loading]="sending()"
-          (click)="onSend()"
-        ></button>
+          (click)="onSend()">Send</button>
       </div>
     </div>
 

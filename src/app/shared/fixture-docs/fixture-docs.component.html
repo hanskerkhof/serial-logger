@@ -7,12 +7,10 @@
     [text]="true"
     [rounded]="true"
     severity="secondary"
-    [icon]="loading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"
     (click)="refreshDocs()"
     [disabled]="loading()"
     aria-label="Refresh documentation list"
-    title="Refresh documentation list"
-  ></button>
+    title="Refresh documentation list"><i [class]="loading() ? 'pi pi-refresh pi-spin' : 'pi pi-refresh'"></i></button>
 </div>
 
 @if (loading()) {

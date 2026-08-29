@@ -2,15 +2,13 @@
   <button
     pButton
     type="button"
-    icon="pi pi-clock"
     [text]="true"
     [rounded]="true"
     severity="secondary"
     size="small"
     title="Sync fixture time from browser"
     [disabled]="disabled()"
-    (click)="syncRequested.emit()"
-  ></button>
+    (click)="syncRequested.emit()"><i class="pi pi-clock"></i></button>
   @if (selectedFixtureTime(); as t) {
     <span class="fixture-time__label" [class.fixture-time__label--unset]="!t.synced">{{ t.label }}</span>
   }

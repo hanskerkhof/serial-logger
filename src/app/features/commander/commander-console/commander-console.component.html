@@ -21,12 +21,10 @@
       <button
         pButton
         type="button"
-        [label]="paused() ? 'Resume' : 'Pause'"
         severity="secondary"
         size="small"
-        (click)="togglePaused()"
-      ></button>
-      <button pButton type="button" label="Clear" severity="secondary" size="small" (click)="clear()"></button>
+        (click)="togglePaused()">{{ paused() ? 'Resume' : 'Pause' }}</button>
+      <button pButton type="button" severity="secondary" size="small" (click)="clear()">Clear</button>
       <label class="commander-console__switch-label">
         <p-toggleswitch [ngModel]="autoScroll()" (ngModelChange)="toggleAutoScroll()" />
         <span>Auto-scroll</span>

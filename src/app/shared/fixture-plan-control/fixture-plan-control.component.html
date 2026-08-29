@@ -10,25 +10,21 @@
       <button
         pButton
         type="button"
-        label="Plan trigger"
         severity="secondary"
         size="small"
         [loading]="loading()"
         [disabled]="loading() || disabled()"
-        (click)="onTrigger()"
-      ></button>
+        (click)="onTrigger()">Plan trigger</button>
     }
     @if (planControls()?.stop?.available) {
       <button
         pButton
         type="button"
-        label="Plan stop"
         severity="secondary"
         size="small"
         [loading]="loading()"
         [disabled]="loading() || disabled()"
-        (click)="onStop()"
-      ></button>
+        (click)="onStop()">Plan stop</button>
     }
   </div>
 }

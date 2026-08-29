@@ -8,9 +8,9 @@
     appendTo="body"
   >
     <p>{{ confirmCmd.confirm }}</p>
-    <ng-template pTemplate="footer">
-      <button pButton type="button" label="No" severity="secondary" size="small" (click)="onConfirmNo()"></button>
-      <button pButton type="button" label="Yes" severity="danger" size="small" (click)="onConfirmYes()"></button>
+    <ng-template #footer>
+      <button pButton type="button" severity="secondary" size="small" (click)="onConfirmNo()">No</button>
+      <button pButton type="button" severity="danger" size="small" (click)="onConfirmYes()">Yes</button>
     </ng-template>
   </p-dialog>
 }
@@ -172,15 +172,13 @@
                       <button
                         pButton
                         type="button"
-                        icon="pi pi-chevron-left"
                         [text]="true"
                         [rounded]="true"
                         severity="secondary"
                         size="small"
                         [disabled]="controlsDisabled() || selectOptions(arg).length === 0"
                         aria-label="Previous"
-                        (click)="prevNavOption(command, arg)"
-                      ></button>
+                        (click)="prevNavOption(command, arg)"><i class="pi pi-chevron-left"></i></button>
                       <p-select
                         class="fixture-custom-control__nav-select"
                         [options]="selectOptions(arg)"
@@ -198,7 +196,7 @@
                         (onFilter)="setNavSelectFilter(command.id, arg, $event.filter)"
                         (onHide)="setNavSelectFilter(command.id, arg, null)"
                       >
-                        <ng-template pTemplate="filtericon">
+                        <ng-template #filtericon>
                           @if (navSelectFilter(command.id, arg)) {
                             <i
                               class="pi pi-times fixture-custom-control__nav-filter-clear"
@@ -215,15 +213,13 @@
                       <button
                         pButton
                         type="button"
-                        icon="pi pi-chevron-right"
                         [text]="true"
                         [rounded]="true"
                         severity="secondary"
                         size="small"
                         [disabled]="controlsDisabled() || selectOptions(arg).length === 0"
                         aria-label="Next"
-                        (click)="nextNavOption(command, arg)"
-                      ></button>
+                        (click)="nextNavOption(command, arg)"><i class="pi pi-chevron-right"></i></button>
                     </div>
                   } @else {
                     <label class="fixture-custom-control__arg-inline">
@@ -243,11 +239,11 @@
                           <span class="fixture-custom-control__arg-value">{{ draftCommandArgValue(command.id, arg) }}</span>
                         }
                         @case ('checkbox') {
-                          <p-toggleSwitch
+                          <p-toggle-switch
                             [ngModel]="draftCommandArgValue(command.id, arg)"
                             (ngModelChange)="onArgChanged(command.id, arg, $event); onSliderRelease(command)"
                             [disabled]="controlsDisabled()"
-                          ></p-toggleSwitch>
+                          ></p-toggle-switch>
                         }
                         @case ('select') {
                           <p-select
@@ -286,13 +282,11 @@
                   <button
                     pButton
                     type="button"
-                    label="Run"
                     severity="secondary"
                     size="small"
                     [attr.data-testid]="command.id"
                     (click)="onRunCommand(command)"
-                    [disabled]="controlsDisabled()"
-                  ></button>
+                    [disabled]="controlsDisabled()">Run</button>
                 </div>
               }
             </div>

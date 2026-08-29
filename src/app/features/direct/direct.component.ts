@@ -7,6 +7,7 @@ import {
   OnInit,
   OnDestroy,
   AfterViewInit,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -26,6 +27,7 @@ interface BaudOption {
   standalone: true,
   imports: [FormsModule, ButtonModule, InputTextModule, InputGroupModule, SelectModule],
   templateUrl: './direct.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./direct.component.scss'],
 })
 export class DirectComponent implements OnInit, OnDestroy, AfterViewInit {

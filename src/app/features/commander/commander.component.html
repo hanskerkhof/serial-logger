@@ -619,9 +619,9 @@
                                 commanderUnavailable() ||
                                 updateFixturesLoading() ||
                                 !!fixture.stale ||
-                                fixture.raw['ota_binary_available'] !== true
+                                !fixtureFwStatusMap().get(fixture.fixture_name)?.binaryAvailable
                               "
-                              [title]="fixture.raw['ota_binary_available'] !== true ? 'No matching binary available for this fixture' : ''"
+                              [title]="!fixtureFwStatusMap().get(fixture.fixture_name)?.binaryAvailable ? 'No matching binary available for this fixture' : ''"
                               (click)="popoverUpdateFixture(fixture.fixture_name, 'binary'); fixtureRowMenu.hide()"><i class="pi pi-box"></i> Update from bin</button>
                           </div>
                           <div class="fixture-row-menu__rssi">

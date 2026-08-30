@@ -213,6 +213,14 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+// A fixture's `ota_binary_available`/`ota_binary_version` are snapshotted at the last
+// query — they can go stale if the API's release_version advances afterward (e.g. a
+// new build lands) without the fixture being re-queried. Trust the flag only when the
+// binary it found actually matches the *current* live release version.
+function isBinaryUsable(raw: Record<string, unknown>, release: string | null): boolean {
+  return raw['ota_binary_available'] === true && release !== null && raw['ota_binary_version'] === release;
+}
+
 @Component({
   selector: 'app-commander',
   standalone: true,
@@ -1377,7 +1385,7 @@ export class CommanderComponent implements OnInit {
               : null;
         if (v !== null) {
           const outdated = release !== null && compareVersions(v, release) < 0;
-          const binaryAvailable = fixture.raw['ota_binary_available'] === true;
+          const binaryAvailable = isBinaryUsable(fixture.raw, release);
           map.set(fixture.fixture_name, { fw: v, outdated, release, binaryAvailable });
         }
       }
@@ -1406,6 +1414,7 @@ export class CommanderComponent implements OnInit {
   );
 
   private readonly outdatedFixtureNamesWithBinary = computed(() => {
+    const release = this.health()?.api?.release_version ?? null;
     const outdated = new Set(this.outdatedFixtureNames().map((name) => name.trim().toUpperCase()));
     const selected: string[] = [];
     for (const group of this.groupedFixturesByPlanGroup()) {
@@ -1413,7 +1422,7 @@ export class CommanderComponent implements OnInit {
         for (const fixture of plan.fixtures) {
           const key = fixture.fixture_name.trim().toUpperCase();
           if (!outdated.has(key)) continue;
-          if (fixture.raw['ota_binary_available'] === true) selected.push(fixture.fixture_name);
+          if (isBinaryUsable(fixture.raw, release)) selected.push(fixture.fixture_name);
         }
       }
     }
@@ -2137,7 +2146,7 @@ export class CommanderComponent implements OnInit {
     if (!selected) return false;
     const fwStatus = this.selectedFixtureFwStatus();
     if (!fwStatus || fwStatus.direction === 'up-to-date') return false;
-    return selected.raw['ota_binary_available'] === true;
+    return isBinaryUsable(selected.raw, fwStatus.release);
   });
 
   protected readonly commanderVersionParityWarning = computed<string | null>(() => {

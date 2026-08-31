@@ -3,7 +3,7 @@ import { CopyToClipboardComponent } from '../copy-to-clipboard/copy-to-clipboard
 import { PlaybackMsPipe } from '../pipes/playback-ms.pipe';
 
 /**
- * Compact status readout for the ERBARME_DICH_TRACKS plan, shown above the
+ * Compact status readout for the ERBARME_DICH_COMP plan, shown above the
  * track/transport buttons. Reads the raw `state` sub-object of the fixture's
  * plan_state (produced by the plan's writeStateJson):
  *   current_track, track_count, playing, paused, tape_position_ms, path.
@@ -19,7 +19,7 @@ import { PlaybackMsPipe } from '../pipes/playback-ms.pipe';
   styleUrl: './erbarme-plan-state.component.scss',
 })
 export class ErbarmePlanStateComponent {
-  /** Raw `state` object from ERBARME_DICH_TRACKS plan_state (null before first query). */
+  /** Raw `state` object from ERBARME_DICH_COMP plan_state (null before first query). */
   readonly planState = input<Record<string, unknown> | null>(null);
 
   private num(key: string): number | null {

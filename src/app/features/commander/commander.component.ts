@@ -1638,14 +1638,14 @@ export class CommanderComponent implements OnInit {
   );
 
   /**
-   * True when the selected fixture runs an ERBARME shared-timeline WAV player.
-   * Both ERBARME_DICH_TRACKS (ESP32-A1S) and ERBARME_DICH_COMP (component build:
-   * WROOM + PCM5102A + SPI SD + rotary switch) emit the same plan_state shape,
-   * so they share the playback status readout.
+   * True when the selected fixture runs the ERBARME_DICH_COMP shared-timeline
+   * WAV player (WROOM + PCM5102A + SPI SD + rotary switch). The AudioKit
+   * sibling plan, ERBARME_DICH_TRACKS, was retired 2026-08-31 — this used to
+   * also match that plan name since both emitted the same plan_state shape.
    */
   protected readonly isErbarmeTracksFixture = computed<boolean>(() => {
     const planName = this.selectedFixture()?.plan_name;
-    return planName === 'ERBARME_DICH_TRACKS' || planName === 'ERBARME_DICH_COMP';
+    return planName === 'ERBARME_DICH_COMP';
   });
 
   /** Generic `state` sub-object from the selected fixture's latest plan_state. */

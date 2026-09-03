@@ -1227,8 +1227,9 @@
   padding: 0.5rem 0.625rem;
   background: var(--p-surface-100, #f3f4f6);
   border-radius: 4px;
-  max-height: 50rem;
-  overflow-y: auto;
+  // Height grows with content — no cap here. commander__dialog-body (the
+  // modal's own scroll container) handles overflow if the whole panel
+  // exceeds the viewport, so this box never needs its own scrollbar.
 
   ::ng-deep ngx-json-viewer {
     font-size: 0.72rem;

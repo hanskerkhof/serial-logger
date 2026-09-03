@@ -745,11 +745,40 @@ export class CommanderComponent implements OnInit {
     _l: (v) => `${v} (player volume)`,
     _q: (v) => `${v} (player EQ)`,
     _i: (v) => `${v} (player track index)`,
-    _s: (v) => `${v} (player ${v === 1 || v === '1' ? 'PLAYING' : 'STOPPED'})`,
     _e: (v) => `${v} ms (player elapsed)`,
     _d: (v) => `${v} ms (player duration)`,
     _a: (v) => `${v} (analog volume ${v === 1 || v === '1' ? 'enabled' : 'disabled'})`,
   };
+
+  /**
+   * PlanState enum names in ordinal order — must match BauklankPlan.h exactly
+   * (OFF=0, IDLE=1, PREPARE=2, READY=3, RUNNING=4, STOPPED=5, ERROR=6).
+   */
+  private static readonly PLAN_STATE_NAMES = [
+    'OFF',
+    'IDLE',
+    'PREPARE',
+    'READY',
+    'RUNNING',
+    'STOPPED',
+    'ERROR',
+  ];
+
+  /**
+   * `_s` means two different things depending on the fixture: for
+   * player-equipped fixtures it's FixturePlayer's playing/stopped flag
+   * (0/1); for NO_PLAYER fixtures with trigger/stop capability it's the raw
+   * PlanState ordinal (0-6, see CommandHandlers.h Step 1b). Disambiguate by
+   * checking whether `_l` (player volume, only ever present alongside a
+   * real `_s` player values) is also in the same state object.
+   */
+  private annotateS(value: unknown, hasPlayerContext: boolean): string {
+    if (hasPlayerContext) {
+      return `${value} (player ${value === 1 || value === '1' ? 'PLAYING' : 'STOPPED'})`;
+    }
+    const name = CommanderComponent.PLAN_STATE_NAMES[Number(value)] ?? 'UNKNOWN';
+    return `${value} (plan ${name})`;
+  }
 
   /** Annotates known base-contract keys inside `state` with a human-readable suffix, for display only. */
   private annotateStateForDisplay(
@@ -758,8 +787,14 @@ export class CommanderComponent implements OnInit {
     if (!msg) return null;
     const state = msg['state'];
     if (!state || typeof state !== 'object' || Array.isArray(state)) return msg;
+    const stateObj = state as Record<string, unknown>;
+    const hasPlayerContext = '_l' in stateObj;
     const annotatedState: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(state as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(stateObj)) {
+      if (key === '_s') {
+        annotatedState[key] = this.annotateS(value, hasPlayerContext);
+        continue;
+      }
       const annotate = CommanderComponent.STATE_KEY_ANNOTATIONS[key];
       annotatedState[key] = annotate ? annotate(value) : value;
     }

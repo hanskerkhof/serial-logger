@@ -732,6 +732,44 @@ export class CommanderComponent implements OnInit {
   protected readonly passivePsLastMsgOpen = signal(
     localStorage.getItem('cmdr.wsDisplayMessageOpen') !== '0',
   );
+
+  /**
+   * Human-readable labels for the underscore-prefixed base-contract `state`
+   * fields shared across many plans (see FixturePlayer.cpp's
+   * writePlayerStateJson() / docs/PLAYER_TYPES.md). Purely a display
+   * annotation for the "Latest message" JSON viewer — the underlying value
+   * (used elsewhere, e.g. selectedFixturePlayerState) is untouched.
+   */
+  private static readonly STATE_KEY_ANNOTATIONS: Record<string, (v: unknown) => string> = {
+    _t: (v) => `${v} (timestamp: ${new Date(Number(v) * 1000).toLocaleString()})`,
+    _l: (v) => `${v} (player volume)`,
+    _q: (v) => `${v} (player EQ)`,
+    _i: (v) => `${v} (player track index)`,
+    _s: (v) => `${v} (player ${v === 1 || v === '1' ? 'PLAYING' : 'STOPPED'})`,
+    _e: (v) => `${v} ms (player elapsed)`,
+    _d: (v) => `${v} ms (player duration)`,
+    _a: (v) => `${v} (analog volume ${v === 1 || v === '1' ? 'enabled' : 'disabled'})`,
+  };
+
+  /** Annotates known base-contract keys inside `state` with a human-readable suffix, for display only. */
+  private annotateStateForDisplay(
+    msg: Record<string, unknown> | null,
+  ): Record<string, unknown> | null {
+    if (!msg) return null;
+    const state = msg['state'];
+    if (!state || typeof state !== 'object' || Array.isArray(state)) return msg;
+    const annotatedState: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(state as Record<string, unknown>)) {
+      const annotate = CommanderComponent.STATE_KEY_ANNOTATIONS[key];
+      annotatedState[key] = annotate ? annotate(value) : value;
+    }
+    return { ...msg, state: annotatedState };
+  }
+
+  /** `passivePsLastMsg`, annotated for display in the "Latest message" JSON viewer. */
+  protected readonly passivePsLastMsgDisplay = computed(() =>
+    this.annotateStateForDisplay(this.passivePsLastMsg()),
+  );
   protected readonly passivePsLastAgoLabel = computed<string | null>(() => {
     const at = this.passivePsLastAt();
     if (at === null) return null;

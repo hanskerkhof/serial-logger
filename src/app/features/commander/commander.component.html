@@ -1446,7 +1446,7 @@
                   </button>
                   @if (passivePsLastMsgOpen()) {
                     <div class="commander__passive-ps-last-msg">
-                      <ngx-json-viewer [json]="msg" [expanded]="true"></ngx-json-viewer>
+                      <ngx-json-viewer [json]="passivePsLastMsgDisplay() ?? msg" [expanded]="true"></ngx-json-viewer>
                     </div>
                   }
                 </div>

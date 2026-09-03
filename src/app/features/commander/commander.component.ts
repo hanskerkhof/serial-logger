@@ -790,7 +790,11 @@ export class CommanderComponent implements OnInit {
     const stateObj = state as Record<string, unknown>;
     const hasPlayerContext = '_l' in stateObj;
     const annotatedState: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(stateObj)) {
+    // Plain codepoint comparison (not localeCompare) so `_` (95) sorts
+    // before lowercase letters (97+) consistently regardless of locale —
+    // underscore-prefixed base-contract keys (_a, _s, _t, ...) end up first.
+    const sortedEntries = Object.entries(stateObj).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    for (const [key, value] of sortedEntries) {
       if (key === '_s') {
         annotatedState[key] = this.annotateS(value, hasPlayerContext);
         continue;
